@@ -4,7 +4,7 @@ import java.util.*;
 import java.io.*;
 import shared.model.*;
 import shared.util.*;
-import Scenario1.factory.UserFactory;
+import Scenario1.builder.UserBuilder;
 
 /**
  * EECS 3311 - YorkU Conference Room Scheduler
@@ -48,6 +48,11 @@ public class UserManager {
         return instance;
     }
 
+    private boolean isValidEmail(String email) {
+        // General email format pattern
+        return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
     // =====================================================
     // Core Functionalities
     // =====================================================
@@ -56,29 +61,66 @@ public class UserManager {
      * Registers a new user after validation.
      */
     public boolean register(String name, String email, String password, String type) throws Exception {
+        // Step 1: Validate email format
+        if (!isValidEmail(email)) {
+            throw new Exception("Invalid email address. Please enter a valid format like name@domain.com");
+        }
+
+        // Step 2: Check if email already exists
         if (emailExists(email)) {
-            System.out.println("[ERROR] Email already registered.");
-            return false;
+            throw new Exception("Email already exists. Please use another email.");
         }
 
+        // Step 3: Check password strength
         if (!isStrongPassword(password)) {
-            System.out.println("[ERROR] Weak password.");
-            return false;
+            throw new Exception("Weak password! Must include:\n" +
+                    "• At least 1 uppercase letter\n" +
+                    "• At least 1 lowercase letter\n" +
+                    "• At least 1 number\n" +
+                    "• At least 1 special character (@, #, $, etc.)\n" +
+                    "• Minimum 6 characters total");
         }
 
-        // YorkU identity verification for university accounts
-        if (type.equalsIgnoreCase("student") || type.equalsIgnoreCase("faculty") || type.equalsIgnoreCase("staff")) {
-            if (!email.endsWith("@yorku.ca") && !email.endsWith("@my.yorku.ca"))
-                throw new Exception("Invalid YorkU email address.");
+        // Step 4: Domain-specific validation
+        if (type.equalsIgnoreCase("student")) {
+            if (!email.endsWith("@my.yorku.ca")) {
+                throw new Exception("Invalid Student email. Students must use @my.yorku.ca domain.");
+            }
+        }
+        else if (type.equalsIgnoreCase("faculty") || type.equalsIgnoreCase("staff")) {
+            if (!email.endsWith("@yorku.ca") && !email.endsWith("@my.yorku.ca")) {
+                throw new Exception("Invalid Faculty/Staff email. Must use @yorku.ca or @my.yorku.ca.");
+            }
+        }
+        // Step 4.5: Suggest correct user type if email-domain mismatch is detected
+        if (type.equalsIgnoreCase("partner")) {
+            if (email.endsWith("@my.yorku.ca")) {
+                throw new Exception("This appears to be a student email (@my.yorku.ca). "
+                        + "Please select 'Student' as your user type.");
+            } else if (email.endsWith("@yorku.ca")) {
+                throw new Exception("This appears to be a YorkU staff/faculty email (@yorku.ca). "
+                        + "Please select 'Faculty' or 'Staff' as your user type.");
+            }
         }
 
-        // Create user via Factory Method
-        User user = UserFactory.createUser(type, name, email, password);
-        users.add(user);
+
+        // Step 5: Register new user
+        User newUser = new Scenario1.builder.UserBuilder()
+                .setName(name)
+                .setEmail(email)
+                .setPassword(password)
+                .setType(type)
+                .build();
+
+        users.add(newUser);
         CSVHelper.saveUsers(CSV_PATH, users);
+
         System.out.println("[INFO] Registration successful for " + name);
         return true;
     }
+
+
+
 
     /**
      * Logs a user into the system.
