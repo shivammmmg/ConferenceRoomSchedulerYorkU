@@ -10,21 +10,21 @@ import shared.model.*;
  * Scenario: 1 - Registration & Account Management
  * ------------------------------------------------------------
  * Description:
- *  - Provides a flexible way to construct User objects step-by-step.
- *  - Used by UserManager (Singleton) to build validated User instances.
+ *  - Builds User objects step by step.
+ *  - Supports setting optional fields (like studentId).
+ *  - Used by UserManager for clean object creation.
  *
  * Author: Shivam Gupta
  * Date: November 2025
  */
 public class UserBuilder {
-
-    // attributes that will be set step-by-step
     private String name;
     private String email;
     private String password;
     private String type;
+    private String userType;
+    private String studentId = ""; // Optional field
 
-    // === builder methods ===
     public UserBuilder setName(String name) {
         this.name = name;
         return this;
@@ -40,28 +40,23 @@ public class UserBuilder {
         return this;
     }
 
-    public UserBuilder setType(String type) {
-        this.type = type;
+    public UserBuilder setUserType(String userType) {
+        this.userType = userType;
         return this;
     }
 
-    // === build method ===
-    public User build() {
-        if (name == null || email == null || password == null || type == null) {
-            throw new IllegalStateException("Missing required fields to build User.");
-        }
+    public UserBuilder setStudentId(String studentId) {
+        this.studentId = studentId;
+        return this;
+    }
 
-        switch (type.toLowerCase()) {
-            case "student":
-                return new StudentUser(name, email, password);
-            case "faculty":
-                return new FacultyUser(name, email, password);
-            case "staff":
-                return new StaffUser(name, email, password);
-            case "partner":
-                return new PartnerUser(name, email, password);
-            default:
-                throw new IllegalArgumentException("Invalid user type: " + type);
+    public User build() {
+        if ("Student".equalsIgnoreCase(userType)) {
+            // StudentUser constructor only takes 4 parameters
+            return new StudentUser(name, email, password, studentId);
+        } else {
+            return new User(name, email, password, userType) {};
         }
     }
+
 }

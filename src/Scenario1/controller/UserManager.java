@@ -60,7 +60,7 @@ public class UserManager {
     /**
      * Registers a new user after validation.
      */
-    public boolean register(String name, String email, String password, String type) throws Exception {
+    public boolean register(String name, String email, String password, String type, String studentId) throws Exception {
         // Step 1: Validate email format
         if (!isValidEmail(email)) {
             throw new Exception("Invalid email address. Please enter a valid format like name@domain.com");
@@ -78,7 +78,7 @@ public class UserManager {
                     "• At least 1 lowercase letter\n" +
                     "• At least 1 number\n" +
                     "• At least 1 special character (@, #, $, etc.)\n" +
-                    "• Minimum 6 characters total");
+                    "• Minimum 8 characters total");
         }
 
         // Step 4: Domain-specific validation
@@ -86,30 +86,22 @@ public class UserManager {
             if (!email.endsWith("@my.yorku.ca")) {
                 throw new Exception("Invalid Student email. Students must use @my.yorku.ca domain.");
             }
-        }
-        else if (type.equalsIgnoreCase("faculty") || type.equalsIgnoreCase("staff")) {
+            if (studentId == null || studentId.isEmpty()) {
+                throw new Exception("Student ID is required for student accounts.");
+            }
+        } else if (type.equalsIgnoreCase("faculty") || type.equalsIgnoreCase("staff")) {
             if (!email.endsWith("@yorku.ca") && !email.endsWith("@my.yorku.ca")) {
                 throw new Exception("Invalid Faculty/Staff email. Must use @yorku.ca or @my.yorku.ca.");
             }
         }
-        // Step 4.5: Suggest correct user type if email-domain mismatch is detected
-        if (type.equalsIgnoreCase("partner")) {
-            if (email.endsWith("@my.yorku.ca")) {
-                throw new Exception("This appears to be a student email (@my.yorku.ca). "
-                        + "Please select 'Student' as your user type.");
-            } else if (email.endsWith("@yorku.ca")) {
-                throw new Exception("This appears to be a YorkU staff/faculty email (@yorku.ca). "
-                        + "Please select 'Faculty' or 'Staff' as your user type.");
-            }
-        }
 
-
-        // Step 5: Register new user
+        // Step 5: Build user via Builder Pattern
         User newUser = new Scenario1.builder.UserBuilder()
                 .setName(name)
                 .setEmail(email)
                 .setPassword(password)
-                .setType(type)
+                .setUserType(type)
+                .setStudentId(studentId)
                 .build();
 
         users.add(newUser);
@@ -118,6 +110,7 @@ public class UserManager {
         System.out.println("[INFO] Registration successful for " + name);
         return true;
     }
+
 
 
 

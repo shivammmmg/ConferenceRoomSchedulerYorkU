@@ -16,7 +16,14 @@ public class UserManagerTest {
 
         // Test registration
         System.out.println("\n=== Registering a new user ===");
-        manager.register("John Doe", "john@yorku.ca", "Abc@1234", "Student");
+        manager.register(
+                "John Doe",
+                "john@yorku.ca",
+                "Abc@1234",
+                "Student",
+                "S1234567"   // <-- New parameter added here
+        );
+
 
         // Test login
         System.out.println("\n=== Testing Login ===");
