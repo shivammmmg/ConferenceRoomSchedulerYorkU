@@ -19,6 +19,10 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.util.Duration; // === ADDED ===
 import Scenario1.controller.UserManager;
+import javafx.animation.TranslateTransition;
+import javafx.animation.Interpolator;
+import javafx.util.Duration;
+
 
 import java.util.Arrays;
 import java.util.List;
@@ -67,6 +71,7 @@ public class RegisterFX extends Application {
         subTagline.setAlignment(Pos.CENTER);
 
         leftPanel.getChildren().addAll(logoView, tagline, subTagline);
+        
 
         // ==========================================================
         // =============== 2. REGISTRATION FORM CARD =================
