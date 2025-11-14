@@ -1,66 +1,81 @@
-/* ===== LEFT PANEL GRADIENT ===== */
-.left-panel {
-    -fx-padding: 40;
-    -fx-background-color: linear-gradient(to bottom, #AD001D, #7A0019);
-}
-
-/* ===== TEXT STYLES ===== */
-.main-title {
-    -fx-text-fill: white;
-    -fx-font-size: 18px;
-    -fx-font-weight: bold;
-    -fx-text-alignment: center;
-}
-
-.sub-title {
-    -fx-text-fill: rgba(255,255,255,0.85);
-    -fx-font-size: 14px;
-    -fx-text-alignment: center;
-}
-
-.card-title {
-    -fx-font-size: 22px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #212121;
-}
-
-/* ===== FORM CARD ===== */
 .form-card {
     -fx-background-color: white;
-    -fx-background-radius: 10;
-    -fx-padding: 30;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 10, 0, 0, 4);
+    -fx-background-radius: 15;
+    -fx-padding: 35 40;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 30, 0, 0, 8);
 }
 
-/* ===== BUTTONS ===== */
+/* Title */
+.card-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #222;
+}
+
+/* Input Fields */
+.input-field {
+    -fx-pref-width: 350;
+    -fx-padding: 10 40 10 12;
+}
+
+.text-field, .password-field, .combo-box, .input-field {
+    -fx-background-color: #fafafa;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-border-color: #ddd;
+}
+
+.text-field:hover, .password-field:hover, .combo-box:hover, .input-field:hover {
+    -fx-border-color: #bbb;
+}
+
+/* Eye Icon */
+.eye-button {
+    -fx-background-color: transparent;
+    -fx-font-size: 14;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+
+.eye-button:hover {
+    -fx-opacity: 0.7;
+}
+
+/* Field Labels */
+.field-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #444;
+}
+
+/* Buttons */
 .register-button {
     -fx-background-color: #AD001D;
     -fx-text-fill: white;
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-    -fx-background-radius: 6;
+    -fx-font-size: 15px;
+    -fx-background-radius: 8;
+    -fx-padding: 10 0;
+    -fx-pref-width: 220;
+}
+
+.register-button:hover {
+    -fx-background-color: #c40022;
 }
 
 .back-button {
-    -fx-background-color: #F0F0F0;
+    -fx-background-color: #f0f0f0;
     -fx-text-fill: #333;
-    -fx-font-size: 14px;
-    -fx-background-radius: 6;
+    -fx-background-radius: 8;
+    -fx-padding: 8 0;
+    -fx-pref-width: 220;
 }
 
-/* Eye icon */
-.eye-button {
-    -fx-background-color: transparent;
-    -fx-font-size: 14px;
+.back-button:hover {
+    -fx-background-color: #e6e6e6;
 }
 
-/* Hint label text */
-.hint-label {
-    -fx-font-size: 9.5px;
-    -fx-text-fill: gray;
-}
-
-/* Focus glow (same as your Java code) */
-.text-field:focused, .password-field:focused {
-    -fx-effect: dropshadow(gaussian, rgba(173,0,29,0.4), 8, 0, 0, 0);
+/* Strength */
+.strength-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #777;
 }
