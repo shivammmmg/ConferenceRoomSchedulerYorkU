@@ -3,28 +3,57 @@ package Scenario1.builder;
 import shared.model.*;
 
 /**
- * EECS 3311 - YorkU Conference Room Scheduler
- * ------------------------------------------------------------
- * Class: UserBuilder
- * Pattern: Builder
- * Scenario: 1 - Registration & Account Management
- * ------------------------------------------------------------
- * Description:
- *  - Builds User objects step by step.
- *  - Supports setting optional fields (like studentId).
- *  - Used by UserManager for clean object creation.
+ * =============================================================================
+ * CLASS: UserBuilder
+ * PATTERN: Builder Pattern
+ * SCENARIO: 1 — Registration & Account Management
+ * =============================================================================
  *
- * Author: Shivam Gupta
- * Date: November 2025
+ * PURPOSE:
+ *   - Removes complexity from object creation in UserManager.
+ *   - Provides a clean, step-by-step way to construct User objects.
+ *   - Supports optional fields (e.g., studentId is only used for Student users).
+ *   - Makes user creation flexible, readable, and maintainable.
+ *
+ * HOW IT WORKS:
+ *   - Each setter returns the same builder instance → enables method chaining.
+ *   - The build() method creates the correct subclass of User based on userType.
+ *
+ * SUPPORTED USER CLASSES:
+ *   - StudentUser
+ *   - FacultyUser
+ *   - StaffUser
+ *   - PartnerUser
+ *
+ * WHEN THIS GETS USED:
+ *   - Called exclusively by UserManager.register()
+ *     Example:
+ *       new UserBuilder()
+ *          .setName(name)
+ *          .setEmail(email)
+ *          ...
+ *          .build();
+ *
+ * AUTHOR: Shivam Gupta
+ * DATE: November 2025
+ * =============================================================================
  */
 public class UserBuilder {
 
+    // -------------------------------------------------------------------------
+    // Fields collected during the building process
+    // -------------------------------------------------------------------------
     private String name;
     private String email;
     private String password;
     private String userType;
-    private String studentId = ""; // optional
+    private String studentId = "";  // Optional field for Student accounts only
 
+
+    // -------------------------------------------------------------------------
+    // Fluent Builder Setters
+    // Return "this" to allow chaining: new UserBuilder().setName(...).setEmail(...)
+    // -------------------------------------------------------------------------
     public UserBuilder setName(String name) {
         this.name = name;
         return this;
@@ -50,24 +79,35 @@ public class UserBuilder {
         return this;
     }
 
+
+    // -------------------------------------------------------------------------
+    // BUILD METHOD
+    // Creates and returns the correct User model object.
+    // Throws exception if an unsupported user type is passed.
+    // -------------------------------------------------------------------------
     public User build() {
 
+        // Students require a studentId
         if ("Student".equalsIgnoreCase(userType)) {
             return new StudentUser(name, email, password, studentId);
         }
 
+        // Faculty User
         if ("Faculty".equalsIgnoreCase(userType)) {
             return new FacultyUser(name, email, password);
         }
 
+        // Staff User
         if ("Staff".equalsIgnoreCase(userType)) {
             return new StaffUser(name, email, password);
         }
 
+        // External Partner User
         if ("Partner".equalsIgnoreCase(userType)) {
             return new PartnerUser(name, email, password);
         }
 
+        // Safety: if we get here, the type is invalid or unknown
         throw new IllegalArgumentException("Unknown user type: " + userType);
     }
 }

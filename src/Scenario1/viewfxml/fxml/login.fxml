@@ -3,25 +3,24 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.control.*?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
-<?import javafx.scene.control.*?>
+<?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.layout.HBox?>
 
 <AnchorPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="Scenario1.viewfxml.controller.RegisterController"
-            stylesheets="@../css/register.css">
+            fx:controller="Scenario1.viewfxml.controller.LoginController"
+            stylesheets="@../css/login.css">
 
-    <!-- FULLSCREEN BACKGROUND -->
     <StackPane fx:id="root"
                AnchorPane.topAnchor="0"
                AnchorPane.bottomAnchor="0"
                AnchorPane.leftAnchor="0"
                AnchorPane.rightAnchor="0">
 
-        <!-- BLURRED BACKGROUND IMAGE -->
+        <!-- Background -->
         <ImageView fx:id="backgroundImage"
                    fitWidth="1920" fitHeight="1080"
                    preserveRatio="false">
@@ -30,65 +29,52 @@
             </image>
         </ImageView>
 
-        <!-- DARK OVERLAY -->
+        <!-- Dark Overlay -->
         <Rectangle fx:id="darkOverlay"
-                   width="1920" height="1080"
-                   fill="#00000066"/>
+                   fill="#00000066"
+                   width="1920" height="1080"/>
 
-        <!-- WHITE FORM CARD -->
+        <!-- Login Form Card -->
         <VBox fx:id="formCard"
               alignment="TOP_CENTER"
               spacing="18"
               maxWidth="420"
-              maxHeight="770"
+              maxHeight="550"
               styleClass="form-card">
 
-            <!-- YorkU LOGO -->
+            <!-- YorkU Logo -->
             <ImageView fx:id="logoImage"
-                       fitHeight="60"
-                       fitWidth="140">
+                       fitWidth="140" fitHeight="60">
                 <image>
                     <Image url="/images/yorku_logo.png"/>
                 </image>
             </ImageView>
 
-
-            <!-- PAGE TITLE -->
-            <Label text="Create Your Account"
-                   styleClass="card-title"/>
-
-            <!-- Account Type -->
-            <Label text="Account Type" styleClass="field-label"/>
-            <ComboBox fx:id="typeBox" promptText="Select Type" />
-
-            <!-- Full Name -->
-            <Label text="Full Name" styleClass="field-label"/>
-            <TextField fx:id="nameField" promptText="Enter your full name"/>
+            <Label text="Welcome Back" styleClass="card-title"/>
+            <Label text="Login to continue" styleClass="field-label"/>
 
             <!-- Email -->
             <Label text="Email Address" styleClass="field-label"/>
-            <TextField fx:id="emailField" promptText="e.g., name@my.yorku.ca"/>
+            <TextField fx:id="emailField"
+                       promptText="yourname@yorku.ca"/>
 
             <!-- Password -->
             <Label text="Password" styleClass="field-label"/>
 
             <StackPane maxWidth="350">
 
-                <!-- Hidden password -->
                 <PasswordField fx:id="passwordField"
-                               promptText="Enter a strong password"
                                styleClass="input-field"
+                               promptText="Enter password"
                                maxWidth="350"/>
 
-                <!-- Visible password -->
                 <TextField fx:id="visiblePasswordField"
-                           promptText="Enter a strong password"
                            styleClass="input-field"
+                           promptText="Enter password"
                            maxWidth="350"
                            visible="false"
                            managed="false"/>
 
-                <!-- Eye icon -->
                 <Button fx:id="showPassBtn"
                         text="👁"
                         styleClass="eye-button"
@@ -96,29 +82,19 @@
                         translateX="-12"/>
             </StackPane>
 
-            <!-- Strength Bar -->
-            <ProgressBar fx:id="strengthBar" prefWidth="260"/>
-            <Label fx:id="strengthLabel"
-                   text="Strength: Weak"
-                   styleClass="strength-label"/>
+            <!-- Forgot Password -->
+            <Button fx:id="forgotBtn"
+                    text="Forgot Password?"
+                    styleClass="link-button"/>
 
-            <!-- Student ID -->
-            <Label fx:id="studentIdLbl"
-                   text="Student ID"
-                   visible="false"
-                   styleClass="field-label"/>
-
-            <TextField fx:id="studentIdField"
-                       promptText="Your YorkU Student Number"
-                       visible="false"/>
-
-            <!-- Buttons -->
-            <Button fx:id="registerBtn"
-                    text="Create Account"
+            <!-- Login Button -->
+            <Button fx:id="loginBtn"
+                    text="Login"
                     styleClass="register-button"/>
 
-            <Button fx:id="backBtn"
-                    text="Back to Login"
+            <!-- Go to Register -->
+            <Button fx:id="registerBtn"
+                    text="Create New Account"
                     styleClass="back-button"/>
 
         </VBox>

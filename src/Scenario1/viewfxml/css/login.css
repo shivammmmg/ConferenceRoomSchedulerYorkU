@@ -1,0 +1,78 @@
+/* =============================================================
+   FORM CARD (White box container)
+   - Holds input fields & buttons
+   - Rounded corners + shadow for depth
+   ============================================================= */
+.form-card {
+    -fx-background-color: white;
+    -fx-background-radius: 15;                /* Rounded edges */
+    -fx-padding: 40 40;                       /* Inner spacing */
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 30, 0, 0, 8); /* Soft shadow */
+}
+
+/* =============================================================
+   MAIN TITLE (e.g., "Login", "Reset Password")
+   ============================================================= */
+.card-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+}
+
+/* =============================================================
+   LABELS ABOVE INPUT FIELDS
+   ============================================================= */
+.field-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* =============================================================
+   INPUT TEXTFIELDS (Email, Password)
+   - Light background
+   - Subtle border
+   ============================================================= */
+.input-field {
+    -fx-padding: 10 40 10 12;      /* Extra right padding for 'eye' button space */
+    -fx-background-color: #fafafa;
+    -fx-background-radius: 6;
+    -fx-border-color: #ddd;
+}
+
+/* =============================================================
+   EYE BUTTON (Show/Hide Password)
+   - Transparent so only emoji is visible
+   ============================================================= */
+.eye-button {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;              /* Pointer cursor */
+}
+
+/* =============================================================
+   TEXT LINKS (Forgot Password?, Create New Account)
+   - Styled as hyperlinks
+   ============================================================= */
+.link-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #AD001D;        /* YorkU red */
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+}
+
+/* =============================================================
+   PRIMARY BUTTON (Login, Register, Reset Password)
+   - YorkU red background
+   ============================================================= */
+.register-button {
+    -fx-background-color: #AD001D; /* Red */
+    -fx-text-fill: white;          /* White text */
+    -fx-background-radius: 8;
+}
+
+/* =============================================================
+   BACK BUTTON (Return to Login)
+   - Light grey panel-style button
+   ============================================================= */
+.back-button {
+    -fx-background-color: #f0f0f0;
+    -fx-background-radius: 8;
+}

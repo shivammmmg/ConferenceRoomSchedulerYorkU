@@ -1,3 +1,9 @@
+/* =============================================================
+   FORM CARD (White registration box container)
+   - Rounded corners
+   - Drop shadow for depth
+   - Padding for spacing inside the card
+   ============================================================= */
 .form-card {
     -fx-background-color: white;
     -fx-background-radius: 15;
@@ -5,31 +11,44 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 30, 0, 0, 8);
 }
 
-/* Title */
+/* =============================================================
+   MAIN TITLE (e.g., "Create Account")
+   ============================================================= */
 .card-title {
     -fx-font-size: 26px;
     -fx-font-weight: bold;
     -fx-text-fill: #222;
 }
 
-/* Input Fields */
+/* =============================================================
+   BASE INPUT FIELD STYLE
+   - Controls width, padding, and base design
+   ============================================================= */
 .input-field {
     -fx-pref-width: 350;
-    -fx-padding: 10 40 10 12;
+    -fx-padding: 10 40 10 12;  /* Right padding leaves space for eye icon */
 }
 
+/* =============================================================
+   GENERAL INPUT STYLE FOR ALL FIELDS
+   - TextField, PasswordField, ComboBox
+   - Soft grey background + rounded edges
+   ============================================================= */
 .text-field, .password-field, .combo-box, .input-field {
     -fx-background-color: #fafafa;
     -fx-background-radius: 6;
     -fx-border-radius: 6;
-    -fx-border-color: #ddd;
+    -fx-border-color: #ddd;      /* Subtle border */
 }
 
+/* Hover effect to improve user feedback */
 .text-field:hover, .password-field:hover, .combo-box:hover, .input-field:hover {
     -fx-border-color: #bbb;
 }
 
-/* Eye Icon */
+/* =============================================================
+   PASSWORD VISIBILITY TOGGLE (Eye icon)
+   ============================================================= */
 .eye-button {
     -fx-background-color: transparent;
     -fx-font-size: 14;
@@ -41,16 +60,21 @@
     -fx-opacity: 0.7;
 }
 
-/* Field Labels */
+/* =============================================================
+   LABELS ABOVE INPUT FIELDS
+   ============================================================= */
 .field-label {
     -fx-font-size: 13px;
     -fx-font-weight: bold;
     -fx-text-fill: #444;
 }
 
-/* Buttons */
+/* =============================================================
+   PRIMARY BUTTON (Register)
+   - Uses YorkU red
+   ============================================================= */
 .register-button {
-    -fx-background-color: #AD001D;
+    -fx-background-color: #AD001D;  /* YorkU Red */
     -fx-text-fill: white;
     -fx-font-size: 15px;
     -fx-background-radius: 8;
@@ -59,9 +83,12 @@
 }
 
 .register-button:hover {
-    -fx-background-color: #c40022;
+    -fx-background-color: #c40022;  /* Slightly brighter on hover */
 }
 
+/* =============================================================
+   SECONDARY BUTTON (Back)
+   ============================================================= */
 .back-button {
     -fx-background-color: #f0f0f0;
     -fx-text-fill: #333;
@@ -74,8 +101,49 @@
     -fx-background-color: #e6e6e6;
 }
 
-/* Strength */
+/* =============================================================
+   PASSWORD STRENGTH LABEL (Weak / Fair / Strong)
+   ============================================================= */
 .strength-label {
     -fx-font-size: 11px;
     -fx-text-fill: #777;
+}
+
+/* =============================================================
+   BASE PROGRESS BAR STYLE
+   - Removes default blue bar
+   - Adds padding for height + rounded edges
+   ============================================================= */
+.progress-bar > .bar {
+    -fx-background-insets: 0;
+    -fx-padding: 6 0 6 0;
+    -fx-background-radius: 6;
+}
+
+/* =============================================================
+   STRENGTH COLORS (Controlled by dynamic style classes)
+   ============================================================= */
+.weak-bar > .bar {
+    -fx-background-color: #d9534f;     /* Red */
+}
+
+.fair-bar > .bar {
+    -fx-background-color: #f0ad4e;     /* Yellow/Orange */
+}
+
+.strong-bar > .bar {
+    -fx-background-color: #5cb85c;     /* Green */
+}
+
+/* =============================================================
+   UNIFORM INPUT SIZE
+   - Ensures password visible-field height matches TextField height
+   ============================================================= */
+.uniform-input {
+    -fx-pref-width: 350;
+    -fx-pref-height: 36;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-background-color: #fafafa;
+    -fx-border-color: #ddd;
 }

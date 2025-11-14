@@ -71,7 +71,7 @@ public class RegisterFX extends Application {
         subTagline.setAlignment(Pos.CENTER);
 
         leftPanel.getChildren().addAll(logoView, tagline, subTagline);
-        
+
 
         // ==========================================================
         // =============== 2. REGISTRATION FORM CARD =================
