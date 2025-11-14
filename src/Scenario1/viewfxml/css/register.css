@@ -1,0 +1,66 @@
+/* ===== LEFT PANEL GRADIENT ===== */
+.left-panel {
+    -fx-padding: 40;
+    -fx-background-color: linear-gradient(to bottom, #AD001D, #7A0019);
+}
+
+/* ===== TEXT STYLES ===== */
+.main-title {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+}
+
+.sub-title {
+    -fx-text-fill: rgba(255,255,255,0.85);
+    -fx-font-size: 14px;
+    -fx-text-alignment: center;
+}
+
+.card-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #212121;
+}
+
+/* ===== FORM CARD ===== */
+.form-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-padding: 30;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 10, 0, 0, 4);
+}
+
+/* ===== BUTTONS ===== */
+.register-button {
+    -fx-background-color: #AD001D;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6;
+}
+
+.back-button {
+    -fx-background-color: #F0F0F0;
+    -fx-text-fill: #333;
+    -fx-font-size: 14px;
+    -fx-background-radius: 6;
+}
+
+/* Eye icon */
+.eye-button {
+    -fx-background-color: transparent;
+    -fx-font-size: 14px;
+}
+
+/* Hint label text */
+.hint-label {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: gray;
+}
+
+/* Focus glow (same as your Java code) */
+.text-field:focused, .password-field:focused {
+    -fx-effect: dropshadow(gaussian, rgba(173,0,29,0.4), 8, 0, 0, 0);
+}

@@ -18,12 +18,12 @@ import shared.model.*;
  * Date: November 2025
  */
 public class UserBuilder {
+
     private String name;
     private String email;
     private String password;
-    private String type;
     private String userType;
-    private String studentId = ""; // Optional field
+    private String studentId = ""; // optional
 
     public UserBuilder setName(String name) {
         this.name = name;
@@ -51,12 +51,23 @@ public class UserBuilder {
     }
 
     public User build() {
-        if ("Student".equalsIgnoreCase(userType)) {
-            // StudentUser constructor only takes 4 parameters
-            return new StudentUser(name, email, password, studentId);
-        } else {
-            return new User(name, email, password, userType) {};
-        }
-    }
 
+        if ("Student".equalsIgnoreCase(userType)) {
+            return new StudentUser(name, email, password, studentId);
+        }
+
+        if ("Faculty".equalsIgnoreCase(userType)) {
+            return new FacultyUser(name, email, password);
+        }
+
+        if ("Staff".equalsIgnoreCase(userType)) {
+            return new StaffUser(name, email, password);
+        }
+
+        if ("Partner".equalsIgnoreCase(userType)) {
+            return new PartnerUser(name, email, password);
+        }
+
+        throw new IllegalArgumentException("Unknown user type: " + userType);
+    }
 }

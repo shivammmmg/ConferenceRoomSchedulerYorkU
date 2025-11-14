@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="Scenario1.viewfxml.controller.RegisterController"
+            stylesheets="@../css/register.css">
+
+    <HBox fx:id="root"
+          AnchorPane.topAnchor="0"
+          AnchorPane.bottomAnchor="0"
+          AnchorPane.leftAnchor="0"
+          AnchorPane.rightAnchor="0">
+
+
+    <!-- ================= LEFT BRANDING PANEL ================= -->
+        <VBox fx:id="leftPanel"
+              alignment="CENTER"
+              spacing="20"
+              prefWidth="280"
+              styleClass="left-panel">
+
+            <ImageView fx:id="logoView"
+                       fitHeight="80"
+                       preserveRatio="true"
+                       pickOnBounds="true">
+                <image>
+                    <Image url="/images/yorku_logo.png"/>
+                </image>
+            </ImageView>
+
+            <Label text="YorkU Conference Room Scheduler"
+                   styleClass="main-title"/>
+
+            <Label text="Book smarter.&#10;Manage better"
+                   styleClass="sub-title"/>
+        </VBox>
+
+        <!-- ================= RIGHT FORM CARD ================= -->
+        <VBox fx:id="formCard"
+              alignment="CENTER"
+              spacing="15"
+              prefWidth="380"
+              styleClass="form-card">
+
+            <Label text="Create Your Account"
+                   styleClass="card-title"/>
+
+            <GridPane fx:id="formGrid"
+                      hgap="10"
+                      vgap="12">
+                <padding>
+                    <Insets top="20" right="20" bottom="20" left="20"/>
+                </padding>
+
+
+                <!-- Account Type -->
+                <Label text="Account Type" GridPane.rowIndex="0"/>
+                <ComboBox fx:id="userTypeBox"
+                          promptText="Select Type"
+                          GridPane.rowIndex="1"/>
+
+                <!-- Full Name -->
+                <Label text="Full Name" GridPane.rowIndex="2"/>
+                <TextField fx:id="nameField"
+                           promptText="Enter your full name"
+                           GridPane.rowIndex="3"/>
+
+                <!-- Email -->
+                <Label text="Email Address" GridPane.rowIndex="4"/>
+                <TextField fx:id="emailField"
+                           promptText="e.g., name@my.yorku.ca"
+                           GridPane.rowIndex="5"/>
+
+                <!-- Password -->
+                <Label text="Password" GridPane.rowIndex="6"/>
+                <StackPane GridPane.rowIndex="7">
+                    <PasswordField fx:id="passField"
+                                   promptText="Enter a strong password"/>
+                    <TextField fx:id="visiblePassField"
+                               promptText="Enter a strong password"
+                               visible="false"
+                               managed="false"/>
+                    <Button fx:id="showPassBtn"
+                            text="👁"
+                            alignment="CENTER_RIGHT"
+                            styleClass="eye-button"/>
+                </StackPane>
+
+                <!-- Password Strength -->
+                <ProgressBar fx:id="strengthBar"
+                             prefWidth="250"
+                             GridPane.rowIndex="8"/>
+
+                <Label fx:id="strengthLabel"
+                       text="Strength: Weak"
+                       GridPane.rowIndex="9"/>
+
+                <Label text="Must include uppercase, lowercase, number, and symbol (8+ chars)"
+                       styleClass="hint-label"
+                       GridPane.rowIndex="10"/>
+
+                <!-- Student ID -->
+                <Label fx:id="studentIdLbl"
+                       text="Student ID"
+                       visible="false"
+                       GridPane.rowIndex="11"/>
+                <TextField fx:id="studentIdField"
+                           promptText="Your YorkU Student Number"
+                           visible="false"
+                           GridPane.rowIndex="12"/>
+
+            </GridPane>
+
+            <!-- Buttons -->
+            <VBox alignment="CENTER" spacing="10">
+                <Button fx:id="registerBtn"
+                        text="Create Account"
+                        styleClass="register-button"/>
+                <Button fx:id="backBtn"
+                        text="Back to Login"
+                        styleClass="back-button"/>
+            </VBox>
+
+        </VBox>
+
+    </HBox>
+
+</AnchorPane>
