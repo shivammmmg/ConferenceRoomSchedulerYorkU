@@ -1,92 +1,98 @@
 package shared.util;
 
+import shared.model.SystemUser;
+import shared.model.User;
+import shared.model.UserType;
+
 import java.io.*;
-import java.util.*;
-
-import scenario1.builder.UserBuilder;
-import shared.model.*;
-
-
+import java.util.ArrayList;
 
 /**
- * EECS 3311 - YorkU Conference Room Scheduler
- * ------------------------------------------------------------
- * Class: CSVHelper
- * Purpose:
- *  - Reads and writes user data (with optional studentId).
- *  - Supports Builder pattern and StudentUser extension.
- *  - Used by the UserManager (Singleton) controller.
+ * CSVHelper
+ * -------------------------------------------------------------------------
+ * Handles loading and saving of users in CSV format.
  *
+ * Works with the NEW SystemUser structure (single subclass + enum UserType).
+ * Clean, simple, predictable CSV format:
+ *
+ *   name,email,passwordHash,userType,orgId,studentId
+ *
+ * studentId may be empty for non-students.
+ * -------------------------------------------------------------------------
  */
 public class CSVHelper {
 
     /**
      * Loads all users from the CSV file.
-     * Each line format: name,email,password,userType,studentId(optional)
      */
     public static ArrayList<User> loadUsers(String path) throws Exception {
+
         ArrayList<User> list = new ArrayList<>();
         File file = new File(path);
 
-        // Create the file if missing (so app never crashes on first run)
+        // Ensure directory + file exist
         if (!file.exists()) {
-            file.getParentFile().mkdirs();
+            if (file.getParentFile() != null)
+                file.getParentFile().mkdirs();
             file.createNewFile();
-            return list;
+            return list; // empty list
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
+
             while ((line = br.readLine()) != null) {
-                // Skip empty lines
+
                 if (line.trim().isEmpty()) continue;
 
-                String[] parts = line.split(",");
+                String[] parts = line.split(",", -1); // keep empty fields
 
-                // Handle legacy users (without studentId)
-                String name = parts.length > 0 ? parts[0].trim() : "";
-                String email = parts.length > 1 ? parts[1].trim() : "";
-                String password = parts.length > 2 ? parts[2].trim() : "";
-                String userType = parts.length > 3 ? parts[3].trim() : "";
-                String studentId = parts.length > 4 ? parts[4].trim() : "";
+                // Safe indexing
+                String name       = parts.length > 0 ? parts[0] : "";
+                String email      = parts.length > 1 ? parts[1] : "";
+                String password   = parts.length > 2 ? parts[2] : "";
+                String typeStr    = parts.length > 3 ? parts[3] : "";
+                String orgId      = parts.length > 4 ? parts[4] : "";
+                String studentId  = parts.length > 5 ? parts[5] : "";
 
-                // Use Builder pattern to construct user objects
-                User user = new UserBuilder()
-                        .setName(name)
-                        .setEmail(email)
-                        .setPassword(password)
-                        .setUserType(userType)
-                        .setStudentId(studentId)
-                        .build();
+                UserType type = UserType.valueOf(typeStr.toUpperCase());
 
-                list.add(user);
+                User u = new SystemUser(
+                        name,
+                        email,
+                        password,
+                        type,
+                        orgId,
+                        studentId.isBlank() ? null : studentId
+                );
+
+                list.add(u);
             }
         }
+
         return list;
     }
 
+
     /**
-     * Saves the current user list back to the CSV file.
-     * Each line format: name,email,password,userType,studentId(optional)
+     * Saves all users to CSV in a consistent order.
      */
     public static void saveUsers(String path, ArrayList<User> list) throws Exception {
+
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
             for (User u : list) {
-                String studentId = "";
-                try {
-                    // Only StudentUser has getStudentId()
-                    if (u.getUserType().equalsIgnoreCase("Student")) {
-                        studentId = (String) u.getClass().getMethod("getStudentId").invoke(u);
-                    }
-                } catch (Exception ignored) {}
 
-                bw.write(String.join(",", Arrays.asList(
-                        u.getName(),
-                        u.getEmail(),
-                        u.getPassword(),
-                        u.getUserType(),
-                        studentId
-                )));
+                SystemUser su = (SystemUser) u; // safe cast because UserManager only stores SystemUser
+
+                bw.write(String.join(",",
+                        su.getName(),
+                        su.getEmail(),
+                        su.getPasswordHash(),
+                        su.getType().name(),
+                        su.getOrgId(),
+                        su.getStudentId() == null ? "" : su.getStudentId()
+                ));
+
                 bw.newLine();
             }
         }

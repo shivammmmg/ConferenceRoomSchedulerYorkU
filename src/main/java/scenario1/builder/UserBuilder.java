@@ -1,6 +1,8 @@
 package scenario1.builder;
 
-import shared.model.*;
+import shared.model.SystemUser;
+import shared.model.User;
+import shared.model.UserType;
 
 /**
  * =============================================================================
@@ -10,50 +12,37 @@ import shared.model.*;
  * =============================================================================
  *
  * PURPOSE:
- *   - Removes complexity from object creation in UserManager.
- *   - Provides a clean, step-by-step way to construct User objects.
- *   - Supports optional fields (e.g., studentId is only used for Student users).
- *   - Makes user creation flexible, readable, and maintainable.
+ *   - Builds SystemUser objects step-by-step.
+ *   - Replaces previous approach where separate subclasses existed.
+ *   - Supports optional attributes such as studentId and orgId.
  *
- * HOW IT WORKS:
- *   - Each setter returns the same builder instance → enables method chaining.
- *   - The build() method creates the correct subclass of User based on userType.
+ * USAGE (in UserManager):
  *
- * SUPPORTED USER CLASSES:
- *   - StudentUser
- *   - FacultyUser
- *   - StaffUser
- *   - PartnerUser
+ *   User u = new UserBuilder()
+ *                .setName(name)
+ *                .setEmail(email)
+ *                .setPassword(password)
+ *                .setUserType(typeEnum)
+ *                .setStudentId(studentId)
+ *                .setOrgId(null)
+ *                .build();
  *
- * WHEN THIS GETS USED:
- *   - Called exclusively by UserManager.register()
- *     Example:
- *       new UserBuilder()
- *          .setName(name)
- *          .setEmail(email)
- *          ...
- *          .build();
- *
- * AUTHOR: Shivam Gupta
- * DATE: November 2025
  * =============================================================================
  */
 public class UserBuilder {
 
-    // -------------------------------------------------------------------------
-    // Fields collected during the building process
-    // -------------------------------------------------------------------------
+    // Fields to collect
     private String name;
     private String email;
-    private String password;
-    private String userType;
-    private String studentId = "";  // Optional field for Student accounts only
+    private String passwordHash;
+    private UserType type;
+    private String orgId;
+    private String studentId;
 
 
-    // -------------------------------------------------------------------------
-    // Fluent Builder Setters
-    // Return "this" to allow chaining: new UserBuilder().setName(...).setEmail(...)
-    // -------------------------------------------------------------------------
+    // ===========================
+    // Fluent setters
+    // ===========================
     public UserBuilder setName(String name) {
         this.name = name;
         return this;
@@ -64,13 +53,18 @@ public class UserBuilder {
         return this;
     }
 
-    public UserBuilder setPassword(String password) {
-        this.password = password;
+    public UserBuilder setPassword(String passwordHash) {
+        this.passwordHash = passwordHash;
         return this;
     }
 
-    public UserBuilder setUserType(String userType) {
-        this.userType = userType;
+    public UserBuilder setUserType(UserType type) {
+        this.type = type;
+        return this;
+    }
+
+    public UserBuilder setOrgId(String orgId) {
+        this.orgId = orgId;
         return this;
     }
 
@@ -80,34 +74,24 @@ public class UserBuilder {
     }
 
 
-    // -------------------------------------------------------------------------
-    // BUILD METHOD
-    // Creates and returns the correct User model object.
-    // Throws exception if an unsupported user type is passed.
-    // -------------------------------------------------------------------------
+    // ===========================
+    // BUILD
+    // ===========================
     public User build() {
 
-        // Students require a studentId
-        if ("Student".equalsIgnoreCase(userType)) {
-            return new StudentUser(name, email, password, studentId);
+        // Validation — ensures no missing critical fields
+        if (name == null || email == null || passwordHash == null || type == null) {
+            throw new IllegalStateException("Missing fields in UserBuilder — cannot build user.");
         }
 
-        // Faculty User
-        if ("Faculty".equalsIgnoreCase(userType)) {
-            return new FacultyUser(name, email, password);
-        }
-
-        // Staff User
-        if ("Staff".equalsIgnoreCase(userType)) {
-            return new StaffUser(name, email, password);
-        }
-
-        // External Partner User
-        if ("Partner".equalsIgnoreCase(userType)) {
-            return new PartnerUser(name, email, password);
-        }
-
-        // Safety: if we get here, the type is invalid or unknown
-        throw new IllegalArgumentException("Unknown user type: " + userType);
+        // Now create SystemUser (ONLY concrete user type)
+        return new SystemUser(
+                name,
+                email,
+                passwordHash,
+                type,
+                orgId,
+                studentId
+        );
     }
 }
