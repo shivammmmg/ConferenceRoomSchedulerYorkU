@@ -1,5 +1,8 @@
 package shared.model;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 /**
  * =============================================================================
  * ABSTRACT CLASS: User
@@ -15,7 +18,10 @@ package shared.model;
  * This class only stores what's common for ALL users:
  *   ✔ name
  *   ✔ email
- *   ✔ passwordHash    (not raw password)
+ *   ✔ passwordHash (not raw password)
+ *   ✔ userId (UUID)
+ *   ✔ createdAt timestamp
+ *   ✔ isActive status
  *
  * SystemUser extends this class and adds:
  *   ✔ UserType type
@@ -26,34 +32,44 @@ package shared.model;
  */
 public abstract class User {
 
+    protected UUID userId;
     protected String name;
     protected String email;
     protected String passwordHash;
 
-    // These three fields are added so UserManager can call getters safely
-    // Instead of SystemUser-only fields, these act as "placeholders"
-    // SystemUser will override them naturally via its own fields.
-    protected UserType type;       // will be used by SystemUser
-    protected String orgId;        // optional
-    protected String studentId;    // only for STUDENT
+    protected boolean isActive;
+    protected LocalDateTime createdAt;
 
     // -----------------------------------
     // Constructor
     // -----------------------------------
     public User(String name, String email, String passwordHash) {
+
+        this.userId = UUID.randomUUID();
+
         this.name = name;
         this.email = email;
         this.passwordHash = passwordHash;
 
-        // Defaults (SystemUser will override)
-        this.type = null;
-        this.orgId = null;
-        this.studentId = null;
+        this.isActive = true;
+        this.createdAt = LocalDateTime.now();
     }
 
     // -----------------------------------
     // GETTERS
     // -----------------------------------
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
     public String getName() {
         return name;
     }
@@ -65,20 +81,6 @@ public abstract class User {
     public String getPasswordHash() {
         return passwordHash;
     }
-
-    // NEW getters — required because UserManager calls them
-    public UserType getType() {
-        return type;
-    }
-
-    public String getOrgId() {
-        return orgId;
-    }
-
-    public String getStudentId() {
-        return studentId;
-    }
-
 
     // -----------------------------------
     // SETTERS
@@ -95,25 +97,38 @@ public abstract class User {
         this.passwordHash = newPasswordHash;
     }
 
-    // NEW setters — required for profile editing & email update
-    public void setType(UserType type) {
-        this.type = type;
+    public void deactivate() {
+        this.isActive = false;
     }
 
-    public void setOrgId(String orgId) {
-        this.orgId = orgId;
+    public void activate() {
+        this.isActive = true;
     }
 
-    public void setStudentId(String studentId) {
-        this.studentId = studentId;
+    // -----------------------------------
+    // Utility from UML Diagram
+    // -----------------------------------
+    public boolean isYorkUEmail() {
+        return email.endsWith("@yorku.ca") || email.endsWith("@my.yorku.ca");
     }
 
+    public boolean validate() {
+        // simple validation: non-empty + valid email format
+        return name != null && !name.isBlank()
+                && email != null && email.contains("@")
+                && passwordHash != null && passwordHash.length() >= 8;
+    }
 
     // -----------------------------------
     // Optional — for debugging
     // -----------------------------------
     @Override
     public String toString() {
-        return name + "," + email + "," + passwordHash;
+        return userId + "," +
+                name + "," +
+                email + "," +
+                passwordHash + "," +
+                isActive + "," +
+                createdAt;
     }
 }

@@ -1,5 +1,8 @@
 package shared.model;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 /**
  * =============================================================================
  * CLASS: SystemUser
@@ -75,15 +78,32 @@ public class SystemUser extends User {
 
 
     // ===========================
+    // REQUIRED BY CSVHelper
+    // (restoring saved data from CSV file)
+    // ===========================
+    public void setUserId(UUID id) {
+        this.userId = id;
+    }
+
+    public void setCreatedAt(LocalDateTime time) {
+        this.createdAt = time;
+    }
+
+
+    // ===========================
     // EXPORT FOR CSV
     // ===========================
     @Override
     public String toString() {
-        return name + "," +
+        return userId + "," +
+                name + "," +
                 email + "," +
                 passwordHash + "," +
                 type.name() + "," +
                 orgId + "," +
-                (studentId == null ? "" : studentId);
+                (studentId == null ? "" : studentId) + "," +
+                isActive + "," +
+                createdAt;
     }
+
 }

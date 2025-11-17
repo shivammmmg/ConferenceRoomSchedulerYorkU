@@ -219,7 +219,7 @@ public class UserManager {
             throw new Exception("Invalid email format.");
 
         // Faculty / Staff / Student must remain YorkU emails
-        UserType type = user.getType();
+        UserType type = ((SystemUser) user).getType();
 
         if (type != UserType.PARTNER &&
                 (!newEmail.endsWith("@yorku.ca") && !newEmail.endsWith("@my.yorku.ca"))) {

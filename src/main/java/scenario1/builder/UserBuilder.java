@@ -35,9 +35,13 @@ public class UserBuilder {
     private String name;
     private String email;
     private String passwordHash;
-    private UserType type;
-    private String orgId;
-    private String studentId;
+
+    // Default user type = PARTNER so nothing breaks
+    private UserType type = UserType.PARTNER;
+
+    // Optional fields
+    private String orgId = "";
+    private String studentId = "";
 
 
     // ===========================
@@ -64,12 +68,12 @@ public class UserBuilder {
     }
 
     public UserBuilder setOrgId(String orgId) {
-        this.orgId = orgId;
+        this.orgId = (orgId == null ? "" : orgId);
         return this;
     }
 
     public UserBuilder setStudentId(String studentId) {
-        this.studentId = studentId;
+        this.studentId = (studentId == null ? "" : studentId);
         return this;
     }
 

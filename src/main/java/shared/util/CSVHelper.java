@@ -1,70 +1,82 @@
 package shared.util;
 
-import shared.model.SystemUser;
-import shared.model.User;
-import shared.model.UserType;
+import shared.model.*;
+import scenario1.builder.UserBuilder;
 
 import java.io.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.UUID;
 
 /**
  * CSVHelper
- * -------------------------------------------------------------------------
- * Handles loading and saving of users in CSV format.
+ * ----------
+ * Handles reading/writing concrete SystemUser objects.
  *
- * Works with the NEW SystemUser structure (single subclass + enum UserType).
- * Clean, simple, predictable CSV format:
- *
- *   name,email,passwordHash,userType,orgId,studentId
- *
- * studentId may be empty for non-students.
- * -------------------------------------------------------------------------
+ * CSV FORMAT (new):
+ * 0: userId (UUID)
+ * 1: name
+ * 2: email
+ * 3: passwordHash
+ * 4: userType
+ * 5: orgId
+ * 6: studentId
+ * 7: isActive
+ * 8: createdAt (ISO string)
  */
 public class CSVHelper {
 
-    /**
-     * Loads all users from the CSV file.
-     */
     public static ArrayList<User> loadUsers(String path) throws Exception {
 
         ArrayList<User> list = new ArrayList<>();
         File file = new File(path);
 
-        // Ensure directory + file exist
         if (!file.exists()) {
-            if (file.getParentFile() != null)
-                file.getParentFile().mkdirs();
+            file.getParentFile().mkdirs();
             file.createNewFile();
-            return list; // empty list
+            return list;
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
 
+            String line;
             while ((line = br.readLine()) != null) {
 
                 if (line.trim().isEmpty()) continue;
 
-                String[] parts = line.split(",", -1); // keep empty fields
+                String[] p = line.split(",");
 
-                // Safe indexing
-                String name       = parts.length > 0 ? parts[0] : "";
-                String email      = parts.length > 1 ? parts[1] : "";
-                String password   = parts.length > 2 ? parts[2] : "";
-                String typeStr    = parts.length > 3 ? parts[3] : "";
-                String orgId      = parts.length > 4 ? parts[4] : "";
-                String studentId  = parts.length > 5 ? parts[5] : "";
+                // Handle older formats safely
+                String id       = p.length > 0 ? p[0] : UUID.randomUUID().toString();
+                String name     = p.length > 1 ? p[1] : "";
+                String email    = p.length > 2 ? p[2] : "";
+                String pass     = p.length > 3 ? p[3] : "";
+                String type     = p.length > 4 ? p[4] : "PARTNER";
+                String orgId    = p.length > 5 ? p[5] : "";
+                String stuId    = p.length > 6 ? p[6] : "";
+                boolean active  = p.length > 7 && Boolean.parseBoolean(p[7]);
 
-                UserType type = UserType.valueOf(typeStr.toUpperCase());
+                LocalDateTime created;
+                if (p.length > 8) {
+                    created = LocalDateTime.parse(p[8]);
+                } else {
+                    created = LocalDateTime.now();
+                }
 
-                User u = new SystemUser(
-                        name,
-                        email,
-                        password,
-                        type,
-                        orgId,
-                        studentId.isBlank() ? null : studentId
-                );
+                // Build object
+                SystemUser u = (SystemUser) new UserBuilder()
+                        .setName(name)
+                        .setEmail(email)
+                        .setPassword(pass)
+                        .setUserType(UserType.valueOf(type.toUpperCase()))
+                        .setOrgId(orgId)
+                        .setStudentId(stuId)
+                        .build();
+
+                // Overwrite generated fields
+                u.setUserId(UUID.fromString(id));
+                u.setCreatedAt(created);
+                if (!active) u.deactivate();
 
                 list.add(u);
             }
@@ -74,23 +86,24 @@ public class CSVHelper {
     }
 
 
-    /**
-     * Saves all users to CSV in a consistent order.
-     */
     public static void saveUsers(String path, ArrayList<User> list) throws Exception {
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
-            for (User u : list) {
 
-                SystemUser su = (SystemUser) u; // safe cast because UserManager only stores SystemUser
+            for (User base : list) {
+
+                SystemUser u = (SystemUser) base;
 
                 bw.write(String.join(",",
-                        su.getName(),
-                        su.getEmail(),
-                        su.getPasswordHash(),
-                        su.getType().name(),
-                        su.getOrgId(),
-                        su.getStudentId() == null ? "" : su.getStudentId()
+                        u.getUserId().toString(),
+                        u.getName(),
+                        u.getEmail(),
+                        u.getPasswordHash(),
+                        u.getType().name(),
+                        u.getOrgId(),
+                        u.getStudentId() == null ? "" : u.getStudentId(),
+                        Boolean.toString(u.isActive()),
+                        u.getCreatedAt().toString()
                 ));
 
                 bw.newLine();
