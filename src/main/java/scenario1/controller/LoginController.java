@@ -4,6 +4,7 @@ package scenario1.controller;
 import shared.model.User;
 import scenario1.controller.UserManager;
 import scenario1.controller.NavigationHelper;
+import shared.util.GlobalNavigationHelper;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
@@ -239,6 +240,12 @@ public class LoginController implements Initializable {
         registerBtn.setOnAction(e ->
                 NavigationHelper.navigate((Stage) registerBtn.getScene().getWindow(), "register.fxml"));
     }
+
+    @FXML
+    private void goBack() {
+        GlobalNavigationHelper.navigateTo("/mainpage/MainPage.fxml");
+    }
+
 
 
     // ----------------------------------------------------------

@@ -12,12 +12,12 @@
         <maven.compiler.source>23</maven.compiler.source>
         <maven.compiler.target>23</maven.compiler.target>
 
-        <!-- JavaFX version -->
-        <javafx.version>21.0.2</javafx.version>
+        <!-- UPDATED JavaFX version -->
+        <javafx.version>25</javafx.version>
     </properties>
 
     <dependencies>
-        <!-- JavaFX modules -->
+        <!-- JavaFX modules (Maven-managed, version 25) -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -29,24 +29,25 @@
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- CORRECT JavaFX plugin -->
+            <!-- JavaFX Maven Plugin (correct configuration) -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
 
                 <configuration>
-                    <mainClass>scenario1.LoginApp</mainClass>
-                    <launcher>APP</launcher>
-                    <jlinkZipName>app</jlinkZipName>
-                    <stripDebug>true</stripDebug>
-                    <compress>2</compress>
-                    <noHeaderFiles>true</noHeaderFiles>
-                    <noManPages>true</noManPages>
+                    <!-- Update this later once integration is done -->
+                    <mainClass>Main</mainClass>
                 </configuration>
             </plugin>
         </plugins>

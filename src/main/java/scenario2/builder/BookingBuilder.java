@@ -1,4 +1,4 @@
-package Scenario2.builder;
+package scenario2.builder;
 
 import shared.model.Booking;
 import java.time.LocalDateTime;
@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
  * EECS 3311 - YorkU Conference Room Scheduler
  * Builder Pattern for Booking objects
  */
+
+
 public class BookingBuilder {
     private String bookingId;
     private String roomId;

@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane fx:id="rootPane"
+            prefWidth="1200"
+            prefHeight="720"
+            stylesheets="@mainpage.css"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="mainpage.MainPageController">
+
+    <!-- ========================= LEFT PANEL ========================= -->
+    <left>
+        <VBox prefWidth="260" styleClass="left-panel" spacing="20">
+
+            <!-- PURE LOGO -->
+            <ImageView fx:id="yorkLogo"
+                       preserveRatio="true"
+                       fitWidth="230"
+                       smooth="true"
+                       styleClass="logo-top">
+                <image>
+                    <Image url="/mainpage/images/yorku_logo.png"/>
+                </image>
+            </ImageView>
+
+            <!-- TITLE -->
+            <Label text="YorkU Conference Room Scheduler"
+                   wrapText="true"
+                   styleClass="sidebar-title"/>
+
+            <!-- WELCOME SECTION -->
+            <VBox spacing="6" styleClass="welcome-block">
+                <Label text="Welcome, Guest" styleClass="welcome-title"/>
+                <Label text="Book rooms, manage meetings, and explore YorkU spaces."
+                       wrapText="true"
+                       styleClass="welcome-desc"/>
+            </VBox>
+
+            <Pane VBox.vgrow="ALWAYS"/>
+
+            <!-- FOOTER -->
+            <VBox spacing="3" styleClass="sidebar-footer">
+                <Label text="© 2025 York University" styleClass="footer-text"/>
+                <Label text="Event Services Department" styleClass="footer-text"/>
+            </VBox>
+
+        </VBox>
+    </left>
+
+
+    <!-- ========================= CENTER MAIN CONTENT ========================= -->
+    <center>
+        <ScrollPane fx:id="mainScroll"
+                    fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    styleClass="scroll-pane">
+
+            <VBox spacing="40" alignment="TOP_CENTER">
+                <padding><Insets top="30" right="30" bottom="30" left="30"/></padding>
+
+                <!-- ========================= HERO SECTION ========================= -->
+                <HBox spacing="40" alignment="CENTER" styleClass="hero-card">
+
+                    <!-- LEFT TEXT -->
+                    <VBox spacing="18" prefWidth="600" alignment="TOP_LEFT">
+
+                        <Label text="Your Campus. Your Space.&#10;Just One Click Away."
+                               styleClass="hero-title"
+                               wrapText="true"
+                               maxWidth="420"/>
+
+                        <Label text="Find and reserve study rooms, meeting spaces, and conference halls across York University — fast, simple, and secure."
+                               styleClass="hero-subtitle"
+                               wrapText="true"
+                               maxWidth="480"/>
+
+                        <Button text="Get Started"
+                                fx:id="getStartedBtn"
+                                styleClass="primary-btn"
+                                onAction="#onGetStarted"/>
+                    </VBox>
+
+                    <!-- HERO IMAGE -->
+                    <ImageView fitWidth="520"
+                               preserveRatio="true"
+                               smooth="true"
+                               styleClass="hero-img">
+                        <image>
+                            <Image url="/mainpage/images/hero-illustration.png"/>
+                        </image>
+                    </ImageView>
+
+                </HBox>
+
+
+                <!-- ========================= FEATURE STRIP ========================= -->
+                <HBox spacing="24" alignment="CENTER">
+
+                    <VBox styleClass="feature-card" spacing="10" prefWidth="260">
+                        <Label text="📅 Smart Booking" styleClass="feature-title"/>
+                        <Label text="Search by building, capacity, or equipment — instantly find the right room."
+                               wrapText="true"
+                               styleClass="feature-desc"/>
+                    </VBox>
+
+                    <VBox styleClass="feature-card" spacing="10" prefWidth="260">
+                        <Label text="🎯 Real-Time Monitoring" styleClass="feature-title"/>
+                        <Label text="Sensors verify occupancy, automate check-ins, and update room status."
+                               wrapText="true"
+                               styleClass="feature-desc"/>
+                    </VBox>
+
+                    <VBox styleClass="feature-card" spacing="10" prefWidth="260">
+                        <Label text="💳 Secure Payments" styleClass="feature-title"/>
+                        <Label text="Pay easily using credit card, debit, or institutional billing."
+                               wrapText="true"
+                               styleClass="feature-desc"/>
+                    </VBox>
+
+                </HBox>
+
+
+                <!-- ========================= WHO CAN BOOK ========================= -->
+                <VBox spacing="16" alignment="CENTER" prefWidth="900">
+
+                    <Label text="Who Can Book?" styleClass="section-title"/>
+
+                    <VBox styleClass="user-info-card" spacing="20" alignment="CENTER">
+
+                        <HBox spacing="40" alignment="CENTER">
+
+                            <VBox styleClass="user-type-box">
+                                <Label text="🎓" styleClass="user-type-emoji"/>
+                                <Label text="Students" styleClass="user-type-label"/>
+                            </VBox>
+
+                            <VBox styleClass="user-type-box">
+                                <Label text="👨‍🏫" styleClass="user-type-emoji"/>
+                                <Label text="Faculty" styleClass="user-type-label"/>
+                            </VBox>
+
+                            <VBox styleClass="user-type-box">
+                                <Label text="🏢" styleClass="user-type-emoji"/>
+                                <Label text="Staff" styleClass="user-type-label"/>
+                            </VBox>
+
+                            <!-- FIXED EMOJI -->
+                            <VBox styleClass="user-type-box">
+                                <Label>
+                                    <text><![CDATA[🤝]]></text>
+                                </Label>
+                                <Label text="Partners" styleClass="user-type-label"/>
+                            </VBox>
+
+                        </HBox>
+
+                        <Label text="Booking is open to all York University members and affiliated partners. Choose a space designed for your needs."
+                               wrapText="true"
+                               maxWidth="700"
+                               textAlignment="CENTER"
+                               alignment="CENTER"
+                               styleClass="user-desc-center"/>
+
+
+                    </VBox>
+
+                </VBox>
+
+
+                <!-- ========================= WEEKLY OVERVIEW (Moved Up) ========================= -->
+                <VBox spacing="20" alignment="CENTER">
+                    <Label text="Weekly Overview" styleClass="section-title"/>
+
+                    <HBox spacing="24" alignment="CENTER">
+
+                        <VBox styleClass="stats-card" alignment="CENTER">
+                            <Label text="412" styleClass="stats-number"/>
+                            <Label text="Total Bookings" styleClass="stats-label"/>
+                        </VBox>
+
+                        <VBox styleClass="stats-card" alignment="CENTER">
+                            <Label text="68" styleClass="stats-number"/>
+                            <Label text="Check-Ins" styleClass="stats-label"/>
+                        </VBox>
+
+                        <VBox styleClass="stats-card" alignment="CENTER">
+                            <Label text="17" styleClass="stats-number"/>
+                            <Label text="No-Shows" styleClass="stats-label"/>
+                        </VBox>
+
+                        <VBox styleClass="stats-card" alignment="CENTER">
+                            <Label text="9" styleClass="stats-number"/>
+                            <Label text="Maintenance Cases" styleClass="stats-label"/>
+                        </VBox>
+
+                    </HBox>
+                </VBox>
+
+
+                <!-- ========================= LIVE ROOM STATUS ========================= -->
+                <VBox spacing="20" alignment="CENTER" prefWidth="900">
+
+                    <Label text="Live Room Status (Sensor Powered)" styleClass="section-title"/>
+
+                    <HBox spacing="20" alignment="CENTER">
+
+                        <VBox styleClass="room-card">
+                            <Label text="Room 321" styleClass="room-title"/>
+                            <Label text="Capacity: 8" styleClass="room-sub"/>
+                            <Label text="Available" styleClass="room-status-available"/>
+                        </VBox>
+
+                        <VBox styleClass="room-card">
+                            <Label text="Room 142" styleClass="room-title"/>
+                            <Label text="Capacity: 12" styleClass="room-sub"/>
+                            <Label text="In Use" styleClass="room-status-busy"/>
+                        </VBox>
+
+                        <VBox styleClass="room-card">
+                            <Label text="Room 205" styleClass="room-title"/>
+                            <Label text="Capacity: 6" styleClass="room-sub"/>
+                            <Label text="Maintenance" styleClass="room-status-maint"/>
+                        </VBox>
+
+                    </HBox>
+
+                </VBox>
+
+
+                <!-- ========================= PRICING ========================= -->
+                <VBox spacing="20" alignment="CENTER">
+                    <Label text="Hourly Rates" styleClass="section-title"/>
+
+                    <HBox spacing="20" alignment="CENTER">
+
+                        <VBox styleClass="price-card">
+                            <Label text="🎓 Students"/>
+                            <Label><text><![CDATA[$20 / hr]]></text></Label>
+                        </VBox>
+
+                        <VBox styleClass="price-card">
+                            <Label text="🏫 Faculty"/>
+                            <Label><text><![CDATA[$30 / hr]]></text></Label>
+                        </VBox>
+
+                        <VBox styleClass="price-card">
+                            <Label text="🏢 Staff"/>
+                            <Label><text><![CDATA[$40 / hr]]></text></Label>
+                        </VBox>
+
+                        <VBox styleClass="price-card">
+                            <Label><text><![CDATA[🤝 Partners]]></text></Label>
+                            <Label><text><![CDATA[$50 / hr]]></text></Label>
+                        </VBox>
+
+                    </HBox>
+                </VBox>
+
+
+                <!-- ========================= HOW IT WORKS ========================= -->
+                <VBox spacing="20" alignment="CENTER">
+                    <Label text="How It Works" styleClass="section-title"/>
+
+                    <HBox spacing="14" alignment="CENTER">
+
+                        <Label><text><![CDATA[① Create Account]]></text></Label>
+                        <Label><text><![CDATA[→]]></text></Label>
+                        <Label><text><![CDATA[② Find Room]]></text></Label>
+                        <Label><text><![CDATA[→]]></text></Label>
+                        <Label><text><![CDATA[③ Pay Deposit]]></text></Label>
+                        <Label><text><![CDATA[→]]></text></Label>
+                        <Label><text><![CDATA[④ Check-In]]></text></Label>
+                        <Label><text><![CDATA[→]]></text></Label>
+                        <Label><text><![CDATA[⑤ Use Room]]></text></Label>
+                        <Label><text><![CDATA[→]]></text></Label>
+                        <Label><text><![CDATA[⑥ Extend or Finish]]></text></Label>
+
+                    </HBox>
+                </VBox>
+
+
+                <!-- ========================= TESTIMONIALS ========================= -->
+                <VBox spacing="20" alignment="CENTER">
+                    <Label text="What Students Say" styleClass="section-title"/>
+
+                    <HBox spacing="24" alignment="CENTER">
+
+                        <VBox styleClass="testimonial-card">
+                            <Label text="“Super easy to book rooms now.”"
+                                   styleClass="testimonial-text"/>
+                            <Label text="- Sarah Thompson"
+                                   styleClass="testimonial-author"/>
+                        </VBox>
+
+                        <VBox styleClass="testimonial-card">
+                            <Label text="“Clean interface and fast check-ins.”"
+                                   styleClass="testimonial-text"/>
+                            <Label text="- David Chen"
+                                   styleClass="testimonial-author"/>
+                        </VBox>
+
+                        <VBox styleClass="testimonial-card">
+                            <Label text="“Love the live room availability!”"
+                                   styleClass="testimonial-text"/>
+                            <Label text="- Priya Sharma"
+                                   styleClass="testimonial-author"/>
+                        </VBox>
+
+                    </HBox>
+                </VBox>
+
+
+                <!-- ========================= FOOTER ========================= -->
+                <VBox spacing="4" alignment="CENTER" styleClass="footer">
+                    <Label text="York University — Event Services Department" styleClass="footer-text"/>
+                    <Label text="© 2025 York University. All rights reserved." styleClass="footer-text"/>
+                    <Label text="Help Desk | Terms &amp; Conditions | Privacy Policy" styleClass="footer-links"/>
+                </VBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+
+</BorderPane>

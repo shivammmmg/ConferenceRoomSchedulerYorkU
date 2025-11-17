@@ -1,4 +1,4 @@
-package Scenario2.viewfx;
+package scenario2.viewfx;
 
 import javafx.animation.FadeTransition;
 import javafx.application.Application;
@@ -21,12 +21,9 @@ import javafx.util.Duration;
 import javafx.scene.control.Control;
 import java.io.InputStream;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 
 
-
-import Scenario2.controller.BookingManager;
+import scenario2.controller.BookingManager;
 import shared.model.Booking;
 import shared.model.Room;
 

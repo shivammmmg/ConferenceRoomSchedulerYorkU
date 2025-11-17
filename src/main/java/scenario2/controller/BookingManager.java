@@ -1,9 +1,9 @@
-package Scenario2.controller;
+package scenario2.controller;
 
+import scenario2.builder.BookingBuilder;
 import shared.model.Booking;
 import shared.model.Room;
 import shared.util.CSVHelper;
-import Scenario2.builder.BookingBuilder;
 
 import java.time.LocalDateTime;
 import java.util.*;
