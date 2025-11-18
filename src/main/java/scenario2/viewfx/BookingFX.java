@@ -1,4 +1,4 @@
-package scenario2.viewfx;
+package Scenario2.viewfx;
 
 import javafx.animation.FadeTransition;
 import javafx.application.Application;
@@ -14,52 +14,74 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import javafx.scene.control.Control;
-import java.io.InputStream;
-import javafx.scene.shape.Rectangle;
 
-
-import scenario2.controller.BookingManager;
+import Scenario2.controller.BookingManager;
 import shared.model.Booking;
 import shared.model.Room;
-import shared.util.GlobalNavigationHelper;
 
+import java.io.InputStream;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.List;
 
+/**
+ * BookingFX (Scenario 2 GUI)
+ * ---------------------------------------------------------------
+ * This JavaFX screen handles:
+ *   • room search
+ *   • booking flow
+ *   • payment modal
+ *   • editing bookings
+ *   • cancellation modal
+ * Uses BookingManager (Singleton) + Rooms/Bookings CSV data.
+ */
 public class BookingFX extends Application {
 
+    // Core system singletons + user session state
     private BookingManager bookingManager;
     private String currentUserEmail;
     private String currentUserType;
 
+    // Main UI containers
     private VBox mainContent;
     private StackPane overlayPane;
+
+    // Modal windows (overlays)
     private VBox paymentModal;
     private VBox confirmationModal;
+    private VBox editBookingModal;
+    private VBox cancelModal;
 
-    // nav buttons so we can toggle active state
+    // Nav buttons (to toggle active state)
     private Button bookRoomBtn;
     private Button myBookingsBtn;
     private Button backToLoginBtn;
 
     @Override
     public void start(Stage stage) {
-        bookingManager = BookingManager.getInstance();
-        currentUserEmail = "test@yorku.ca";
-        currentUserType = "student";
 
         // ==========================================================
-// =============== 1. LEFT NAVIGATION PANEL =================
-// ==========================================================
-        Stop[] stops = new Stop[]{
+        // =============== 1. INITIALIZE STATE =======================
+        // ==========================================================
+
+        bookingManager = BookingManager.getInstance();
+        currentUserEmail = "test@yorku.ca";    // replace with logged-in user
+        currentUserType  = "student";          // determines pricing tier
+
+        // ==========================================================
+        // =============== 2. LEFT NAVIGATION PANEL =================
+        // ==========================================================
+
+        // YorkU-style vertical gradient
+        Stop[] stops = {
                 new Stop(0, Color.web("#AD001D")),
                 new Stop(1, Color.web("#7A0019"))
         };
@@ -71,10 +93,11 @@ public class BookingFX extends Application {
         leftPanel.setPadding(new Insets(28, 22, 24, 22));
         leftPanel.setSpacing(24);
         leftPanel.setPrefWidth(260);
-        leftPanel.setBackground(
-                new Background(new BackgroundFill(yorkGradient, CornerRadii.EMPTY, Insets.EMPTY)));
+        leftPanel.setBackground(new Background(
+                new BackgroundFill(yorkGradient, CornerRadii.EMPTY, Insets.EMPTY)
+        ));
 
-// --------- brand card (logo + app title + subtitle) ---------
+        // --------------------- Brand Card --------------------------
         ImageView logoView = new ImageView(new Image("images/yorku_logo.png", true));
         logoView.setFitHeight(44);
         logoView.setPreserveRatio(true);
@@ -82,15 +105,12 @@ public class BookingFX extends Application {
         Label appTitle = new Label("Room Scheduler");
         appTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
         appTitle.setTextFill(Color.WHITE);
-        appTitle.setWrapText(true);
 
         Label appSubtitle = new Label("Conference Rooms");
         appSubtitle.setStyle("-fx-text-fill: rgba(255,255,255,0.75); -fx-font-size: 11;");
-        appSubtitle.setWrapText(true);
 
         VBox titleBox = new VBox(3, appTitle, appSubtitle);
         titleBox.setAlignment(Pos.CENTER_LEFT);
-// width cap so labels wrap instead of cutting off with "..."
         titleBox.setMaxWidth(150);
 
         HBox brandRow = new HBox(10, logoView, titleBox);
@@ -100,7 +120,10 @@ public class BookingFX extends Application {
         brandCard.setPadding(new Insets(14, 16, 14, 16));
         brandCard.setMaxWidth(Double.MAX_VALUE);
         brandCard.setBackground(new Background(
-                new BackgroundFill(Color.rgb(0, 0, 0, 0.18), new CornerRadii(20), Insets.EMPTY)));
+                new BackgroundFill(Color.rgb(0, 0, 0, 0.18),
+                        new CornerRadii(20),
+                        Insets.EMPTY)
+        ));
         brandCard.setBorder(new Border(new BorderStroke(
                 Color.rgb(255, 255, 255, 0.18),
                 BorderStrokeStyle.SOLID,
@@ -108,43 +131,39 @@ public class BookingFX extends Application {
                 new BorderWidths(1)
         )));
 
-// --------- user info: email + small role badge -------------
+        // --------------------- User Info ----------------------------
         Label userEmailLabel = new Label(currentUserEmail);
         userEmailLabel.setStyle("-fx-text-fill: rgba(255,255,255,0.9); -fx-font-size: 11;");
 
         Label userRoleChip = new Label(
-                currentUserType.equalsIgnoreCase("student") ? "Student" : "Staff");
+                currentUserType.equalsIgnoreCase("student") ? "Student" : "Staff"
+        );
         userRoleChip.setStyle(
-                "-fx-background-color: rgba(0,0,0,0.30); " +
-                        "-fx-text-fill: #f8fafc; " +
-                        "-fx-padding: 3 10; " +
-                        "-fx-background-radius: 999; " +
-                        "-fx-font-size: 10;");
-        userRoleChip.setMouseTransparent(true); // makes it feel like a label, not a button
-
-        Tooltip.install(userRoleChip, new Tooltip("Current role used for pricing and permissions."));
+                "-fx-background-color: rgba(0,0,0,0.30);" +
+                        "-fx-text-fill: #f8fafc;" +
+                        "-fx-padding: 3 10;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-font-size: 10;"
+        );
 
         VBox accountBox = new VBox(2, userEmailLabel, userRoleChip);
         accountBox.setAlignment(Pos.CENTER_LEFT);
-        accountBox.setMaxWidth(Double.MAX_VALUE);
 
         VBox headerBox = new VBox(10, brandCard, accountBox);
-        headerBox.setAlignment(Pos.CENTER_LEFT);
-        headerBox.setMaxWidth(Double.MAX_VALUE);
 
-// --------- nav buttons inside a soft glassy card ----------
-        bookRoomBtn = createNavButton("📅  Book Room", true);
-        myBookingsBtn = createNavButton("📋  My Bookings", false);
-        backToLoginBtn = createNavButton("🚪  Logout", false);
+        // --------------------- NAV BUTTONS --------------------------
+        bookRoomBtn     = createNavButton("📅  Book Room", true);
+        myBookingsBtn   = createNavButton("📋  My Bookings", false);
+        backToLoginBtn  = createNavButton("🚪  Logout", false);
 
         VBox navButtons = new VBox(6, bookRoomBtn, myBookingsBtn, backToLoginBtn);
         navButtons.setAlignment(Pos.CENTER_LEFT);
         navButtons.setPadding(new Insets(10, 8, 10, 8));
-        navButtons.setMaxWidth(Double.MAX_VALUE);
         navButtons.setBackground(new Background(
-                new BackgroundFill(Color.rgb(0, 0, 0, 0.18), new CornerRadii(18), Insets.EMPTY)));
+                new BackgroundFill(Color.rgb(0,0,0,0.18),
+                        new CornerRadii(18), Insets.EMPTY)));
 
-// --------- spacer & tip at bottom -------------------------
+        // -------------------- Tips Bottom Section -------------------
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
@@ -158,57 +177,64 @@ public class BookingFX extends Application {
         VBox tipBox = new VBox(4, tipTitle, tipLabel);
         tipBox.setAlignment(Pos.BOTTOM_LEFT);
 
+        // Final left panel stack
         leftPanel.getChildren().addAll(headerBox, navButtons, spacer, tipBox);
 
-
-
         // ==========================================================
-        // =============== 2. MAIN CONTENT AREA =====================
+        // =============== 3. MAIN CONTENT AREA =====================
         // ==========================================================
+
         mainContent = new VBox();
         mainContent.setSpacing(20);
         mainContent.setAlignment(Pos.TOP_LEFT);
         mainContent.getStyleClass().add("main-content");
 
         // ==========================================================
-        // =============== 3. OVERLAY SYSTEM ========================
+        // =============== 4. OVERLAY SYSTEM ========================
         // ==========================================================
+
         overlayPane = new StackPane();
         overlayPane.setStyle("-fx-background-color: rgba(0,0,0,0.5);");
         overlayPane.setVisible(false);
 
-        paymentModal = createPaymentModal();
+        paymentModal      = createPaymentModal();
         confirmationModal = createConfirmationModal();
-        overlayPane.getChildren().addAll(paymentModal, confirmationModal);
+        editBookingModal  = createEditBookingModal();
+        cancelModal       = createCancelModal();
+
+        // All modals inside overlay
+        overlayPane.getChildren().addAll(
+                paymentModal,
+                confirmationModal,
+                editBookingModal,
+                cancelModal
+        );
 
         // ==========================================================
-        // =============== 4. ROOT LAYOUT ===========================
+        // =============== 5. ROOT LAYOUT ===========================
         // ==========================================================
+
         VBox contentWrapper = new VBox(mainContent);
-        contentWrapper.setAlignment(Pos.TOP_CENTER);
         contentWrapper.setPadding(new Insets(30));
 
-        ScrollPane contentScroll = new ScrollPane(contentWrapper);
-        contentScroll.setFitToWidth(true);
-        contentScroll.setFitToHeight(true);
-        contentScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        contentScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        contentScroll.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+        ScrollPane scroll = new ScrollPane(contentWrapper);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: transparent;");
 
         BorderPane layout = new BorderPane();
         layout.setLeft(leftPanel);
-        layout.setCenter(contentScroll);
+        layout.setCenter(scroll);
 
         StackPane rootContainer = new StackPane(layout, overlayPane);
-        rootContainer.getStyleClass().add("app-root");
 
-        // Default view
+        // Default screen
         showBookingView();
         setActiveNav(bookRoomBtn);
 
         // ==========================================================
-        // =============== 5. NAVIGATION HANDLERS ===================
+        // =============== 6. NAVIGATION HANDLERS ===================
         // ==========================================================
+
         bookRoomBtn.setOnAction(e -> {
             setActiveNav(bookRoomBtn);
             showBookingView();
@@ -220,118 +246,59 @@ public class BookingFX extends Application {
         });
 
         backToLoginBtn.setOnAction(e -> {
-            GlobalNavigationHelper.navigateTo("/scenario1/fxml/login.fxml");
+            stage.close();
+            try {
+                new Scenario1.viewfx.LoginFX().start(new Stage());
+            } catch (Exception ex) {
+                System.out.println("Could not open login screen: " + ex.getMessage());
+            }
         });
 
+        // ==========================================================
+        // =============== 7. SCENE + CSS ===========================
+        // ==========================================================
 
         Scene scene = new Scene(rootContainer, 1200, 720);
 
-        // Attach CSS (safe even if file not found)
         URL css = getClass().getResource("/styles/booking.css");
-        if (css != null) {
-            scene.getStylesheets().add(css.toExternalForm());
-        }
+        if (css != null) scene.getStylesheets().add(css.toExternalForm());
 
-        stage.setTitle("YorkU Conference Room Scheduler");
         stage.setScene(scene);
+        stage.setTitle("YorkU Conference Room Scheduler");
         stage.show();
     }
 
     // ==============================================================
-    // ========================  NAV HELPERS  ========================
+    // ======================== NAV HELPERS ==========================
     // ==============================================================
-    private ImageView getRoomImageViewForSearch(Room room) {
-        String path;
 
-        switch (room.getRoomName()) {
-            case "York Room":
-                path = "/images/rooms/york-room.png";
-                break;
-            case "Lassonde Room":
-                path = "/images/rooms/lassonde-room.png";
-                break;
-            case "Bergeron Room":
-                path = "/images/rooms/bergeron-room.png";
-                break;
-            case "Scott Library Room":
-                path = "/images/rooms/scott-library-room.png";
-                break;
-            case "Accolade Room":
-                path = "/images/rooms/accolade-room.png";
-                break;
-            case "Student Center Room":
-                path = "/images/rooms/student-center-room.png";
-                break;
-            default:
-                path = "/images/rooms/default-room.png";
-                break;
-        }
-
-        InputStream is = getClass().getResourceAsStream(path);
-        if (is == null) {
-            System.out.println("Search card image not found for path: " + path);
-            return null;
-        }
-
-        Image img = new Image(is);
-        ImageView view = new ImageView(img);
-        view.setFitWidth(150);
-        view.setFitHeight(95);
-        view.setPreserveRatio(false);
-        view.setSmooth(true);
-        view.setCache(true);
-
-        Rectangle clip = new Rectangle(150, 95);
-        clip.setArcWidth(16);
-        clip.setArcHeight(16);
-        view.setClip(clip);
-
-        return view;
-    }
-
+    /**
+     * Returns an ImageView for a room based on its name.
+     * Each room name maps to an image inside /images/.
+     */
     private ImageView getRoomImageView(Room room) {
         String path;
 
-        // map room names -> resource paths
         switch (room.getRoomName()) {
-            case "York Room":
-                path = "/images/york-room.png";
-                break;
-            case "Lassonde Room":
-                path = "/images/lassonde-room.png";
-                break;
-            case "Bergeron Room":
-                path = "/images/bergeron-room.png";
-                break;
-            case "Scott Library Room":
-                path = "/images/scott-library-room.png";
-                break;
-            case "Accolade Room":
-                path = "/images/accolade-room.png";
-                break;
-            case "Student Center Room":
-                path = "/images/student-center-room.png";
-                break;
-            default:
-                path = "/images/default-room.png";
-                break;
+            case "York Room"            -> path = "/images/york-room.png";
+            case "Lassonde Room"        -> path = "/images/lassonde-room.png";
+            case "Bergeron Room"        -> path = "/images/bergeron-room.png";
+            case "Scott Library Room"   -> path = "/images/scott-library-room.png";
+            case "Accolade Room"        -> path = "/images/accolade-room.png";
+            case "Student Center Room"  -> path = "/images/student-center-room.png";
+            default                     -> path = "/images/default-room.png";
         }
 
         InputStream is = getClass().getResourceAsStream(path);
         if (is == null) {
-            System.out.println("Room image not found for path: " + path);
+            System.out.println("Room image not found: " + path);
             return null;
         }
 
-        Image img = new Image(is);
-        ImageView view = new ImageView(img);
+        ImageView view = new ImageView(new Image(is));
         view.setFitWidth(220);
         view.setFitHeight(120);
-        view.setPreserveRatio(false);
-        view.setSmooth(true);
-        view.setCache(true);
 
-        // rounded corners on the image itself
         Rectangle clip = new Rectangle(220, 120);
         clip.setArcWidth(22);
         clip.setArcHeight(22);
@@ -340,6 +307,7 @@ public class BookingFX extends Application {
         return view;
     }
 
+    /** Small rounded tag used throughout the UI. */
     private Label createSmallTag(String text) {
         Label tag = new Label(text);
         tag.setStyle(
@@ -352,6 +320,9 @@ public class BookingFX extends Application {
         return tag;
     }
 
+    /**
+     * Applies modern styling to text fields, combo boxes, date pickers.
+     */
     private void applyModernFieldStyle(Control control) {
         String base =
                 "-fx-background-color: #f3f4f6;" +
@@ -359,6 +330,7 @@ public class BookingFX extends Application {
                         "-fx-border-radius: 10;" +
                         "-fx-border-color: transparent;" +
                         "-fx-padding: 6 10;";
+
         String focused =
                 "-fx-background-color: #ffffff;" +
                         "-fx-background-radius: 10;" +
@@ -368,19 +340,18 @@ public class BookingFX extends Application {
                         "-fx-padding: 6 10;";
 
         control.setStyle(base);
-        control.focusedProperty().addListener((obs, oldVal, nowFocused) -> {
-            control.setStyle(nowFocused ? focused : base);
-        });
+
+        control.focusedProperty().addListener((obs, old, focusedNow) ->
+                control.setStyle(focusedNow ? focused : base));
     }
-    // helper style strings for nav buttons
+
+    // ---------- Navigation Button Styling ----------
     private static final String NAV_BASE_STYLE =
             "-fx-background-radius: 999;" +
                     "-fx-padding: 10 16;" +
                     "-fx-font-size: 13;" +
                     "-fx-font-weight: 600;" +
-                    "-fx-text-fill: #f8fafc;" +
-                    "-fx-background-insets: 0;" +
-                    "-fx-border-color: transparent;";
+                    "-fx-text-fill: #f8fafc;";
 
     private static final String NAV_BG_INACTIVE =
             "-fx-background-color: transparent;";
@@ -389,46 +360,36 @@ public class BookingFX extends Application {
     private static final String NAV_BG_HOVER =
             "-fx-background-color: rgba(248,249,250,0.16);";
 
+    /**
+     * Creates a round-pill left navigation button.
+     */
     private Button createNavButton(String text, boolean isActive) {
         Button button = new Button(text);
         button.setPrefWidth(Double.MAX_VALUE);
         button.setMinHeight(40);
         button.setAlignment(Pos.CENTER_LEFT);
         button.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 13));
-        button.setBackground(Background.EMPTY);
-        button.setBorder(Border.EMPTY);
-        button.setFocusTraversable(false);
+
+        button.getProperties().put("active", isActive);
         button.setStyle(NAV_BASE_STYLE + (isActive ? NAV_BG_ACTIVE : NAV_BG_INACTIVE));
 
-        // store active state in properties
-        button.getProperties().put("active", isActive);
-
         button.setOnMouseEntered(e ->
-                applyNavStyle(button,
-                        (boolean) button.getProperties().getOrDefault("active", false),
-                        true));
+                applyNavStyle(button, isActive, true));
 
         button.setOnMouseExited(e ->
-                applyNavStyle(button,
-                        (boolean) button.getProperties().getOrDefault("active", false),
-                        false));
+                applyNavStyle(button, isActive, false));
 
         return button;
     }
 
-
     private void applyNavStyle(Button button, boolean active, boolean hover) {
-        String bg;
-        if (active) {
-            bg = NAV_BG_ACTIVE;
-        } else if (hover) {
-            bg = NAV_BG_HOVER;
-        } else {
-            bg = NAV_BG_INACTIVE;
-        }
+        String bg = active ? NAV_BG_ACTIVE : (hover ? NAV_BG_HOVER : NAV_BG_INACTIVE);
         button.setStyle(NAV_BASE_STYLE + bg);
     }
 
+    /**
+     * Updates which nav button is currently active.
+     */
     private void setActiveNav(Button activeButton) {
         for (Button b : new Button[]{bookRoomBtn, myBookingsBtn, backToLoginBtn}) {
             if (b == null) continue;
@@ -439,9 +400,124 @@ public class BookingFX extends Application {
     }
 
 
-    // ==============================================================
+
+// ==============================================================
     // ======================  MODAL OVERLAYS  ======================
     // ==============================================================
+    private VBox createEditBookingModal() {
+        VBox modal = new VBox(18);
+        modal.setPadding(new Insets(24));
+        modal.setAlignment(Pos.TOP_LEFT);
+        modal.setMaxWidth(520);
+        modal.setVisible(false);
+
+        modal.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 20;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.18), 26, 0, 0, 8);"
+        );
+
+        Label title = new Label("Edit Booking");
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 20));
+        title.setTextFill(Color.web("#AD001D"));
+
+        Label subtitle = new Label("Update room, date/time, or purpose.");
+        subtitle.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(10);
+
+        String labelStyle =
+                "-fx-text-fill: #6b7280;" +
+                        "-fx-font-size: 11;" +
+                        "-fx-font-weight: bold;";
+
+        Label dateLbl = new Label("Date");
+        dateLbl.setStyle(labelStyle);
+        DatePicker datePicker = new DatePicker();
+        applyModernFieldStyle(datePicker);
+
+        Label startLbl = new Label("Start");
+        startLbl.setStyle(labelStyle);
+        ComboBox<String> startBox = new ComboBox<>();
+        Label endLbl = new Label("End");
+        endLbl.setStyle(labelStyle);
+        ComboBox<String> endBox = new ComboBox<>();
+
+        for (int h = 8; h <= 19; h++) {
+            startBox.getItems().add(String.format("%02d:00", h));
+            startBox.getItems().add(String.format("%02d:30", h));
+        }
+        for (int h = 9; h <= 20; h++) {
+            endBox.getItems().add(String.format("%02d:00", h));
+            endBox.getItems().add(String.format("%02d:30", h));
+        }
+        applyModernFieldStyle(startBox);
+        applyModernFieldStyle(endBox);
+
+        Label roomLbl = new Label("Room");
+        roomLbl.setStyle(labelStyle);
+        ComboBox<String> roomBox = new ComboBox<>();
+        applyModernFieldStyle(roomBox);
+
+        Label purposeLbl = new Label("Purpose");
+        purposeLbl.setStyle(labelStyle);
+        TextArea purposeArea = new TextArea();
+        purposeArea.setPrefRowCount(3);
+        applyModernFieldStyle(purposeArea);
+
+        grid.add(dateLbl, 0, 0);
+        grid.add(datePicker, 0, 1);
+
+        grid.add(startLbl, 1, 0);
+        grid.add(startBox, 1, 1);
+
+        grid.add(endLbl, 2, 0);
+        grid.add(endBox, 2, 1);
+
+        grid.add(roomLbl, 0, 2);
+        grid.add(roomBox, 0, 3, 3, 1);
+
+        grid.add(purposeLbl, 0, 4);
+        grid.add(purposeArea, 0, 5, 3, 1);
+
+        // inline error label (instead of Alert)
+        Label errorLabel = new Label();
+        errorLabel.setStyle("-fx-text-fill: #dc2626; -fx-font-size: 11;");
+        errorLabel.setVisible(false);
+
+        HBox buttons = new HBox(10);
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.setStyle(
+                "-fx-background-color: #e5e7eb;" +
+                        "-fx-text-fill: #374151;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 16;"
+        );
+
+        Button saveBtn = new Button("Save Changes");
+        saveBtn.setStyle(
+                "-fx-background-color: #AD001D;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 20;"
+        );
+
+        buttons.getChildren().addAll(cancelBtn, saveBtn);
+
+        modal.getChildren().addAll(title, subtitle, grid, errorLabel, buttons);
+
+        modal.setUserData(new Object[]{
+                datePicker, startBox, endBox, roomBox, purposeArea,
+                errorLabel, saveBtn, cancelBtn
+        });
+
+        return modal;
+    }
 
     private VBox createPaymentModal() {
         VBox modal = new VBox(18);
@@ -449,22 +525,19 @@ public class BookingFX extends Application {
         modal.setAlignment(Pos.TOP_LEFT);
         modal.setMaxWidth(480);
 
-        // card look
         modal.setStyle(
                 "-fx-background-color: white;" +
                         "-fx-background-radius: 20;" +
                         "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.18), 26, 0, 0, 8);"
         );
 
-        // --- title + subtitle ---
         Label title = new Label("Complete Payment");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 20));
         title.setTextFill(Color.web("#AD001D"));
 
-        Label subtitle = new Label("Review your booking details and confirm payment.");
+        Label subtitle = new Label("Review your booking details and confirm the deposit.");
         subtitle.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11;");
 
-        // --- summary box ---
         VBox summaryBox = new VBox(6);
         summaryBox.setPadding(new Insets(10, 12, 10, 12));
         summaryBox.setStyle(
@@ -486,11 +559,9 @@ public class BookingFX extends Application {
 
         summaryBox.getChildren().addAll(summaryTitle, roomLabel, timeLabel, amountLabel);
 
-        // --- separator ---
         Separator sep = new Separator();
         sep.setOpacity(0.25);
 
-        // --- payment form ---
         VBox paymentForm = new VBox(10);
 
         Label paymentTitle = new Label("Payment Details");
@@ -534,6 +605,10 @@ public class BookingFX extends Application {
         Label disclaimer = new Label(
                 "We do not store card details. This is a simulated payment for demo purposes.");
         disclaimer.setStyle("-fx-text-fill: #9ca3af; -fx-font-size: 10;");
+        Label errorLabel = new Label();
+        errorLabel.setStyle("-fx-text-fill: #dc2626; -fx-font-size: 11;");
+        errorLabel.setVisible(false);
+
 
         paymentForm.getChildren().addAll(
                 paymentTitle,
@@ -544,7 +619,6 @@ public class BookingFX extends Application {
                 disclaimer
         );
 
-        // --- buttons row ---
         HBox buttonRow = new HBox(10);
         buttonRow.setAlignment(Pos.CENTER_RIGHT);
 
@@ -575,20 +649,112 @@ public class BookingFX extends Application {
                 summaryBox,
                 sep,
                 paymentForm,
+                errorLabel,
                 buttonRow
         );
 
-        // store references for showPaymentModal()
         modal.setUserData(new Object[]{
                 roomLabel, timeLabel, amountLabel,
                 cardField, expiryField, cvvField, nameField,
-                payBtn, cancelBtn
+                payBtn, cancelBtn, errorLabel
         });
 
         modal.setVisible(false);
         return modal;
     }
+    private void showCancelModal(Booking booking) {
+        Object[] refs = (Object[]) cancelModal.getUserData();
+        Label message = (Label) refs[0];
+        Button yesBtn = (Button) refs[1];
+        Button noBtn  = (Button) refs[2];
 
+        message.setText(
+                "Are you sure you want to cancel the booking?\n" +
+                        "Room: " + booking.getRoomId() + "\n" +
+                        "Refund will be processed if applicable."
+        );
+
+        yesBtn.setOnAction(ev -> {
+            try {
+                boolean cancelled = bookingManager.cancelBooking(
+                        booking.getBookingId(),
+                        currentUserEmail
+                );
+
+                if (cancelled) {
+                    hideOverlay();
+                    cancelModal.setVisible(false);
+                    showMyBookingsView();
+                }
+
+            } catch (Exception ex) {
+                message.setText(ex.getMessage());
+            }
+        });
+
+        noBtn.setOnAction(ev -> {
+            cancelModal.setVisible(false);
+            hideOverlay();
+        });
+
+        // Hide other modals
+        paymentModal.setVisible(false);
+        confirmationModal.setVisible(false);
+        editBookingModal.setVisible(false);
+
+        cancelModal.setVisible(true);
+        showOverlay();
+    }
+
+    private VBox createCancelModal() {
+        VBox modal = new VBox(18);
+        modal.setPadding(new Insets(24));
+        modal.setAlignment(Pos.CENTER);
+        modal.setMaxWidth(420);
+
+        modal.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 20;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.18), 26, 0, 0, 8);"
+        );
+
+        Label title = new Label("Cancel Booking?");
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
+        title.setTextFill(Color.web("#AD001D"));
+
+        Label message = new Label();
+        message.setWrapText(true);
+        message.setStyle("-fx-text-fill: #374151; -fx-font-size: 12;");
+        message.setMaxWidth(360);
+
+        // Buttons
+        HBox btnRow = new HBox(10);
+        btnRow.setAlignment(Pos.CENTER_RIGHT);
+
+        Button noBtn = new Button("No");
+        noBtn.setStyle(
+                "-fx-background-color: #e5e7eb;" +
+                        "-fx-text-fill: #374151;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 16;"
+        );
+
+        Button yesBtn = new Button("Yes, Cancel");
+        yesBtn.setStyle(
+                "-fx-background-color: #AD001D;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 18;"
+        );
+
+        btnRow.getChildren().addAll(noBtn, yesBtn);
+
+        modal.getChildren().addAll(title, message, btnRow);
+
+        modal.setUserData(new Object[]{message, yesBtn, noBtn});
+        return modal;
+    }
 
     private VBox createConfirmationModal() {
         VBox modal = new VBox(20);
@@ -660,7 +826,6 @@ public class BookingFX extends Application {
                                   LocalDateTime startTime,
                                   LocalDateTime endTime,
                                   String purpose,
-                                  long durationHours,
                                   double depositAmount) {
 
         Object[] refs = (Object[]) paymentModal.getUserData();
@@ -673,32 +838,52 @@ public class BookingFX extends Application {
         TextField nameField = (TextField) refs[6];
         Button payBtn = (Button) refs[7];
         Button cancelBtn = (Button) refs[8];
+        Label errorLabel      = (Label) refs[9];
 
         roomLabel.setText("Room: " + room.getRoomName());
         timeLabel.setText("Time: " + startTime.toLocalDate() + " "
                 + startTime.toLocalTime() + " - " + endTime.toLocalTime());
-        amountLabel.setText("Amount: $" + depositAmount);
+        amountLabel.setText("Deposit (charged now): $" + String.format("%.2f", depositAmount));
+        errorLabel.setText("");
+        errorLabel.setVisible(false);
+
 
         cardField.clear();
         expiryField.clear();
         cvvField.clear();
         nameField.clear();
-
+// reset handlers
         payBtn.setOnAction(null);
         cancelBtn.setOnAction(null);
 
         payBtn.setOnAction(event -> {
-            if (cardField.getText().trim().isEmpty()
-                    || expiryField.getText().trim().isEmpty()
-                    || cvvField.getText().trim().isEmpty()
-                    || nameField.getText().trim().isEmpty()) {
-                showAlert("Payment Error", "Please fill in all payment details.");
+            errorLabel.setText("");
+            errorLabel.setVisible(false);
+
+            String error = validateCardForm(
+                    cardField.getText(),
+                    expiryField.getText(),
+                    cvvField.getText(),
+                    nameField.getText()
+            );
+
+            if (error != null) {
+                errorLabel.setText(error);
+                errorLabel.setVisible(true);
                 return;
             }
 
+            // card is valid → now process booking + payment
             processPaymentAndConfirm(
-                    room, startTime, endTime, purpose, currentUserType, depositAmount);
+                    room, startTime, endTime, purpose, currentUserType
+            );
         });
+
+        cancelBtn.setOnAction(event -> hideOverlay());
+
+
+
+
 
         cancelBtn.setOnAction(event -> hideOverlay());
 
@@ -711,8 +896,7 @@ public class BookingFX extends Application {
                                           LocalDateTime startTime,
                                           LocalDateTime endTime,
                                           String purpose,
-                                          String userType,
-                                          double depositAmount) {
+                                          String userType) {
         try {
             Booking booking = bookingManager.bookRoom(
                     room.getRoomId(),
@@ -721,6 +905,7 @@ public class BookingFX extends Application {
                     endTime,
                     purpose,
                     userType
+
             );
 
             showConfirmationModal(booking, room, startTime, endTime);
@@ -748,9 +933,9 @@ public class BookingFX extends Application {
         nameLabel.setText("Room: " + room.getRoomName());
         timeLabel.setText("Time: " + startTime.toLocalDate() + " "
                 + startTime.toLocalTime() + " - " + endTime.toLocalTime());
-        amountLabel.setText("Amount Paid: $" + booking.getDepositAmount());
+        amountLabel.setText("Deposit Paid: $" + String.format("%.2f", booking.getDepositAmount()));
 
-        String statusText = "Status: " + booking.getPaymentStatus();
+        String statusText = "Payment Status: " + booking.getPaymentStatus();
         statusLabel.setText(statusText);
         statusLabel.setStyle(
                 "-fx-font-size: 12; -fx-font-weight: bold; -fx-text-fill: "
@@ -766,6 +951,7 @@ public class BookingFX extends Application {
 
         paymentModal.setVisible(false);
         confirmationModal.setVisible(true);
+
     }
 
     // ==============================================================
@@ -835,7 +1021,6 @@ public class BookingFX extends Application {
         formCard.setPadding(new Insets(26));
         formCard.setSpacing(18);
         formCard.setMaxWidth(950);
-        // big modern card
         formCard.setStyle(
                 "-fx-background-color: white;" +
                         "-fx-background-radius: 24;" +
@@ -859,7 +1044,6 @@ public class BookingFX extends Application {
                 "-fx-text-fill: #6b7280;" +
                         "-fx-font-size: 11;" +
                         "-fx-font-weight: bold;";
-
 
         // --- Date ---
         Label dateLbl = new Label("Booking Date *");
@@ -929,24 +1113,20 @@ public class BookingFX extends Application {
         purposeArea.setPromptText("e.g., Study group, client meeting, project presentation, interview...");
         purposeArea.setPrefRowCount(3);
         applyModernFieldStyle(purposeArea);
+
         Label purposeErrorLabel = new Label("Please enter a meeting purpose.");
         purposeErrorLabel.setStyle("-fx-text-fill: #dc2626; -fx-font-size: 11;");
         purposeErrorLabel.setVisible(false);
-        purposeErrorLabel.setManaged(false); // so it doesn't take space when hidden
+        purposeErrorLabel.setManaged(false);
 
-// clear error as soon as user starts typing
         purposeArea.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.trim().isEmpty()) {
                 purposeErrorLabel.setVisible(false);
                 purposeErrorLabel.setManaged(false);
-                // restore normal style
                 applyModernFieldStyle(purposeArea);
             }
         });
 
-
-
-        // Layout in grid
         formGrid.add(dateLbl, 0, 0);
         formGrid.add(datePicker, 0, 1);
 
@@ -1069,7 +1249,6 @@ public class BookingFX extends Application {
         return formCard;
     }
 
-
     private Button createPresetChip(String text, Runnable action) {
         Button chip = new Button(text);
         chip.setFocusTraversable(false);
@@ -1095,7 +1274,6 @@ public class BookingFX extends Application {
 
         return chip;
     }
-
 
     private void applyQuickDuration(ComboBox<String> startTimeBox,
                                     ComboBox<String> endTimeBox,
@@ -1190,10 +1368,8 @@ public class BookingFX extends Application {
             card.setScaleY(1.0);
         });
 
-        // ---------- thumbnail on the left (reuse same images as quick glance) ----------
-        ImageView preview = getRoomImageView(room);   // <- SAME helper you use for quick glance
+        ImageView preview = getRoomImageView(room);
         if (preview != null) {
-            // shrink it for list view
             preview.setFitWidth(150);
             preview.setFitHeight(95);
 
@@ -1205,7 +1381,6 @@ public class BookingFX extends Application {
             card.getChildren().add(preview);
         }
 
-        // ---------- center info ----------
         VBox infoBox = new VBox(4);
         infoBox.setPrefWidth(520);
 
@@ -1222,13 +1397,19 @@ public class BookingFX extends Application {
         Label amenitiesLabel = new Label("🛠 " + room.getAmenities());
         amenitiesLabel.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11;");
 
-        long durationHours = java.time.Duration.between(startTime, endTime).toHours();
-        double depositRate = currentUserType.equalsIgnoreCase("student") ? 5.0 : 10.0;
-        double depositAmount = depositRate * durationHours;
+        long durationMinutes = java.time.Duration.between(startTime, endTime).toMinutes();
+        long durationHours = (long) Math.ceil(durationMinutes / 60.0);
+
+        double hourlyRate    = bookingManager.getHourlyRateForUserType(currentUserType);
+        double depositAmount = bookingManager.getDepositForUserTypeAndDuration(currentUserType, durationHours);
 
         Label depositLabel = new Label(
-                "💰 Deposit: $" + depositAmount +
-                        "  (" + durationHours + " hours × $" + depositRate + "/hour)");
+                String.format(
+                        "💰 Deposit: $%.2f (1 hour × $%.2f/hour) • Est. total ≈ $%.2f",
+                        depositAmount,
+                        hourlyRate,
+                        bookingManager.getEstimatedTotalForUser(currentUserType, durationHours)
+                ));
         depositLabel.setStyle("-fx-text-fill: #AD001D; -fx-font-size: 11; -fx-font-weight: bold;");
 
         Label tipLabel = new Label("Ideal for " + getRoomVibeText(room));
@@ -1236,7 +1417,6 @@ public class BookingFX extends Application {
 
         infoBox.getChildren().addAll(nameLabel, locationLabel, amenitiesLabel, depositLabel, tipLabel);
 
-        // ---------- right side: Book button ----------
         VBox actionBox = new VBox();
         actionBox.setAlignment(Pos.CENTER_RIGHT);
         actionBox.setPrefWidth(120);
@@ -1253,18 +1433,16 @@ public class BookingFX extends Application {
 
         bookBtn.setOnAction(e -> {
             try {
-                showPaymentModal(room, startTime, endTime, purpose, durationHours, depositAmount);
+                showPaymentModal(room, startTime, endTime, purpose, depositAmount);
             } catch (Exception ex) {
                 showAlert("Error", ex.getMessage());
             }
         });
 
         actionBox.getChildren().add(bookBtn);
-
         card.getChildren().addAll(infoBox, actionBox);
         return card;
     }
-
 
     private String getRoomVibeText(Room room) {
         int cap = room.getCapacity();
@@ -1285,7 +1463,6 @@ public class BookingFX extends Application {
         preview.setVgap(24);
         preview.setAlignment(Pos.TOP_LEFT);
 
-        // let it wrap nicely as the center area resizes
         preview.prefWrapLengthProperty().bind(
                 mainContent.widthProperty().subtract(80)
         );
@@ -1298,7 +1475,6 @@ public class BookingFX extends Application {
 
         return preview;
     }
-
 
     private VBox createRoomPreviewCard(Room room) {
         VBox card = new VBox(12);
@@ -1327,7 +1503,6 @@ public class BookingFX extends Application {
             card.setScaleY(1.0);
         });
 
-        // ---------- image preview ----------
         ImageView preview = getRoomImageView(room);
         if (preview != null) {
             StackPane imageWrapper = new StackPane(preview);
@@ -1335,7 +1510,6 @@ public class BookingFX extends Application {
             card.getChildren().add(imageWrapper);
         }
 
-        // ---------- header row: icon chip + name ----------
         StackPane iconCircle = new StackPane();
         iconCircle.setPadding(new Insets(4));
         iconCircle.setStyle(
@@ -1354,7 +1528,6 @@ public class BookingFX extends Application {
         HBox headerRow = new HBox(8, iconCircle, name);
         headerRow.setAlignment(Pos.CENTER_LEFT);
 
-        // ---------- details ----------
         Label building = new Label("🏢 " + room.getBuilding());
         building.setStyle("-fx-font-size: 11; -fx-text-fill: #6b7280;");
 
@@ -1365,7 +1538,6 @@ public class BookingFX extends Application {
         vibe.setStyle("-fx-font-size: 11; -fx-text-fill: #9ca3af;");
         vibe.setWrapText(true);
 
-        // ---------- tags ----------
         HBox tagRow = new HBox(6);
         tagRow.setAlignment(Pos.CENTER_LEFT);
 
@@ -1384,9 +1556,6 @@ public class BookingFX extends Application {
         card.getChildren().addAll(headerRow, building, capacity, vibe, tagRow);
         return card;
     }
-
-
-
 
     // ==============================================================
     // ======================  MY BOOKINGS VIEW  ====================
@@ -1460,7 +1629,7 @@ public class BookingFX extends Application {
 
         Label payment = new Label(
                 "💰 Payment: " + paymentStatus
-                        + " | Deposit: $" + booking.getDepositAmount());
+                        + " | Deposit: $" + String.format("%.2f", booking.getDepositAmount()));
         payment.setStyle("-fx-text-fill: " + paymentColor
                 + "; -fx-font-size: 11; -fx-font-weight: bold;");
 
@@ -1476,36 +1645,323 @@ public class BookingFX extends Application {
         if ("CONFIRMED".equals(booking.getStatus())
                 || "PENDING_PAYMENT".equals(booking.getStatus())) {
 
+            // --- Edit button ---
+            Button editBtn = new Button("Edit");
+            editBtn.setPrefWidth(80);
+            editBtn.setStyle(
+                    "-fx-background-color: #e5e7eb;" +
+                            "-fx-text-fill: #374151;" +
+                            "-fx-background-radius: 999;" +
+                            "-fx-padding: 6 16;");
+            Tooltip.install(editBtn, new Tooltip("Change room, date/time, or purpose."));
+
+            editBtn.setOnAction(e -> showEditBookingDialog(booking));
+
+            // --- Cancel button ---
             Button cancelBtn = new Button("Cancel");
             cancelBtn.getStyleClass().add("danger-button");
             cancelBtn.setPrefWidth(80);
             Tooltip.install(cancelBtn,
                     new Tooltip("Cancel this booking and process refund if applicable."));
 
-            cancelBtn.setOnAction(e -> {
-                try {
-                    boolean cancelled = bookingManager.cancelBooking(
-                            booking.getBookingId(), currentUserEmail);
-                    if (cancelled) {
-                        showAlert("Success",
-                                "Booking cancelled successfully! Refund processed if applicable.");
-                        showMyBookingsView();
-                    }
-                } catch (Exception ex) {
-                    showAlert("Cancellation Failed", ex.getMessage());
-                }
-            });
+            cancelBtn.setOnAction(e2 -> showCancelModal(booking));
 
-            buttonBox.getChildren().add(cancelBtn);
+            buttonBox.getChildren().addAll(editBtn, cancelBtn);
         }
 
         card.getChildren().addAll(bookingInfo, buttonBox);
+
         return card;
     }
+
+    // ====================== Edit Booking Dialog ======================
+    private void showEditBookingModal(Booking booking) {
+
+        Object[] refs = (Object[]) editBookingModal.getUserData();
+        DatePicker datePicker      = (DatePicker) refs[0];
+        ComboBox<String> startBox  = (ComboBox<String>) refs[1];
+        ComboBox<String> endBox    = (ComboBox<String>) refs[2];
+        ComboBox<String> roomBox   = (ComboBox<String>) refs[3];
+        TextArea purposeArea       = (TextArea) refs[4];
+        Label errorLabel           = (Label) refs[5];
+        Button saveBtn             = (Button) refs[6];
+        Button cancelBtn           = (Button) refs[7];
+
+        // Reset
+        errorLabel.setText("");
+        errorLabel.setVisible(false);
+
+        // Prefill
+        LocalDateTime start = booking.getStartTime();
+        LocalDateTime end   = booking.getEndTime();
+
+        datePicker.setValue(start.toLocalDate());
+        startBox.setValue(String.format("%02d:%02d", start.getHour(), start.getMinute()));
+        endBox.setValue(String.format("%02d:%02d", end.getHour(), end.getMinute()));
+        purposeArea.setText(booking.getPurpose());
+
+        roomBox.getItems().clear();
+        for (Room r : bookingManager.getAllRooms()) {
+            String label = r.getRoomId() + " - " + r.getRoomName();
+            roomBox.getItems().add(label);
+            if (r.getRoomId().equals(booking.getRoomId())) {
+                roomBox.setValue(label);
+            }
+        }
+
+        saveBtn.setOnAction(event -> {
+            errorLabel.setVisible(false);
+
+            try {
+                LocalDate date = datePicker.getValue();
+                if (date == null) {
+                    showInlineError(errorLabel, "Please choose a date.");
+                    return;
+                }
+
+                LocalTime newStart = LocalTime.parse(startBox.getValue());
+                LocalTime newEnd   = LocalTime.parse(endBox.getValue());
+                if (!newEnd.isAfter(newStart)) {
+                    showInlineError(errorLabel, "End time must be after start time.");
+                    return;
+                }
+
+                if (roomBox.getValue() == null) {
+                    showInlineError(errorLabel, "Select a room.");
+                    return;
+                }
+
+                String roomId = roomBox.getValue().split(" - ")[0];
+                String purpose = purposeArea.getText().trim();
+                if (purpose.isEmpty()) {
+                    showInlineError(errorLabel, "Purpose is required.");
+                    return;
+                }
+
+                bookingManager.editBooking(
+                        booking.getBookingId(),
+                        currentUserEmail,
+                        roomId,
+                        LocalDateTime.of(date, newStart),
+                        LocalDateTime.of(date, newEnd),
+                        purpose
+                );
+
+                // Close modal, refresh list
+                editBookingModal.setVisible(false);
+                hideOverlay();
+                showMyBookingsView();
+
+            } catch (Exception ex) {
+                showInlineError(errorLabel, ex.getMessage());
+            }
+        });
+
+        cancelBtn.setOnAction(e -> {
+            editBookingModal.setVisible(false);
+            hideOverlay();
+        });
+
+        // SHOW THE SMALL POPUP ON SAME PAGE
+        paymentModal.setVisible(false);
+        confirmationModal.setVisible(false);
+        editBookingModal.setVisible(true);
+        showOverlay();
+    }
+
+
+    private void showEditBookingDialog(Booking booking) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Edit Booking");
+        dialog.setHeaderText("Update room, date/time, or purpose.");
+
+        DialogPane pane = dialog.getDialogPane();
+        pane.getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(8);
+        grid.setPadding(new Insets(10, 10, 10, 10));
+
+        // --- Date ---
+        Label dateLbl = new Label("Date");
+        DatePicker datePicker = new DatePicker(booking.getStartTime().toLocalDate());
+
+        // --- Start time ---
+        Label startLbl = new Label("Start");
+        ComboBox<String> startBox = new ComboBox<>();
+        for (int hour = 8; hour <= 19; hour++) {
+            startBox.getItems().add(String.format("%02d:00", hour));
+            startBox.getItems().add(String.format("%02d:30", hour));
+        }
+        startBox.setValue(booking.getStartTime().toLocalTime().toString());
+
+        // --- End time ---
+        Label endLbl = new Label("End");
+        ComboBox<String> endBox = new ComboBox<>();
+        for (int hour = 9; hour <= 20; hour++) {
+            endBox.getItems().add(String.format("%02d:00", hour));
+            endBox.getItems().add(String.format("%02d:30", hour));
+        }
+        endBox.setValue(booking.getEndTime().toLocalTime().toString());
+
+        // --- Room selection (ID + name) ---
+        Label roomLbl = new Label("Room");
+        ComboBox<String> roomBox = new ComboBox<>();
+        for (Room room : bookingManager.getAllRooms()) {
+            String option = room.getRoomId() + " - " + room.getRoomName();
+            roomBox.getItems().add(option);
+            if (room.getRoomId().equals(booking.getRoomId())) {
+                roomBox.setValue(option);
+            }
+        }
+
+        // --- Purpose ---
+        Label purposeLbl = new Label("Purpose");
+        TextArea purposeArea = new TextArea(booking.getPurpose());
+        purposeArea.setPrefRowCount(3);
+
+        // Layout in the grid
+        grid.addRow(0, dateLbl, datePicker);
+        grid.addRow(1, startLbl, startBox);
+        grid.addRow(2, endLbl, endBox);
+        grid.addRow(3, roomLbl, roomBox);
+        grid.add(purposeLbl, 0, 4);
+        grid.add(purposeArea, 1, 4);
+
+        pane.setContent(grid);
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType == ButtonType.OK) {
+                try {
+                    LocalDate date = datePicker.getValue();
+                    if (date == null) {
+                        showAlert("Edit Failed", "Please select a date.");
+                        return null;
+                    }
+
+                    LocalTime start = LocalTime.parse(startBox.getValue());
+                    LocalTime end   = LocalTime.parse(endBox.getValue());
+
+                    LocalDateTime newStart = LocalDateTime.of(date, start);
+                    LocalDateTime newEnd   = LocalDateTime.of(date, end);
+
+                    String selectedRoom = roomBox.getValue();
+                    if (selectedRoom == null) {
+                        showAlert("Edit Failed", "Please select a room.");
+                        return null;
+                    }
+                    String newRoomId = selectedRoom.split(" - ")[0];
+
+                    String newPurpose = purposeArea.getText();
+
+                    bookingManager.editBooking(
+                            booking.getBookingId(),
+                            currentUserEmail,
+                            newRoomId,
+                            newStart,
+                            newEnd,
+                            newPurpose
+                    );
+
+                    showAlert("Booking Updated", "Your booking has been updated.");
+                    showMyBookingsView();
+                } catch (Exception ex) {
+                    showAlert("Edit Failed", ex.getMessage());
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait();
+    }
+
 
     // ==============================================================
     // ==========================  UTILS  ===========================
     // ==============================================================
+// ==================== Payment Validation Helpers ====================
+
+    private boolean isValidCardNumber(String cardNumber) {
+        // Remove spaces so "1234 5678 9012 3456" is allowed.
+        String digitsOnly = cardNumber.replaceAll("\\s+", "");
+        return digitsOnly.matches("\\d{16}");
+    }
+
+    private boolean isValidExpiry(String expiry) {
+        if (expiry == null) return false;
+
+        // MM/YY where MM is 01‒12
+        if (!expiry.matches("(0[1-9]|1[0-2])/\\d{2}")) {
+            return false;
+        }
+
+        try {
+            java.time.format.DateTimeFormatter formatter =
+                    java.time.format.DateTimeFormatter.ofPattern("MM/yy");
+            YearMonth exp = YearMonth.parse(expiry, formatter);
+            YearMonth now = YearMonth.now();
+            // Must be current month or later
+            return !exp.isBefore(now);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean isValidCvv(String cvv) {
+        return cvv != null && cvv.matches("\\d{3}");
+    }
+// ====================== Edit Booking Dialog ======================
+private String validateCardForm(String cardNumber,
+                                String expiry,
+                                String cvv,
+                                String nameOnCard) {
+
+    if (nameOnCard == null || nameOnCard.trim().isEmpty()) {
+        return "Name on card is required.";
+    }
+
+    String normalized = cardNumber == null ? "" : cardNumber.replaceAll("\\s+", "");
+    if (!normalized.matches("\\d{16}")) {
+        return "Card number must be exactly 16 digits.";
+    }
+
+    if (expiry == null || !expiry.matches("(0[1-9]|1[0-2])/\\d{2}")) {
+        return "Expiry must be in MM/YY format.";
+    }
+
+    if (cvv == null || !cvv.matches("\\d{3}")) {
+        return "CVV must be 3 digits.";
+    }
+
+    return null; // valid
+}
+    private void showModal(VBox modal) {
+        modal.setVisible(true);
+        FadeTransition ft = new FadeTransition(Duration.millis(200), modal);
+        ft.setFromValue(0);
+        ft.setToValue(1);
+        ft.play();
+    }
+
+    private void hideModal(VBox modal) {
+        FadeTransition ft = new FadeTransition(Duration.millis(150), modal);
+        ft.setFromValue(1);
+        ft.setToValue(0);
+        ft.setOnFinished(e -> modal.setVisible(false));
+        ft.play();
+    }
+
+    private void showLabelError(Label label, String text) {
+        label.setText(text);
+        label.setVisible(true);
+    }
+
+    private void showInlineError(Label label, String text) {
+        label.setText(text);
+        label.setVisible(true);
+    }
+
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
