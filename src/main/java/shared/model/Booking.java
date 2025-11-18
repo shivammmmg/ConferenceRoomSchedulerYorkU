@@ -2,233 +2,258 @@ package shared.model;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 
 /**
- * Unified Booking class for Scenarios 2, 3, and 4.
+ * Represents a single room reservation in the YorkU Conference Room Scheduler.
  *
- * This class merges all Booking versions from the project and matches the UML class diagram.
- * It provides:
- *   - Core booking information
- *   - Payment + status logic (Scenario 2)
- *   - Check-in + no-show logic (Scenario 3)
- *   - Minimal usage for Scenario 4
+ * <p>This model class stores all details required for Scenario 2:
+ * <ul>
+ *     <li>User making the booking</li>
+ *     <li>Room being reserved</li>
+ *     <li>Date and time range</li>
+ *     <li>Purpose of the meeting</li>
+ *     <li>Booking status (confirmed/cancelled/pending payment)</li>
+ *     <li>Payment status (pending/approved/failed)</li>
+ *     <li>Deposit amount charged at booking time</li>
+ * </ul>
  *
- * Backward compatibility is maintained by including:
- *   - getStart() and getStartTime()
- *   - getEnd() and getEndTime()
- *   - Both constructors used by different scenarios
+ * <p>Bookings are persisted using CSV files (simulated database) through {@code CSVHelper}.
+ * This class is used extensively by:
+ * <ul>
+ *     <li>{@code BookingManager} (Singleton – business logic)</li>
+ *     <li>{@code BookingBuilder} (Builder pattern – object creation)</li>
+ *     <li>{@code BookingFX} (JavaFX UI – creating, editing, displaying bookings)</li>
+ * </ul>
  */
 public class Booking {
 
-    // -------------------------
-    // Core Fields (all scenarios)
-    // -------------------------
+    /** Unique identifier for the booking (generated automatically). */
     private String bookingId;
+
+    /** Room ID associated with the booking. */
     private String roomId;
-    private String userId;     // replaces "bookedBy" from Booking_4
+
+    /** Email or ID of the user who created the booking. */
+    private String userId;
+
+    /** Start date and time of the reservation. */
     private LocalDateTime startTime;
+
+    /** End date and time of the reservation. */
     private LocalDateTime endTime;
 
-    // -------------------------
-    // Scenario 2 fields (payments/status/purpose)
-    // -------------------------
+    /** Purpose or description of the meeting (e.g., study group, interview). */
     private String purpose;
-    private String status;          // CONFIRMED, CANCELLED, PENDING_PAYMENT
-    private String paymentStatus;   // PENDING, APPROVED, FAILED
-    private double depositAmount;
-    private double finalCost;
-    private double snapshotRate;
-    private int duration;
-
-    // Timestamps to match the class diagram
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
-    // Scenario 2 extra field (from UML)
-    private String orgIdProvided;
-
-    // -------------------------
-    // Scenario 3 fields (check-in/no-show)
-    // -------------------------
-    private LocalDateTime checkInTime;
-    private boolean depositForfeited = false;
-    private boolean checkedIn = false;
-    private boolean forfeitPopupShown = false;
-
-
-    // =======================================================
-    // Constructors (supports all 3 original Booking versions)
-    // =======================================================
 
     /**
-     * Full constructor used by Scenario 2 (with purpose).
+     * Status of the booking:
+     * <ul>
+     *     <li>{@code CONFIRMED} – booking is valid</li>
+     *     <li>{@code CANCELLED} – user cancelled the booking</li>
+     *     <li>{@code PENDING_PAYMENT} – waiting for payment approval</li>
+     * </ul>
      */
-    public Booking(String bookingId, String roomId, String userId,
-                   LocalDateTime startTime, LocalDateTime endTime, String purpose) {
+    private String status;
+
+    /**
+     * Status of the payment process:
+     * <ul>
+     *     <li>{@code PENDING} – payment not completed yet</li>
+     *     <li>{@code APPROVED} – payment successful</li>
+     *     <li>{@code FAILED} – payment encountered an error</li>
+     * </ul>
+     */
+    private String paymentStatus;
+
+    /** Deposit amount collected (always equals 1 × hourly rate). */
+    private double depositAmount;
+
+    /**
+     * Constructor used when creating a new booking from the UI or logic layer.
+     * Defaults:
+     * <ul>
+     *     <li>status = {@code CONFIRMED}</li>
+     *     <li>paymentStatus = {@code PENDING}</li>
+     *     <li>depositAmount = 0.0 (assigned later by BookingManager)</li>
+     * </ul>
+     *
+     * @param bookingId   unique ID of the booking
+     * @param roomId      ID of the room being booked
+     * @param userId      ID/email of the user creating the booking
+     * @param startTime   start timestamp of the booking
+     * @param endTime     end timestamp of the booking
+     * @param purpose     purpose of the meeting
+     */
+    public Booking(String bookingId,
+                   String roomId,
+                   String userId,
+                   LocalDateTime startTime,
+                   LocalDateTime endTime,
+                   String purpose) {
 
         this.bookingId = bookingId;
         this.roomId = roomId;
         this.userId = userId;
-
         this.startTime = startTime;
         this.endTime = endTime;
-
         this.purpose = purpose;
 
-        // Default values matching Scenario 2 logic
         this.status = "CONFIRMED";
         this.paymentStatus = "PENDING";
         this.depositAmount = 0.0;
-
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-
-        // auto-calculate initial duration (in hours)
-        this.duration = (int) java.time.Duration.between(startTime, endTime).toHours();
     }
 
     /**
-     * Constructor used by Scenario 3 and Scenario 4 (no purpose).
+     * Full constructor used when loading bookings from CSV storage
+     * or when creating bookings using the Builder pattern.
+     *
+     * @param bookingId     unique booking ID
+     * @param roomId        room being reserved
+     * @param userId        user who made the booking
+     * @param startTime     booking start time
+     * @param endTime       booking end time
+     * @param purpose       purpose/description
+     * @param status        booking status (confirmed/cancelled/pending)
+     * @param paymentStatus payment status (pending/approved/failed)
+     * @param depositAmount deposit amount charged
      */
-    public Booking(String bookingId, String roomId, String userId,
-                   LocalDateTime startTime, LocalDateTime endTime) {
-        this(bookingId, roomId, userId, startTime, endTime, "");
+    public Booking(String bookingId,
+                   String roomId,
+                   String userId,
+                   LocalDateTime startTime,
+                   LocalDateTime endTime,
+                   String purpose,
+                   String status,
+                   String paymentStatus,
+                   double depositAmount) {
+
+        this.bookingId = bookingId;
+        this.roomId = roomId;
+        this.userId = userId;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.purpose = purpose;
+        this.status = status;
+        this.paymentStatus = paymentStatus;
+        this.depositAmount = depositAmount;
     }
 
+    // =====================================================
+    //                     GETTERS
+    // =====================================================
 
-    // =======================================================
-    // BASIC GETTERS (backward compatible)
-    // =======================================================
-
+    /** @return unique booking identifier */
     public String getBookingId() { return bookingId; }
+
+    /** @return room ID associated with this booking */
     public String getRoomId() { return roomId; }
+
+    /** @return user ID who created this booking */
     public String getUserId() { return userId; }
 
-    // Scenario 2 used getStartTime/getEndTime
+    /** @return start time of this reservation */
     public LocalDateTime getStartTime() { return startTime; }
+
+    /** @return end time of this reservation */
     public LocalDateTime getEndTime() { return endTime; }
 
-    // Scenario 3 and 4 used getStart/getEnd
-    public LocalDateTime getStart() { return startTime; }
-    public LocalDateTime getEnd() { return endTime; }
-
+    /** @return purpose/description of the meeting */
     public String getPurpose() { return purpose; }
+
+    /** @return booking status */
     public String getStatus() { return status; }
+
+    /** @return payment status */
     public String getPaymentStatus() { return paymentStatus; }
+
+    /** @return deposit amount charged */
     public double getDepositAmount() { return depositAmount; }
-    public double getFinalCost() { return finalCost; }
-    public String getOrgIdProvided() { return orgIdProvided; }
-    public int getDuration() { return duration; }
 
-    // Scenario 4 compatibility (Booking_4 used bookedBy)
-    public String getBookedBy() {
-        return userId;
-    }
+    // =====================================================
+    //                     SETTERS
+    // =====================================================
 
-
-
-    // =======================================================
-    // SETTERS (Scenario 2 logic)
-    // =======================================================
-    public void setPurpose(String purpose) { this.purpose = purpose; }
+    /**
+     * Updates the booking status (e.g., after cancellation).
+     * @param status new status string
+     */
     public void setStatus(String status) { this.status = status; }
-    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
-    public void setDepositAmount(double depositAmount) { this.depositAmount = depositAmount; }
-    public void setSnapshotRate(double snapshotRate) { this.snapshotRate = snapshotRate; }
-    public void setOrgIdProvided(String id) { this.orgIdProvided = id; }
 
+    /**
+     * Updates the meeting purpose.
+     * Used when the user edits a booking.
+     *
+     * @param purpose new purpose value
+     */
+    public void setPurpose(String purpose) { this.purpose = purpose; }
 
-    // =======================================================
-    // SCENARIO 3 LOGIC (Check-in / No-show)
-    // =======================================================
-
-    public boolean isCheckedIn() { return checkedIn; }
-    public void setCheckedIn(boolean checkedIn) {
-        this.checkedIn = checkedIn;
-        if (checkedIn) this.checkInTime = LocalDateTime.now();
+    /**
+     * Sets the payment status after payment validation/processing.
+     *
+     * @param paymentStatus new payment status
+     */
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
     }
 
-    public boolean isDepositForfeited() { return depositForfeited; }
-    public void forfeitDeposit() { this.depositForfeited = true; }
-
-    public boolean isForfeitPopupShown() { return forfeitPopupShown; }
-    public void setForfeitPopupShown(boolean shown) { this.forfeitPopupShown = shown; }
-
-    public boolean isCheckInValid() {
-        // Scenario 3 logic: check-in allowed only within 30 minutes of start
-        LocalDateTime now = LocalDateTime.now();
-        return !now.isAfter(startTime.plusMinutes(30));
+    /**
+     * Sets the deposit amount at booking creation.
+     *
+     * @param depositAmount amount to set
+     */
+    public void setDepositAmount(double depositAmount) {
+        this.depositAmount = depositAmount;
     }
 
-    public void handleNoShow() {
-        if (!checkedIn) {
-            this.depositForfeited = true;
-        }
-    }
+    /** @param roomId updated room ID (used when editing booking) */
+    public void setRoomId(String roomId) { this.roomId = roomId; }
 
+    /** @param startTime updated start datetime */
+    public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
 
-    // =======================================================
-    // SCENARIO 2 BUSINESS METHODS (from UML)
-    // =======================================================
+    /** @param endTime updated end datetime */
+    public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
 
-    public boolean cancel() {
-        if (status.equals("CANCELLED")) return false;
-        status = "CANCELLED";
-        updatedAt = LocalDateTime.now();
-        return true;
-    }
+    // =====================================================
+    //                     HELPERS
+    // =====================================================
 
-    public boolean extend(int extraSlots) {
-        this.endTime = endTime.plusHours(extraSlots);
-        this.duration += extraSlots;
-        updatedAt = LocalDateTime.now();
-        return true;
-    }
-
-    public double calculateCost() {
-        this.finalCost = duration * snapshotRate;
-        return finalCost;
-    }
-
-    public double calculateDepositAmount(String userType, int duration) {
-        // Simple rule: students pay lower deposit
-        if (userType.equalsIgnoreCase("student")) {
-            this.depositAmount = duration * 2.0;
-        } else {
-            this.depositAmount = duration * 5.0;
-        }
-        return depositAmount;
-    }
-
-    // Overlap logic from UML
-    public boolean overlaps(LocalDateTime otherStart, LocalDateTime otherEnd) {
-        return startTime.isBefore(otherEnd) && otherStart.isBefore(endTime);
-    }
-
-
-    // =======================================================
-    // Formatting helpers (Scenario 2 UI)
-    // =======================================================
+    /**
+     * @return formatted date (e.g., "Nov 18, 2025")
+     */
     public String getFormattedDate() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy");
-        return startTime.format(formatter);
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM dd, yyyy");
+        return startTime.format(fmt);
     }
 
+    /**
+     * @return formatted time range (e.g., "11:00 - 12:30")
+     */
     public String getFormattedTime() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
-        return startTime.format(formatter) + " - " + endTime.format(formatter);
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm");
+        return startTime.format(fmt) + " - " + endTime.format(fmt);
     }
 
-
+    /**
+     * Serializes the booking to CSV format.
+     * Matches the format expected by {@code CSVHelper}.
+     *
+     * @return comma-separated record representing this booking
+     */
     @Override
     public String toString() {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         return String.format(
                 "%s,%s,%s,%s,%s,%s,%s,%s,%.2f",
-                bookingId, roomId, userId,
-                startTime.format(fmt), endTime.format(fmt),
-                purpose, status, paymentStatus, depositAmount
+                bookingId,
+                roomId,
+                userId,
+                startTime.format(fmt),
+                endTime.format(fmt),
+                purpose,
+                status,
+                paymentStatus,
+                depositAmount
         );
     }
 }
