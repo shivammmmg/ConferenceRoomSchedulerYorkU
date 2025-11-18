@@ -10,10 +10,10 @@ import javafx.scene.text.Text;
 import scenario3.controller.CheckInManager;
 import scenario3.controller.RoomStatusManager;
 import scenario3.controller.SensorSystem;
-import scenario3.model.Booking;
-import scenario3.model.Room;
-import scenario3.model.RoomStatus;
+import shared.model.RoomStatus;
 import scenario3.observer.RoomStatusObserver;
+import shared.model.Room;
+import shared.model.Booking;
 
 import java.net.URL;
 import java.time.LocalDateTime;
@@ -168,7 +168,7 @@ public class DashboardController implements Initializable, RoomStatusObserver {
             return;
         }
         roomNameLabel.setText(room.getName() + " (" + room.getId() + ")");
-        updateStatusLabel(room.getStatus());
+        updateStatusLabel(room.getStatusEnum());
     }
 
     private void updateStatusLabel(RoomStatus s) {

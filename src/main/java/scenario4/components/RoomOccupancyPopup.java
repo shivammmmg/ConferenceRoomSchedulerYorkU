@@ -8,8 +8,8 @@ import javafx.scene.control.TableView;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import scenario4.shared.model.Booking;
-import scenario4.shared.model.BookingRepository;
+import shared.model.Booking;
+import shared.model.BookingRepository;
 
 public class RoomOccupancyPopup {
 

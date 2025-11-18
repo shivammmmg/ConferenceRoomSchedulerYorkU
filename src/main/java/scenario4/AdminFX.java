@@ -14,12 +14,12 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import scenario4.shared.model.Admin;
-import scenario4.shared.model.AdminRepository;
-import scenario4.shared.model.Room;
-import scenario4.shared.model.RoomRepository;
-import scenario4.viewfx.components.RoomDetailsPopup;
-import scenario4.viewfx.components.RoomOccupancyPopup;
+import shared.model.Admin;
+import shared.model.AdminRepository;
+import shared.model.Room;
+import shared.model.RoomRepository;
+import scenario4.components.RoomDetailsPopup;
+import scenario4.components.RoomOccupancyPopup;
 
 import java.util.Map;
 

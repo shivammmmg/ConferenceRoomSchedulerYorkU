@@ -9,8 +9,8 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import scenario4.shared.model.Admin;
-import scenario4.shared.model.AdminRepository;
+import shared.model.Admin;
+import shared.model.AdminRepository;
 
 public class ManageAdminsController {
 

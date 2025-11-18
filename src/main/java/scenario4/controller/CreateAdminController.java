@@ -3,8 +3,8 @@ package scenario4.controller;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
-import scenario4.shared.model.Admin;
-import scenario4.shared.model.AdminRepository;
+import shared.model.Admin;
+import shared.model.AdminRepository;
 
 public class CreateAdminController {
 

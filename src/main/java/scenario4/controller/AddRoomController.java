@@ -4,8 +4,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
 import scenario4.factory.RoomFactory;
-import scenario4.shared.model.Room;
-import scenario4.shared.model.RoomRepository;
+import shared.model.Room;
+import shared.model.RoomRepository;
 
 public class AddRoomController {
 

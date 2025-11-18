@@ -4,8 +4,8 @@ import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
-import scenario4.shared.model.Room;
-import scenario4.shared.model.RoomRepository;
+import shared.model.Room;
+import shared.model.RoomRepository;
 
 public class ManageRoomsTableBuilder {
 

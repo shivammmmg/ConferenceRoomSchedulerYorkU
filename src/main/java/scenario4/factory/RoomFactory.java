@@ -1,6 +1,6 @@
 package scenario4.factory;
 
-import scenario4.shared.model.Room;
+import shared.model.Room;
 
 public class RoomFactory {
 

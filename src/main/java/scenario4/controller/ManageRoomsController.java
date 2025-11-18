@@ -11,9 +11,9 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import scenario4.shared.model.Room;
-import scenario4.shared.model.RoomRepository;
-import scenario4.viewfx.components.RoomDetailsPopup;
+import shared.model.Room;
+import shared.model.RoomRepository;
+import scenario4.components.RoomDetailsPopup;
 
 public class ManageRoomsController {
 

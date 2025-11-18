@@ -1,11 +1,10 @@
 package scenario3.controller;
 
-import scenario3.model.Booking;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.*;
+import shared.model.Booking;
 
 /**
  * CheckInManager: handles bookings and no-show scheduling

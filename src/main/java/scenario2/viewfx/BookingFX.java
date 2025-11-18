@@ -26,6 +26,7 @@ import javafx.scene.shape.Rectangle;
 import scenario2.controller.BookingManager;
 import shared.model.Booking;
 import shared.model.Room;
+import shared.util.GlobalNavigationHelper;
 
 import java.net.URL;
 import java.time.LocalDate;
@@ -219,13 +220,9 @@ public class BookingFX extends Application {
         });
 
         backToLoginBtn.setOnAction(e -> {
-            stage.close();
-            try {
-                new Scenario1.viewfx.LoginFX().start(new Stage());
-            } catch (Exception ex) {
-                System.out.println("Could not open login screen: " + ex.getMessage());
-            }
+            GlobalNavigationHelper.navigateTo("/scenario1/fxml/login.fxml");
         });
+
 
         Scene scene = new Scene(rootContainer, 1200, 720);
 

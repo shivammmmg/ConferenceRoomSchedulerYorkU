@@ -1,7 +1,8 @@
 package scenario3.controller;
 
+import shared.model.Room;
+
 import javafx.application.Platform;
-import scenario3.model.Room;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
