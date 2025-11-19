@@ -34,15 +34,15 @@ public class RoomOccupancyPopup {
 
         TableColumn<Booking, String> userCol = new TableColumn<>("Booked By");
         userCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getBookedBy()));
+                new javafx.beans.property.SimpleStringProperty(c.getValue().getUserId()));
 
         TableColumn<Booking, String> startCol = new TableColumn<>("Start Time");
         startCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getStart().toString()));
+                new javafx.beans.property.SimpleStringProperty(c.getValue().getStartTime().toString()));
 
         TableColumn<Booking, String> endCol = new TableColumn<>("End Time");
         endCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getEnd().toString()));
+                new javafx.beans.property.SimpleStringProperty(c.getValue().getEndTime().toString()));
 
         table.getColumns().addAll(bIdCol, userCol, startCol, endCol);
 

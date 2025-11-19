@@ -590,12 +590,22 @@ public class BookingManager {
     // ============================================================
 
     private void saveBookings() {
-        CSVHelper.saveBookings(BOOKING_CSV, bookings);
+        try {
+            CSVHelper.saveBookings(BOOKING_CSV, bookings);
+        } catch (Exception e) {
+            System.err.println("Failed to save bookings: " + e.getMessage());
+        }
     }
 
+
     private void saveRooms() {
-        CSVHelper.saveRooms(ROOM_CSV, rooms);
+        try {
+            CSVHelper.saveRooms(ROOM_CSV, rooms);
+        } catch (Exception e) {
+            System.err.println("Failed to save rooms: " + e.getMessage());
+        }
     }
+
 
     // ============================================================
     //                     PUBLIC LIST ACCESSORS

@@ -5,6 +5,9 @@ import shared.model.User;
 import scenario1.controller.UserManager;
 import scenario1.controller.NavigationHelper;
 import shared.util.GlobalNavigationHelper;
+import shared.model.UserType;
+import shared.model.SystemUser;
+import scenario2.viewfx.BookingFX;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
@@ -217,10 +220,43 @@ public class LoginController implements Initializable {
                 // Password incorrect
                 showError("Incorrect password.");
             } else {
-                // Successful login
-                showInfo("Welcome " + logged.getName() + "! 🎉");
 
-                // TODO: Navigate to Dashboard (Scenario 2/3/4)
+                // Cast to SystemUser (because User is abstract)
+                shared.model.SystemUser sysUser = (shared.model.SystemUser) logged;
+
+                // Extract user type (from enum UserType)
+                UserType type = sysUser.getType();
+
+                // Redirect based on user type
+                switch (type) {
+
+                    // =====================================================
+                    // NORMAL USERS → Scenario 2 Booking Dashboard
+                    // =====================================================
+                    case STUDENT:
+                    case FACULTY:
+                    case STAFF:
+                    case PARTNER:
+
+                        scenario2.viewfx.BookingFX app = new scenario2.viewfx.BookingFX();
+                        app.setLoggedInUser(logged.getEmail(), type.name());
+                        app.start(new Stage());
+                        break;
+
+                    // =====================================================
+                    // SPECIAL USERS → Admin Dashboards (Scenario 3/4)
+                    // =====================================================
+                    case ADMIN:
+                    case CHIEF_EVENT_COORDINATOR:
+                        showInfo("Redirecting to admin dashboard...");
+                        // Later you will give me the admin FXML/dashboard
+                        // GlobalNavigationHelper.navigateTo("/admin/dashboard.fxml");
+                        break;
+
+                    default:
+                        showError("Unknown user type: " + type);
+                }
+
             }
         });
     }

@@ -12,5 +12,7 @@ public enum UserType {
     STUDENT,
     FACULTY,
     STAFF,
-    PARTNER
+    PARTNER,
+    ADMIN,
+    CHIEF_EVENT_COORDINATOR
 }

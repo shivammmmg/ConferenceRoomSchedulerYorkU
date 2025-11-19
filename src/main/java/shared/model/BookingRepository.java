@@ -17,18 +17,22 @@ public class BookingRepository {
     }
 
     private BookingRepository() {
-        // ----- Dummy sample bookings for testing -----
+
         bookings.add(new Booking(
                 "B1", "2", "studentA",
                 LocalDateTime.now().minusHours(3),
-                LocalDateTime.now().minusHours(1)
+                LocalDateTime.now().minusHours(1),
+                "Sample Purpose"
         ));
+
         bookings.add(new Booking(
                 "B2", "3", "studentB",
                 LocalDateTime.now().plusHours(1),
-                LocalDateTime.now().plusHours(3)
+                LocalDateTime.now().plusHours(3),
+                "Sample Purpose"
         ));
     }
+
 
     public List<Booking> getBookingsForRoom(String roomId) {
         List<Booking> result = new ArrayList<>();

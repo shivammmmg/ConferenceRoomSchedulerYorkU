@@ -1,4 +1,6 @@
-package Scenario2.viewfx;
+package scenario2.viewfx;
+
+import shared.util.GlobalNavigationHelper;
 
 import javafx.animation.FadeTransition;
 import javafx.application.Application;
@@ -246,13 +248,9 @@ public class BookingFX extends Application {
         });
 
         backToLoginBtn.setOnAction(e -> {
-            stage.close();
-            try {
-                new Scenario1.viewfx.LoginFX().start(new Stage());
-            } catch (Exception ex) {
-                System.out.println("Could not open login screen: " + ex.getMessage());
-            }
+            GlobalNavigationHelper.navigateTo("/scenario1/fxml/login.fxml");
         });
+
 
         // ==========================================================
         // =============== 7. SCENE + CSS ===========================
@@ -399,9 +397,15 @@ public class BookingFX extends Application {
         }
     }
 
+    public void setLoggedInUser(String email, String type) {
+        this.currentUserEmail = email;
+        this.currentUserType  = type;
+    }
 
 
-// ==============================================================
+
+
+    // ==============================================================
     // ======================  MODAL OVERLAYS  ======================
     // ==============================================================
     private VBox createEditBookingModal() {
