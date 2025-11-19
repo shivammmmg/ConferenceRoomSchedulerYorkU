@@ -3,77 +3,60 @@ package scenario4.controller;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
-import scenario4.factory.RoomFactory;
 import shared.model.Room;
 import shared.model.RoomRepository;
 
 public class AddRoomController {
 
-    @FXML
-    private TextField roomIdField;
+    @FXML private TextField roomIdField;
+    @FXML private TextField roomNameField;
+    @FXML private TextField capacityField;
+    @FXML private TextField locationField;
+    @FXML private TextField amenitiesField;
+    @FXML private TextField buildingField;
 
-    @FXML
-    private TextField roomNameField;
-
-    @FXML
-    private TextField capacityField;
-
-    @FXML
-    private TextField locationField;
-
-    @FXML
-    private TextField amenitiesField;
-
-    @FXML
-    private TextField buildingField;
-
-    private final RoomRepository repo = RoomRepository.getInstance();
+    private RoomRepository repo = RoomRepository.getInstance();
 
     @FXML
     public void createRoom() {
 
-        String roomId = roomIdField.getText().trim();
-        String roomName = roomNameField.getText().trim();
-        String capacityTxt = capacityField.getText().trim();
+        String id       = roomIdField.getText().trim();
+        String name     = roomNameField.getText().trim();
+        String capText  = capacityField.getText().trim();
         String location = locationField.getText().trim();
         String amenities = amenitiesField.getText().trim();
-        String building = buildingField.getText().trim();
+        String building  = buildingField.getText().trim();
 
-        // VALIDATION
-        if (roomId.isEmpty() || roomName.isEmpty() || capacityTxt.isEmpty()
-                || location.isEmpty()) {
-            showAlert("Room ID, Room Name, Capacity, and Location are required.");
+        // Validate
+        if (id.isEmpty() || name.isEmpty() || capText.isEmpty() ||
+                location.isEmpty() || amenities.isEmpty() || building.isEmpty()) {
+
+            showAlert("All fields are required.");
             return;
         }
 
         int capacity;
         try {
-            capacity = Integer.parseInt(capacityTxt);
+            capacity = Integer.parseInt(capText);
         } catch (NumberFormatException ex) {
             showAlert("Capacity must be a number.");
             return;
         }
 
-        if (repo.roomExists(roomId)) {
-            showAlert("Room already exists!");
+        if (repo.roomExists(id)) {
+            showAlert("Room ID already exists!");
             return;
         }
 
-        // CREATE ROOM WITH FULL DETAILS
-        Room room = new Room(
-                roomId,
-                roomName,
-                capacity,
-                location,
-                amenities,
-                building
-        );
+        // CREATE fully detailed room
+        Room room = new Room(id, name, capacity, location, amenities, building);
 
+        // SAVE to repository + CSV
         repo.addRoom(room);
         repo.saveToCSV();
-        showSuccess("Room created successfully!");
 
-        // CLEAR FIELDS
+        showAlert("Room added successfully!");
+
         roomIdField.clear();
         roomNameField.clear();
         capacityField.clear();
@@ -83,17 +66,9 @@ public class AddRoomController {
     }
 
     private void showAlert(String msg) {
-        Alert a = new Alert(Alert.AlertType.WARNING);
-        a.setHeaderText(null);
-        a.setContentText(msg);
-        a.showAndWait();
-    }
-
-    private void showSuccess(String msg) {
         Alert a = new Alert(Alert.AlertType.INFORMATION);
         a.setHeaderText(null);
         a.setContentText(msg);
         a.showAndWait();
     }
-
 }

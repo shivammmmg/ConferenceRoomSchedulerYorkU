@@ -68,18 +68,22 @@ public class ManageRoomsController {
         try {
             var loaded = shared.util.CSVHelper.loadRooms("data/rooms.csv");
 
-            // Fill repository so other scenario-4 screens work correctly
+            // DO NOT CALL repo.addRoom() — this overwrites CSV!
+            repo.getAllRooms().clear();
+
             for (Room r : loaded) {
-                repo.addRoom(r);
+                repo.getAllRooms().put(r.getRoomId(), r);
             }
 
             roomsTable.getItems().setAll(repo.getAllRooms().values());
-        }
-        catch (Exception ex) {
+
+        } catch (Exception ex) {
             ex.printStackTrace();
             showWarning("Failed to load room data from rooms.csv");
         }
     }
+
+
 
 
     // -------------------------------------------------------------

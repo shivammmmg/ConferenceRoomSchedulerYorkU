@@ -268,8 +268,9 @@ public class AdminFX extends Application {
                 // CREATE FULL ROOM (Scenario 2-style)
                 Room room = new Room(id, name, cap, loc, amenities, building);
 
-                repo.addRoom(new Room(id, cap, loc));
-                repo.saveToCSV();
+                // SAVE THE FULL ROOM
+                repo.addRoom(room);     // ✔ save full room
+                repo.saveToCSV();       // ✔ write it to CSV
                 alertSuccess("Room added successfully!");
 
 
@@ -300,7 +301,7 @@ public class AdminFX extends Application {
     }
 
 
-
+    // -----------------------------------------
     // MANAGE ROOMS (with full CSV columns)
     // -----------------------------------------
     private void showManageRoomsView() {
@@ -319,33 +320,34 @@ public class AdminFX extends Application {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         // FULL COLUMN SET
+
+        // RoomID
         TableColumn<Room, String> idCol = new TableColumn<>("Room ID");
-        idCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getRoomId()));
+        idCol.setCellValueFactory(c -> c.getValue().roomIdProperty());
 
+        // Room Name
         TableColumn<Room, String> nameCol = new TableColumn<>("Room Name");
-        nameCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getRoomName()));
+        nameCol.setCellValueFactory(c -> c.getValue().roomNameProperty());
 
-        TableColumn<Room, Number> capCol = new TableColumn<>("Capacity");
-        capCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleIntegerProperty(c.getValue().getCapacity()));
+        // Capacity (FIXED — now uses property)
+        TableColumn<Room, Integer> capCol = new TableColumn<>("Capacity");
+        capCol.setCellValueFactory(c -> c.getValue().capacityProperty().asObject());
 
+        // Location (FIXED — now uses property)
         TableColumn<Room, String> locCol = new TableColumn<>("Location");
-        locCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getLocation()));
+        locCol.setCellValueFactory(c -> c.getValue().locationProperty());
 
+        // Amenities (FIXED — now uses property)
         TableColumn<Room, String> amenCol = new TableColumn<>("Amenities");
-        amenCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getAmenities()));
+        amenCol.setCellValueFactory(c -> c.getValue().amenitiesProperty());
 
+        // Building (FIXED — now uses property)
         TableColumn<Room, String> buildingCol = new TableColumn<>("Building");
-        buildingCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getBuilding()));
+        buildingCol.setCellValueFactory(c -> c.getValue().buildingProperty());
 
+        // Status (already fine)
         TableColumn<Room, String> statusCol = new TableColumn<>("Status");
-        statusCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getStatus()));
+        statusCol.setCellValueFactory(c -> c.getValue().statusProperty());
 
         // ADD ALL COLUMNS TO TABLE
         table.getColumns().addAll(
@@ -404,12 +406,11 @@ public class AdminFX extends Application {
             confirm.showAndWait().ifPresent(btn -> {
                 if (btn == ButtonType.OK) {
                     repo.deleteRoom(selected.getRoomId());
-                    repo.saveToCSV();  // ← REQUIRED
+                    repo.saveToCSV();
                     table.getItems().remove(selected);
                 }
             });
         });
-
 
         Button occupancyBtn = new Button("View Occupancy");
         occupancyBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
@@ -447,6 +448,7 @@ public class AdminFX extends Application {
     }
 
 
+
     private void updateRoomStatusFromTable(TableView<Room> table, RoomRepository repo, String status) {
         Room selected = table.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -468,27 +470,47 @@ public class AdminFX extends Application {
         Label idLabel = new Label("Room ID: " + room.getRoomId());
         idLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
 
-        TextField capField = new TextField(String.valueOf(room.getCapacity()));
-        TextField locField = new TextField(room.getLocation());
-        Label statusLabel = new Label("Status: " + room.getStatus());
+        // Editable fields
+        TextField nameField = new TextField(room.getRoomName());
+        TextField capField  = new TextField(String.valueOf(room.getCapacity()));
+        TextField locField  = new TextField(room.getLocation());
+        TextField amenField = new TextField(room.getAmenities());
+        TextField buildField = new TextField(room.getBuilding());
+
+        // Labels
+        Label nameLabel = new Label("Room Name:");
+        Label capLabel  = new Label("Capacity:");
+        Label locLabel  = new Label("Location:");
+        Label amenLabel = new Label("Amenities:");
+        Label buildLabel = new Label("Building:");
 
         Button saveBtn = new Button("Save");
+        saveBtn.setStyle("-fx-background-color: #BA0C2F; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             try {
+                String newName = nameField.getText().trim();
                 int newCap = Integer.parseInt(capField.getText().trim());
                 String newLoc = locField.getText().trim();
+                String newAmen = amenField.getText().trim();
+                String newBuild = buildField.getText().trim();
 
-                room.capacityProperty().set(newCap);
-                room.locationProperty().set(newLoc);
+                // Update fields + properties (Room.java now supports this!)
+                room.setRoomName(newName);
+                room.setCapacity(newCap);
+                room.setLocation(newLoc);
+                room.setAmenities(newAmen);
+                room.setBuilding(newBuild);
 
                 repo.updateRoom(room);
-                repo.saveToCSV();
                 table.refresh();
                 dialog.close();
+
             } catch (Exception ex) {
-                alertError("Invalid data.");
+                alertError("Invalid input.");
             }
         });
+
+
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.setOnAction(e -> dialog.close());
@@ -498,18 +520,21 @@ public class AdminFX extends Application {
 
         VBox layout = new VBox(12,
                 idLabel,
-                new Label("Capacity:"), capField,
-                new Label("Location:"), locField,
-                statusLabel,
+                nameLabel, nameField,
+                capLabel, capField,
+                locLabel, locField,
+                amenLabel, amenField,
+                buildLabel, buildField,
                 btnRow
         );
         layout.setPadding(new Insets(20));
         layout.setStyle("-fx-background-color:white; -fx-background-radius:12;");
 
-        Scene scene = new Scene(layout, 350, 260);
+        Scene scene = new Scene(layout, 400, 420);
         dialog.setScene(scene);
         dialog.showAndWait();
     }
+
 
     // -----------------------------------------
     // CREATE ADMIN
@@ -695,4 +720,30 @@ public class AdminFX extends Application {
     public static void main(String[] args) {
         launch();
     }
+
+    // Helper setters since Room fields aren't exposed as JavaFX properties
+    private void roomNameSetter(Room r, String name) {
+        try {
+            var f = Room.class.getDeclaredField("roomName");
+            f.setAccessible(true);
+            f.set(r, name);
+        } catch (Exception ignored) {}
+    }
+
+    private void roomAmenitiesSetter(Room r, String am) {
+        try {
+            var f = Room.class.getDeclaredField("amenities");
+            f.setAccessible(true);
+            f.set(r, am);
+        } catch (Exception ignored) {}
+    }
+
+    private void roomBuildingSetter(Room r, String b) {
+        try {
+            var f = Room.class.getDeclaredField("building");
+            f.setAccessible(true);
+            f.set(r, b);
+        } catch (Exception ignored) {}
+    }
+
 }
