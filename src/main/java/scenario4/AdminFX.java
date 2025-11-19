@@ -14,6 +14,10 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+
 import shared.model.Admin;
 import shared.model.AdminRepository;
 import shared.model.Room;
@@ -56,7 +60,7 @@ public class AdminFX extends Application {
             for (shared.model.Room r : rooms) {
                 repo.addRoom(r);
             }
-            System.out.println("[AdminFX] Loaded " + rooms.size() + " rooms from rooms.csv");
+            // System.out.println("[AdminFX] Loaded " + rooms.size() + " rooms from rooms.csv");
         } catch (Exception ex) {
             ex.printStackTrace();
             System.out.println("[AdminFX] Failed to load data/rooms.csv");
@@ -265,14 +269,29 @@ public class AdminFX extends Application {
                     return;
                 }
 
-                // CREATE FULL ROOM (Scenario 2-style)
+                // -------------------------------------
+                // AUDIT LOG – NEW ROOM ADDED
+                // -------------------------------------
+
+                // TIMESTAMP FORMATTER
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                String ts = LocalDateTime.now().format(fmt);
+
+                System.out.println("----- Room Add Log -----");
+                System.out.println("[Time] " + ts);
+                System.out.println("[RoomAdd] Room ID: " + id);
+                System.out.println("[RoomAdd] Name: \"" + name + "\"");
+                System.out.println("[RoomAdd] Capacity: " + cap);
+                System.out.println("[RoomAdd] Location: \"" + loc + "\"");
+                System.out.println("[RoomAdd] Amenities: \"" + amenities + "\"");
+                System.out.println("[RoomAdd] Building: \"" + building + "\"");
+                System.out.println("-----------------------------------------");
+
+                // CREATE ROOM OBJECT
                 Room room = new Room(id, name, cap, loc, amenities, building);
 
-                // SAVE THE FULL ROOM
-                repo.addRoom(room);     // ✔ save full room
-                repo.saveToCSV();       // ✔ write it to CSV
+                repo.addRoom(room);      // auto-save
                 alertSuccess("Room added successfully!");
-
 
                 idField.clear();
                 nameField.clear();
@@ -405,11 +424,27 @@ public class AdminFX extends Application {
             confirm.setContentText("Delete room '" + selected.getRoomId() + "'?");
             confirm.showAndWait().ifPresent(btn -> {
                 if (btn == ButtonType.OK) {
+
+                    // TIMESTAMP FORMATTER
+                    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    String ts = LocalDateTime.now().format(fmt);
+
+                    System.out.println("----- Room Delete Log -----");
+                    System.out.println("[Time] " + ts);
+                    System.out.println("[RoomDelete] Room ID: " + selected.getRoomId());
+                    System.out.println("[RoomDelete] Name: \"" + selected.getRoomName() + "\"");
+                    System.out.println("[RoomDelete] Capacity: " + selected.getCapacity());
+                    System.out.println("[RoomDelete] Location: \"" + selected.getLocation() + "\"");
+                    System.out.println("[RoomDelete] Amenities: \"" + selected.getAmenities() + "\"");
+                    System.out.println("[RoomDelete] Building: \"" + selected.getBuilding() + "\"");
+                    System.out.println("-----------------------------------------");
+
+                    // Perform delete
                     repo.deleteRoom(selected.getRoomId());
-                    repo.saveToCSV();
                     table.getItems().remove(selected);
                 }
             });
+            ;
         });
 
         Button occupancyBtn = new Button("View Occupancy");
@@ -494,14 +529,55 @@ public class AdminFX extends Application {
                 String newAmen = amenField.getText().trim();
                 String newBuild = buildField.getText().trim();
 
-                // Update fields + properties (Room.java now supports this!)
+                // -------------------------------------
+                // CAPTURE OLD VALUES BEFORE UPDATING
+                // -------------------------------------
+                String oldName = room.getRoomName();
+                int oldCap     = room.getCapacity();
+                String oldLoc  = room.getLocation();
+                String oldAmen = room.getAmenities();
+                String oldBuild= room.getBuilding();
+
+                // -------------------------------------
+                // AUDIT LOG – print only changed fields
+                // -------------------------------------
+
+                // TIMESTAMP FORMATTER
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                String ts = LocalDateTime.now().format(fmt);
+
+                System.out.println("----- Room Update Log (" + room.getRoomId() + ") -----");
+
+                System.out.println("[Time] " + ts);
+
+                if (!oldName.equals(newName))
+                    System.out.println("[RoomUpdate] Name: \"" + oldName + "\" → \"" + newName + "\"");
+
+                if (oldCap != newCap)
+                    System.out.println("[RoomUpdate] Capacity: " + oldCap + " → " + newCap);
+
+                if (!oldLoc.equals(newLoc))
+                    System.out.println("[RoomUpdate] Location: \"" + oldLoc + "\" → \"" + newLoc + "\"");
+
+                if (oldAmen != null && !oldAmen.equals(newAmen))
+                    System.out.println("[RoomUpdate] Amenities: \"" + oldAmen + "\" → \"" + newAmen + "\"");
+
+                if (oldBuild != null && !oldBuild.equals(newBuild))
+                    System.out.println("[RoomUpdate] Building: \"" + oldBuild + "\" → \"" + newBuild + "\"");
+
+                System.out.println("----------------------------------------------");
+
+                // -------------------------------------
+                // APPLY UPDATES TO ROOM OBJECT
+                // -------------------------------------
                 room.setRoomName(newName);
                 room.setCapacity(newCap);
                 room.setLocation(newLoc);
                 room.setAmenities(newAmen);
                 room.setBuilding(newBuild);
 
-                repo.updateRoom(room);
+                // Save to repository + refresh UI
+                repo.updateRoom(room);   // auto-saves CSV
                 table.refresh();
                 dialog.close();
 

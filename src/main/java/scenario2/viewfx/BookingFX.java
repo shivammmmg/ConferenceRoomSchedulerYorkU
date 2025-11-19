@@ -109,41 +109,44 @@ public class BookingFX extends Application {
                 new BackgroundFill(yorkGradient, CornerRadii.EMPTY, Insets.EMPTY)
         ));
 
-        // --------------------- Brand Card --------------------------
+        // --------------------- Brand Section (MATCH MAIN PAGE) --------------------------
         Image img = new Image("images/yorku_logo.png", true);
 
         ImageView logoView = new ImageView(img);
         logoView.setPreserveRatio(true);
         logoView.setSmooth(true);
-        logoView.setCache(true);
+        logoView.setFitWidth(160);     // similar scale to main page sidebar
+        logoView.setStyle("-fx-padding: 0 0 10 0;");
 
-        logoView.setFitHeight(38);      // slightly larger + crisp
-        logoView.setStyle("-fx-scale-x: 1.15; -fx-scale-y: 1.15;");
-        // optional, but adds clarity
+        // FULL TITLE (no truncation)
+        Label appTitle = new Label("YorkU Conference Room Scheduler");
+        appTitle.setWrapText(true);
+        appTitle.setStyle(
+                "-fx-text-fill: white;" +
+                        "-fx-font-size: 16;" +
+                        "-fx-font-weight: 700;" +
+                        "-fx-padding: 5 0 0 0;"
+        );
 
-
-        Label appTitle = new Label("Room Scheduler");
-        appTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 15));
-        appTitle.setTextFill(Color.WHITE);
-
+        // Subtitle
         Label appSubtitle = new Label("Conference Rooms");
-        appSubtitle.setStyle("-fx-text-fill: rgba(255,255,255,0.75); -fx-font-size: 11;");
+        appSubtitle.setStyle("-fx-text-fill: rgba(255,255,255,0.75); -fx-font-size: 12;");
+        appSubtitle.setWrapText(true);
 
-        VBox titleBox = new VBox(3, appTitle, appSubtitle);
-        titleBox.setAlignment(Pos.CENTER_LEFT);
+        // Vertical block (like MainPage)
+        VBox titleBlock = new VBox(3, appTitle, appSubtitle);
+        titleBlock.setAlignment(Pos.CENTER_LEFT);
+        titleBlock.setPadding(new Insets(0, 20, 0, 20));
 
-
-        HBox brandRow = new HBox(10, logoView, titleBox);
-        brandRow.setAlignment(Pos.CENTER_LEFT);
-
-        StackPane brandCard = new StackPane(brandRow);
-        brandCard.setPadding(new Insets(14, 16, 14, 16));
+        VBox brandCard = new VBox(10, logoView, titleBlock);
+        brandCard.setAlignment(Pos.CENTER_LEFT);
+        brandCard.setPadding(new Insets(10, 10, 10, 10));
         brandCard.setMaxWidth(Double.MAX_VALUE);
+
         brandCard.setBackground(new Background(
-                new BackgroundFill(Color.rgb(0, 0, 0, 0.18),
-                        new CornerRadii(20),
-                        Insets.EMPTY)
+                new BackgroundFill(Color.rgb(0, 0, 0, 0.18), new CornerRadii(20), Insets.EMPTY)
         ));
+
         brandCard.setBorder(new Border(new BorderStroke(
                 Color.rgb(255, 255, 255, 0.18),
                 BorderStrokeStyle.SOLID,

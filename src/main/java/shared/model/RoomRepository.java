@@ -73,7 +73,7 @@ public class RoomRepository {
     public void saveToCSV() {
         try {
             CSVHelper.saveRooms("data/rooms.csv", new java.util.ArrayList<>(rooms.values()));
-            System.out.println("[RoomRepository] Saved " + rooms.size() + " rooms to rooms.csv");
+            // System.out.println("[RoomRepository] Saved " + rooms.size() + " rooms to rooms.csv");
         } catch (Exception e) {
             System.out.println("[RoomRepository] Failed to save rooms.csv: " + e.getMessage());
         }
