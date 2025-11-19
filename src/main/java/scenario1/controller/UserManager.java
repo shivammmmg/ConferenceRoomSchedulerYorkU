@@ -63,7 +63,7 @@ public class UserManager {
         try {
             users = CSVHelper.loadUsers(CSV_PATH);
         } catch (Exception e) {
-            // System.out.println("[INFO] No existing users found. Starting fresh.");
+            //System.out.println("[INFO] No existing users found. Starting fresh.");
         }
     }
 
@@ -104,6 +104,14 @@ public class UserManager {
 
     public ArrayList<User> getAllUsers() {
         return users;
+    }
+
+    public User findByEmail(String email) {
+        if (email == null) return null;
+        return users.stream()
+                .filter(u -> u.getEmail().equalsIgnoreCase(email))
+                .findFirst()
+                .orElse(null);
     }
 
 
@@ -283,13 +291,25 @@ public class UserManager {
         if (!isValidEmail(newEmail))
             throw new Exception("Invalid email format.");
 
-        // Faculty / Staff / Student must remain YorkU emails
         UserType type = ((SystemUser) user).getType();
 
-        if (type != UserType.PARTNER &&
-                (!newEmail.endsWith("@yorku.ca") && !newEmail.endsWith("@my.yorku.ca"))) {
+        switch (type) {
+            case STUDENT:
+                if (!newEmail.endsWith("@my.yorku.ca")) {
+                    throw new Exception("Students must use @my.yorku.ca email.");
+                }
+                break;
 
-            throw new Exception("This account must use a YorkU email address.");
+            case FACULTY:
+            case STAFF:
+                if (!newEmail.endsWith("@yorku.ca") && !newEmail.endsWith("@my.yorku.ca")) {
+                    throw new Exception("Faculty/Staff must use @yorku.ca or @my.yorku.ca");
+                }
+                break;
+
+            case PARTNER:
+                // No restriction
+                break;
         }
 
         user.setEmail(newEmail);

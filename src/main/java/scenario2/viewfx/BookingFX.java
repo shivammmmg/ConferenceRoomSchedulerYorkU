@@ -25,6 +25,8 @@ import shared.util.GlobalNavigationHelper;
 import scenario2.controller.BookingManager;
 import shared.model.Booking;
 import shared.model.Room;
+import shared.model.User;
+import scenario1.controller.UserManager;
 
 import java.io.InputStream;
 import java.net.URL;
@@ -52,6 +54,8 @@ public class BookingFX extends Application {
     private String currentUserEmail;
     private String currentUserType;
 
+    private User currentUser;
+
     // Main UI containers
     private VBox mainContent;
     private StackPane overlayPane;
@@ -65,8 +69,11 @@ public class BookingFX extends Application {
     // Nav buttons (to toggle active state)
     private Button bookRoomBtn;
     private Button myBookingsBtn;
+    private Button updateProfileBtn;
     private Button backToLoginBtn;
 
+    // Sidebar email label so we can update it when email changes
+    private Label sidebarEmailLabel;
     private String loggedInEmail;
     private String loggedInUserType;
 
@@ -86,7 +93,13 @@ public class BookingFX extends Application {
         bookingManager = BookingManager.getInstance();
         currentUserEmail = (loggedInEmail != null) ? loggedInEmail : "test@yorku.ca";
         currentUserType  = (loggedInUserType != null) ? loggedInUserType : "student";
-
+        // Load current user from Scenario 1 user store (if available)
+        try {
+            currentUser = UserManager.getInstance().findByEmail(currentUserEmail);
+        } catch (Exception ex) {
+            System.out.println("[Profile]   Could not load user for email: " + currentUserEmail);
+            currentUser = null;
+        }
 
         // ==========================================================
         // =============== 2. LEFT NAVIGATION PANEL =================
@@ -155,8 +168,8 @@ public class BookingFX extends Application {
         )));
 
         // --------------------- User Info ----------------------------
-        Label userEmailLabel = new Label(currentUserEmail);
-        userEmailLabel.setStyle("-fx-text-fill: rgba(255,255,255,0.9); -fx-font-size: 11;");
+        sidebarEmailLabel = new Label(currentUserEmail);
+        sidebarEmailLabel.setStyle("-fx-text-fill: rgba(255,255,255,0.9); -fx-font-size: 11;");
 
         String roleDisplay = switch (currentUserType.toUpperCase()) {
             case "STUDENT" -> "Student";
@@ -176,17 +189,18 @@ public class BookingFX extends Application {
                         "-fx-font-size: 10;"
         );
 
-        VBox accountBox = new VBox(2, userEmailLabel, userRoleChip);
+        VBox accountBox = new VBox(2, sidebarEmailLabel, userRoleChip);
         accountBox.setAlignment(Pos.CENTER_LEFT);
 
         VBox headerBox = new VBox(10, brandCard, accountBox);
 
         // --------------------- NAV BUTTONS --------------------------
-        bookRoomBtn     = createNavButton("📅  Book Room", true);
-        myBookingsBtn   = createNavButton("📋  My Bookings", false);
-        backToLoginBtn  = createNavButton("🚪  Logout", false);
+        bookRoomBtn      = createNavButton("📅  Book Room", true);
+        myBookingsBtn    = createNavButton("📋  My Bookings", false);
+        updateProfileBtn = createNavButton("⚙  Update Profile", false);
+        backToLoginBtn   = createNavButton("🚪  Logout", false);
 
-        VBox navButtons = new VBox(6, bookRoomBtn, myBookingsBtn, backToLoginBtn);
+        VBox navButtons = new VBox(6, bookRoomBtn, myBookingsBtn, updateProfileBtn, backToLoginBtn);
         navButtons.setAlignment(Pos.CENTER_LEFT);
         navButtons.setPadding(new Insets(10, 8, 10, 8));
         navButtons.setBackground(new Background(
@@ -273,6 +287,11 @@ public class BookingFX extends Application {
         myBookingsBtn.setOnAction(e -> {
             setActiveNav(myBookingsBtn);
             showMyBookingsView();
+        });
+
+        updateProfileBtn.setOnAction(e -> {
+            setActiveNav(updateProfileBtn);
+            showUpdateProfileView();
         });
 
         backToLoginBtn.setOnAction(e -> {
@@ -420,7 +439,7 @@ public class BookingFX extends Application {
      * Updates which nav button is currently active.
      */
     private void setActiveNav(Button activeButton) {
-        for (Button b : new Button[]{bookRoomBtn, myBookingsBtn, backToLoginBtn}) {
+        for (Button b : new Button[]{bookRoomBtn, myBookingsBtn, updateProfileBtn, backToLoginBtn}) {
             if (b == null) continue;
             boolean active = (b == activeButton);
             b.getProperties().put("active", active);
@@ -1800,12 +1819,217 @@ public class BookingFX extends Application {
         showOverlay();
     }
 
+    // ==============================================================
+    // ====================  UPDATE PROFILE VIEW  ===================
+    // ==============================================================
+
+    private void showUpdateProfileView() {
+        mainContent.getChildren().clear();
+
+        HBox header = createPageHeader(
+                "Update Profile",
+                "Change your name, email address, or password linked to this account."
+        );
+
+        // If for some reason we don't have a loaded user (e.g. guest)
+        if (currentUser == null) {
+            Label msg = new Label(
+                    "Profile updates are only available after logging in with a registered account.");
+            msg.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 13;");
+
+            VBox box = new VBox(10, header, msg);
+            box.setAlignment(Pos.TOP_LEFT);
+
+            mainContent.getChildren().add(box);
+            playMainContentFadeIn();
+            return;
+        }
+
+        VBox card = new VBox(18);
+        card.setPadding(new Insets(26));
+        card.setSpacing(16);
+        card.setMaxWidth(550);
+        card.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 24;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 22, 0, 0, 6);"
+        );
+
+        Label title = new Label("Account Details");
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 20));
+        title.setTextFill(Color.web("#AD001D"));
+
+        Label subtitle = new Label(
+                "Update your display name, YorkU email, or password. " +
+                        "Some fields may have restrictions based on your role.");
+        subtitle.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 12;");
+        subtitle.setWrapText(true);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(14);
+        grid.setVgap(10);
+
+        String labelStyle =
+                "-fx-text-fill: #6b7280;" +
+                        "-fx-font-size: 11;" +
+                        "-fx-font-weight: bold;";
+
+        // -------- Name --------
+        Label nameLbl = new Label("Full Name");
+        nameLbl.setStyle(labelStyle);
+        TextField nameField = new TextField(currentUser.getName());
+        applyModernFieldStyle(nameField);
+
+        // -------- Email --------
+        Label emailLbl = new Label("Email Address");
+        emailLbl.setStyle(labelStyle);
+        TextField emailField = new TextField(currentUser.getEmail());
+        applyModernFieldStyle(emailField);
+
+        Label emailHint = new Label(
+                "Students must use @my.yorku.ca. Faculty/Staff must use @yorku.ca or @my.yorku.ca.");
+        emailHint.setStyle("-fx-text-fill: #9ca3af; -fx-font-size: 10;");
+        emailHint.setWrapText(true);
+
+        // -------- Password --------
+        Label passLbl = new Label("New Password");
+        passLbl.setStyle(labelStyle);
+        PasswordField newPassField = new PasswordField();
+        newPassField.setPromptText("Leave blank to keep existing password");
+        applyModernFieldStyle(newPassField);
+
+        Label confirmLbl = new Label("Confirm New Password");
+        confirmLbl.setStyle(labelStyle);
+        PasswordField confirmPassField = new PasswordField();
+        confirmPassField.setPromptText("Re-enter new password");
+        applyModernFieldStyle(confirmPassField);
+
+        Label passHint = new Label(
+                "Password must have 8+ characters, including uppercase, lowercase, digit, and symbol.");
+        passHint.setStyle("-fx-text-fill: #9ca3af; -fx-font-size: 10;");
+        passHint.setWrapText(true);
+
+        // Inline error label
+        Label errorLabel = new Label();
+        errorLabel.setStyle("-fx-text-fill: #dc2626; -fx-font-size: 11;");
+        errorLabel.setVisible(false);
+
+        // Layout in grid
+        grid.add(nameLbl, 0, 0);
+        grid.add(nameField, 0, 1, 2, 1);
+
+        grid.add(emailLbl, 0, 2);
+        grid.add(emailField, 0, 3, 2, 1);
+        grid.add(emailHint, 0, 4, 2, 1);
+
+        grid.add(passLbl, 0, 5);
+        grid.add(newPassField, 0, 6, 2, 1);
+
+        grid.add(confirmLbl, 0, 7);
+        grid.add(confirmPassField, 0, 8, 2, 1);
+        grid.add(passHint, 0, 9, 2, 1);
+
+        HBox buttonRow = new HBox(10);
+        buttonRow.setAlignment(Pos.CENTER_RIGHT);
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.setStyle(
+                "-fx-background-color: #e5e7eb;" +
+                        "-fx-text-fill: #374151;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 16;"
+        );
+
+        Button saveBtn = new Button("Save Changes");
+        saveBtn.setStyle(
+                "-fx-background-color: #AD001D;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 22;"
+        );
+
+        buttonRow.getChildren().addAll(cancelBtn, saveBtn);
+
+        card.getChildren().addAll(title, subtitle, grid, errorLabel, buttonRow);
+
+        // ---------- Button Logic ----------
+        saveBtn.setOnAction(e -> {
+            errorLabel.setVisible(false);
+            String nameInput   = nameField.getText().trim();
+            String emailInput  = emailField.getText().trim();
+            String newPass     = newPassField.getText();
+            String confirmPass = confirmPassField.getText();
+
+            if (nameInput.isEmpty()) {
+                errorLabel.setText("Name cannot be empty.");
+                errorLabel.setVisible(true);
+                return;
+            }
+            if (emailInput.isEmpty()) {
+                errorLabel.setText("Email cannot be empty.");
+                errorLabel.setVisible(true);
+                return;
+            }
+
+            // Password validation: either both blank (no change) OR both filled and matching
+            String passwordToApply = null;
+            if (!newPass.isEmpty() || !confirmPass.isEmpty()) {
+                if (newPass.isEmpty() || confirmPass.isEmpty()) {
+                    errorLabel.setText("Please enter and confirm the new password.");
+                    errorLabel.setVisible(true);
+                    return;
+                }
+                if (!newPass.equals(confirmPass)) {
+                    errorLabel.setText("New password and confirmation do not match.");
+                    errorLabel.setVisible(true);
+                    return;
+                }
+                passwordToApply = newPass;
+            }
+
+            try {
+                UserManager um = UserManager.getInstance();
+
+                // Update name + password
+                String nameParam = nameInput.equals(currentUser.getName()) ? null : nameInput;
+                um.updateProfile(currentUser, nameParam, passwordToApply);
+
+                // Update email only if changed
+                if (!emailInput.equalsIgnoreCase(currentUser.getEmail())) {
+                    um.updateEmail(currentUser, emailInput);
+                    currentUserEmail = emailInput;
+                    if (sidebarEmailLabel != null) {
+                        sidebarEmailLabel.setText(currentUserEmail);
+                    }
+                }
+
+                showAlert("Profile Updated", "Your account details have been updated.");
+                newPassField.clear();
+                confirmPassField.clear();
+
+            } catch (Exception ex) {
+                errorLabel.setText(ex.getMessage());
+                errorLabel.setVisible(true);
+            }
+        });
+
+        cancelBtn.setOnAction(e -> {
+            setActiveNav(bookRoomBtn);
+            showBookingView();
+        });
+
+        mainContent.getChildren().addAll(header, card);
+        playMainContentFadeIn();
+    }
+
+
 
 
     // ==============================================================
     // ==========================  UTILS  ===========================
     // ==============================================================
-// ==================== Payment Validation Helpers ====================
+    // ==================== Payment Validation Helpers ====================
 
     private boolean isValidCardNumber(String cardNumber) {
         // Remove spaces so "1234 5678 9012 3456" is allowed.
@@ -1888,14 +2112,22 @@ public class BookingFX extends Application {
     }
 
 
+
+
+
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
-        alert.setHeaderText(null);
+        alert.setHeaderText(title);
         alert.setContentText(message);
-        alert.getDialogPane().setPrefSize(400, 200);
+
+        // Match EXACT behavior of RegisterController popups
+        Stage stage = (Stage) mainContent.getScene().getWindow();
+        alert.initOwner(stage);
+
         alert.showAndWait();
     }
+
 
     public static void main(String[] args) {
         System.out.println("Starting YorkU Conference Room Booking System...");
