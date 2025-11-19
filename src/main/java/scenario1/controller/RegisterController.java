@@ -280,16 +280,26 @@ public class RegisterController implements Initializable {
 
         registerBtn.setOnAction(e -> {
             try {
+                String type = typeBox.getValue();
+                String studentId = studentIdField.getText().trim();
+
+                // ---- STUDENT NUMBER VALIDATION ----
+                if ("Student".equals(type)) {
+                    if (!studentId.matches("\\d{9}")) {
+                        showErrorDialog("Student ID must be EXACTLY 9 digits.");
+                        return;
+                    }
+                }
+
                 // Attempt registration via UserManager
                 boolean success = UserManager.getInstance().register(
                         nameField.getText(),
                         emailField.getText(),
                         passwordField.getText(),
-                        typeBox.getValue(),
-                        studentIdField.getText()
+                        type,
+                        studentId
                 );
 
-                // Success
                 if (success) {
                     showInfoDialog("Registration Successful!");
                     clearFields();

@@ -54,8 +54,6 @@ public class CSVHelper {
         ArrayList<User> list = new ArrayList<>();
         File file = new File(path);
 
-        System.out.println(">>> [LOAD USERS] Reading from: " + file.getAbsolutePath());
-
         if (!file.exists()) {
             file.getParentFile().mkdirs();
             file.createNewFile();

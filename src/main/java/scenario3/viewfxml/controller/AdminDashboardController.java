@@ -10,7 +10,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import scenario3.controller.RoomStatusManager;
 import scenario3.controller.SensorSystem;
-import scenario3.model.Room;
+import shared.model.Room;
 import scenario3.observer.RoomStatusObserver;
 
 import java.net.URL;

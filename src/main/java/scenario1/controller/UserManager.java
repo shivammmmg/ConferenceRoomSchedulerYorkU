@@ -9,6 +9,8 @@ import scenario1.builder.UserBuilder;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * =============================================================================
@@ -58,13 +60,10 @@ public class UserManager {
 
     // PRIVATE constructor
     private UserManager() {
-        System.out.println("[DEBUG] Working Directory = " + System.getProperty("user.dir"));
-        System.out.println("[DEBUG] Using CSV Path = " + CSV_PATH);
-
         try {
             users = CSVHelper.loadUsers(CSV_PATH);
         } catch (Exception e) {
-            System.out.println("[INFO] No existing users found. Starting fresh.");
+            // System.out.println("[INFO] No existing users found. Starting fresh.");
         }
     }
 
@@ -149,8 +148,14 @@ public class UserManager {
             case STUDENT:
                 if (!email.endsWith("@my.yorku.ca"))
                     throw new Exception("Students must use @my.yorku.ca email.");
+
                 if (studentId == null || studentId.isBlank())
                     throw new Exception("Student ID is required for student accounts.");
+
+                // ---- EXACT 9-DIGIT STUDENT NUMBER RULE ----
+                if (!studentId.matches("\\d{9}"))
+                    throw new Exception("Student ID must be EXACTLY 9 digits (numbers only).");
+
                 break;
 
             case FACULTY:
@@ -178,8 +183,19 @@ public class UserManager {
         users.add(newUser);
         CSVHelper.saveUsers(CSV_PATH, users);
 
-        System.out.println("[INFO] Registration successful for: " + name);
-        System.out.println("[INFO] Saved to CSV: " + CSV_PATH);
+        // ============================================================
+        // Registration Log (Scenario 1 Audit)
+        // ============================================================
+        System.out.println("----- User Registration Log -----");
+        System.out.println("[UserAdd] Name: \"" + name + "\"");
+        System.out.println("[UserAdd] Email: \"" + email + "\"");
+        System.out.println("[UserAdd] Type: " + userType.name());
+        if (userType == UserType.STUDENT) {
+            System.out.println("[UserAdd] StudentID: " + studentId);
+        }
+        System.out.println("[UserAdd] Saved to: " + CSV_PATH);
+        System.out.println("---------------------------------");
+
         return true;
     }
 
@@ -193,16 +209,44 @@ public class UserManager {
                 .filter(u -> u.getEmail().equalsIgnoreCase(email))
                 .findFirst();
 
-        if (match.isEmpty())
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        // Email not found
+        if (match.isEmpty()) {
+            System.out.println("----- Login Log -----");
+            System.out.println("[LOGIN] Email: " + email);
+            System.out.println("[LOGIN] Status: FAILED");
+            System.out.println("[LOGIN] Reason: Email not registered");
+            System.out.println("[LOGIN] Time: " + now.format(fmt));
+            System.out.println("-----------------------");
             return null;
+        }
 
         User u = match.get();
 
-        if (!u.getPasswordHash().equals(password))
+        // Wrong password
+        if (!u.getPasswordHash().equals(password)) {
+            System.out.println("----- Login Log -----");
+            System.out.println("[LOGIN] Email: " + email);
+            System.out.println("[LOGIN] Status: FAILED");
+            System.out.println("[LOGIN] Reason: Incorrect password");
+            System.out.println("[LOGIN] Time: " + now.format(fmt));
+            System.out.println("-----------------------");
             return null;
+        }
+
+        // SUCCESS
+        System.out.println("----- Login Log -----");
+        System.out.println("[LOGIN] Email: " + email);
+        System.out.println("[LOGIN] Status: SUCCESS");
+        System.out.println("[LOGIN] User Type: " + ((SystemUser)u).getType());
+        System.out.println("[LOGIN] Time: " + now.format(fmt));
+        System.out.println("-----------------------");
 
         return u;
     }
+
 
 
     // =========================================================================

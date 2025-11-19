@@ -49,4 +49,3 @@
 .status-RESERVED  { -fx-background-color: #fcf8e3; -fx-text-fill: #8a6d3b; }
 .status-IN_USE    { -fx-background-color: #f2dede; -fx-text-fill: #a94442; }
 .status-NO_SHOW   { -fx-background-color: #f7c6c6; -fx-text-fill: #800000; }
-

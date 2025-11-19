@@ -8,9 +8,9 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import scenario3.controller.CheckInManager;
 import scenario3.controller.RoomStatusManager;
-import scenario3.model.Booking;
-import scenario3.model.Room;
-import scenario3.model.RoomStatus;
+import shared.model.Booking;
+import shared.model.Room;
+import shared.model.RoomStatus;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -165,4 +165,3 @@ public class UserDashboardController {
         alert.showAndWait();
     }
 }
-

@@ -1,6 +1,6 @@
 package scenario3.controller;
 
-import scenario3.model.Booking;
+import shared.model.Booking;
 
 import java.time.Duration;
 import java.time.LocalDateTime;

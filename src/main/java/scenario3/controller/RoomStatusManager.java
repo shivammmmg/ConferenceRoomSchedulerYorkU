@@ -1,9 +1,9 @@
 package scenario3.controller;
 
 import javafx.application.Platform;
-import scenario3.model.Booking;
-import scenario3.model.Room;
-import scenario3.model.RoomStatus;
+import shared.model.Booking;
+import shared.model.Room;
+import shared.model.RoomStatus;
 import scenario3.observer.RoomStatusObserver;
 
 import java.time.LocalDateTime;

@@ -10,9 +10,9 @@ import javafx.scene.text.Text;
 import scenario3.controller.CheckInManager;
 import scenario3.controller.RoomStatusManager;
 import scenario3.controller.SensorSystem;
-import scenario3.model.Booking;
-import scenario3.model.Room;
-import scenario3.model.RoomStatus;
+import shared.model.Booking;
+import shared.model.Room;
+import shared.model.RoomStatus;
 import scenario3.observer.RoomStatusObserver;
 
 import java.net.URL;
