@@ -1,5 +1,6 @@
 package scenario3.observer;
-import shared.model.Room;
+
+import scenario3.model.Room;
 
 /**
  * OBSERVER INTERFACE:

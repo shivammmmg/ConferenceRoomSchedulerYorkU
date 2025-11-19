@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="scenario3.viewfxml.controller.AdminDashboardController"
+            stylesheets="@../css/dashboard.css">
+
+    <top>
+        <HBox spacing="10" styleClass="top-bar">
+            <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+            <Label text="Admin — Room Monitoring Dashboard" styleClass="top-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="simulateBtn" text="Start Sensors" />
+        </HBox>
+    </top>
+
+    <left>
+        <VBox spacing="8" styleClass="left-panel" prefWidth="340">
+            <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+            <Label text="Rooms" styleClass="panel-title"/>
+            <ListView fx:id="roomListView" prefHeight="520"/>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox spacing="10" styleClass="center-panel">
+            <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+
+            <Label text="Selected Room" styleClass="panel-title"/>
+            <Label fx:id="roomNameLabel" text="—" styleClass="room-name"/>
+            <Label fx:id="roomStatusLabel" text="—" styleClass="status-label"/>
+
+            <Separator/>
+
+            <Label text="Event Log" styleClass="panel-title"/>
+            <TextArea fx:id="eventLog" editable="false" prefHeight="260"/>
+        </VBox>
+    </center>
+</BorderPane>
