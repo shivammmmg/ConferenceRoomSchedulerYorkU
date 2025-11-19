@@ -1,6 +1,4 @@
-package scenario2.viewfx;
-
-import shared.util.GlobalNavigationHelper;
+package Scenario2.viewfx;
 
 import javafx.animation.FadeTransition;
 import javafx.application.Application;
@@ -100,12 +98,20 @@ public class BookingFX extends Application {
         ));
 
         // --------------------- Brand Card --------------------------
-        ImageView logoView = new ImageView(new Image("images/yorku_logo.png", true));
-        logoView.setFitHeight(44);
+        Image img = new Image("images/yorku_logo.png", true);
+
+        ImageView logoView = new ImageView(img);
         logoView.setPreserveRatio(true);
+        logoView.setSmooth(true);
+        logoView.setCache(true);
+
+        logoView.setFitHeight(38);      // slightly larger + crisp
+        logoView.setStyle("-fx-scale-x: 1.15; -fx-scale-y: 1.15;");
+        // optional, but adds clarity
+
 
         Label appTitle = new Label("Room Scheduler");
-        appTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
+        appTitle.setFont(Font.font("Segoe UI", FontWeight.BOLD, 15));
         appTitle.setTextFill(Color.WHITE);
 
         Label appSubtitle = new Label("Conference Rooms");
@@ -113,7 +119,7 @@ public class BookingFX extends Application {
 
         VBox titleBox = new VBox(3, appTitle, appSubtitle);
         titleBox.setAlignment(Pos.CENTER_LEFT);
-        titleBox.setMaxWidth(150);
+
 
         HBox brandRow = new HBox(10, logoView, titleBox);
         brandRow.setAlignment(Pos.CENTER_LEFT);
@@ -248,9 +254,13 @@ public class BookingFX extends Application {
         });
 
         backToLoginBtn.setOnAction(e -> {
-            GlobalNavigationHelper.navigateTo("/scenario1/fxml/login.fxml");
+            stage.close();
+            try {
+                new Scenario1.viewfx.LoginFX().start(new Stage());
+            } catch (Exception ex) {
+                System.out.println("Could not open login screen: " + ex.getMessage());
+            }
         });
-
 
         // ==========================================================
         // =============== 7. SCENE + CSS ===========================
@@ -397,15 +407,9 @@ public class BookingFX extends Application {
         }
     }
 
-    public void setLoggedInUser(String email, String type) {
-        this.currentUserEmail = email;
-        this.currentUserType  = type;
-    }
 
 
-
-
-    // ==============================================================
+// ==============================================================
     // ======================  MODAL OVERLAYS  ======================
     // ==============================================================
     private VBox createEditBookingModal() {
@@ -757,6 +761,8 @@ public class BookingFX extends Application {
         modal.getChildren().addAll(title, message, btnRow);
 
         modal.setUserData(new Object[]{message, yesBtn, noBtn});
+        modal.setVisible(false);
+
         return modal;
     }
 
@@ -1659,7 +1665,7 @@ public class BookingFX extends Application {
                             "-fx-padding: 6 16;");
             Tooltip.install(editBtn, new Tooltip("Change room, date/time, or purpose."));
 
-            editBtn.setOnAction(e -> showEditBookingDialog(booking));
+            editBtn.setOnAction(e -> showEditBookingModal(booking));
 
             // --- Cancel button ---
             Button cancelBtn = new Button("Cancel");
@@ -1773,112 +1779,6 @@ public class BookingFX extends Application {
         showOverlay();
     }
 
-
-    private void showEditBookingDialog(Booking booking) {
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Edit Booking");
-        dialog.setHeaderText("Update room, date/time, or purpose.");
-
-        DialogPane pane = dialog.getDialogPane();
-        pane.getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(8);
-        grid.setPadding(new Insets(10, 10, 10, 10));
-
-        // --- Date ---
-        Label dateLbl = new Label("Date");
-        DatePicker datePicker = new DatePicker(booking.getStartTime().toLocalDate());
-
-        // --- Start time ---
-        Label startLbl = new Label("Start");
-        ComboBox<String> startBox = new ComboBox<>();
-        for (int hour = 8; hour <= 19; hour++) {
-            startBox.getItems().add(String.format("%02d:00", hour));
-            startBox.getItems().add(String.format("%02d:30", hour));
-        }
-        startBox.setValue(booking.getStartTime().toLocalTime().toString());
-
-        // --- End time ---
-        Label endLbl = new Label("End");
-        ComboBox<String> endBox = new ComboBox<>();
-        for (int hour = 9; hour <= 20; hour++) {
-            endBox.getItems().add(String.format("%02d:00", hour));
-            endBox.getItems().add(String.format("%02d:30", hour));
-        }
-        endBox.setValue(booking.getEndTime().toLocalTime().toString());
-
-        // --- Room selection (ID + name) ---
-        Label roomLbl = new Label("Room");
-        ComboBox<String> roomBox = new ComboBox<>();
-        for (Room room : bookingManager.getAllRooms()) {
-            String option = room.getRoomId() + " - " + room.getRoomName();
-            roomBox.getItems().add(option);
-            if (room.getRoomId().equals(booking.getRoomId())) {
-                roomBox.setValue(option);
-            }
-        }
-
-        // --- Purpose ---
-        Label purposeLbl = new Label("Purpose");
-        TextArea purposeArea = new TextArea(booking.getPurpose());
-        purposeArea.setPrefRowCount(3);
-
-        // Layout in the grid
-        grid.addRow(0, dateLbl, datePicker);
-        grid.addRow(1, startLbl, startBox);
-        grid.addRow(2, endLbl, endBox);
-        grid.addRow(3, roomLbl, roomBox);
-        grid.add(purposeLbl, 0, 4);
-        grid.add(purposeArea, 1, 4);
-
-        pane.setContent(grid);
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType == ButtonType.OK) {
-                try {
-                    LocalDate date = datePicker.getValue();
-                    if (date == null) {
-                        showAlert("Edit Failed", "Please select a date.");
-                        return null;
-                    }
-
-                    LocalTime start = LocalTime.parse(startBox.getValue());
-                    LocalTime end   = LocalTime.parse(endBox.getValue());
-
-                    LocalDateTime newStart = LocalDateTime.of(date, start);
-                    LocalDateTime newEnd   = LocalDateTime.of(date, end);
-
-                    String selectedRoom = roomBox.getValue();
-                    if (selectedRoom == null) {
-                        showAlert("Edit Failed", "Please select a room.");
-                        return null;
-                    }
-                    String newRoomId = selectedRoom.split(" - ")[0];
-
-                    String newPurpose = purposeArea.getText();
-
-                    bookingManager.editBooking(
-                            booking.getBookingId(),
-                            currentUserEmail,
-                            newRoomId,
-                            newStart,
-                            newEnd,
-                            newPurpose
-                    );
-
-                    showAlert("Booking Updated", "Your booking has been updated.");
-                    showMyBookingsView();
-                } catch (Exception ex) {
-                    showAlert("Edit Failed", ex.getMessage());
-                }
-            }
-            return null;
-        });
-
-        dialog.showAndWait();
-    }
 
 
     // ==============================================================
