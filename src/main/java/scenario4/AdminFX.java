@@ -45,11 +45,25 @@ public class AdminFX extends Application {
     private static final String NAV_INACTIVE = "-fx-background-color: transparent;";
     private static final String NAV_HOVER    = "-fx-background-color: rgba(255,255,255,0.15);";
 
+
     @Override
     public void start(Stage stage) {
 
-        VBox left = buildLeftPanel();
+        // 1️⃣ Load rooms from CSV before building UI
+        try {
+            var rooms = shared.util.CSVHelper.loadRooms("data/rooms.csv");
+            shared.model.RoomRepository repo = shared.model.RoomRepository.getInstance();
+            for (shared.model.Room r : rooms) {
+                repo.addRoom(r);
+            }
+            System.out.println("[AdminFX] Loaded " + rooms.size() + " rooms from rooms.csv");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.out.println("[AdminFX] Failed to load data/rooms.csv");
+        }
 
+        // 2️⃣ Continue your existing UI build
+        VBox left = buildLeftPanel();
         mainContent = new VBox();
         mainContent.setPadding(new Insets(30));
         mainContent.setSpacing(20);
@@ -71,7 +85,13 @@ public class AdminFX extends Application {
         setActiveNav(dashboardBtn);
 
         stage.show();
+
+        stage.setOnCloseRequest(e -> {
+            RoomRepository.getInstance().saveToCSV();
+        });
+
     }
+
 
     // LEFT PANEL
     private VBox buildLeftPanel() {
@@ -194,33 +214,46 @@ public class AdminFX extends Application {
         fade();
     }
 
+
     // -----------------------------------------
-    // ADD ROOM
+    // ADD ROOM (UPDATED WITH FULL 6 FIELDS)
     // -----------------------------------------
     private void showAddRoomView() {
         mainContent.getChildren().clear();
 
         Label title    = labelH1("Add New Room");
-        Label subtitle = labelSub("Create a new room that can be used for bookings.");
+        Label subtitle = labelSub("Create a fully detailed room for bookings.");
 
         TextField idField  = new TextField();
-        idField.setPromptText("Enter room number");
+        idField.setPromptText("Enter room ID (e.g., R101)");
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Enter room name (e.g., York Room)");
 
         TextField capField = new TextField();
         capField.setPromptText("Enter room capacity");
 
         TextField locField = new TextField();
-        locField.setPromptText("Enter room location");
+        locField.setPromptText("Enter room location (e.g., First Floor)");
+
+        TextField amenitiesField = new TextField();
+        amenitiesField.setPromptText("Enter amenities (e.g., Projector;Whiteboard)");
+
+        TextField buildingField = new TextField();
+        buildingField.setPromptText("Enter building name (e.g., Lassonde Building)");
 
         Button saveBtn = new Button("Save Room");
         saveBtn.setOnAction(e -> {
             try {
                 String id   = idField.getText().trim();
+                String name = nameField.getText().trim();
                 String capStr = capField.getText().trim();
                 String loc  = locField.getText().trim();
+                String amenities = amenitiesField.getText().trim();
+                String building  = buildingField.getText().trim();
 
-                if (id.isEmpty() || capStr.isEmpty() || loc.isEmpty()) {
-                    alertWarning("All fields are required.");
+                if (id.isEmpty() || name.isEmpty() || capStr.isEmpty() || loc.isEmpty()) {
+                    alertWarning("Room ID, Room Name, Capacity, and Location are required.");
                     return;
                 }
 
@@ -232,26 +265,43 @@ public class AdminFX extends Application {
                     return;
                 }
 
+                // CREATE FULL ROOM (Scenario 2-style)
+                Room room = new Room(id, name, cap, loc, amenities, building);
+
                 repo.addRoom(new Room(id, cap, loc));
+                repo.saveToCSV();
                 alertSuccess("Room added successfully!");
 
+
                 idField.clear();
+                nameField.clear();
                 capField.clear();
                 locField.clear();
+                amenitiesField.clear();
+                buildingField.clear();
 
             } catch (Exception ex) {
                 alertError("Invalid input.");
             }
         });
 
-        VBox card = formCard(idField, capField, locField, saveBtn);
+        VBox card = formCard(
+                idField,
+                nameField,
+                capField,
+                locField,
+                amenitiesField,
+                buildingField,
+                saveBtn
+        );
 
         mainContent.getChildren().addAll(title, subtitle, card);
         fade();
     }
 
-    // -----------------------------------------
-    // MANAGE ROOMS (with View Occupancy added)
+
+
+    // MANAGE ROOMS (with full CSV columns)
     // -----------------------------------------
     private void showManageRoomsView() {
         mainContent.getChildren().clear();
@@ -261,50 +311,66 @@ public class AdminFX extends Application {
 
         RoomRepository repo = RoomRepository.getInstance();
 
-        // search bar
+        // Search bar
         TextField searchField = new TextField();
-        searchField.setPromptText("Search by room ID, location, or status...");
+        searchField.setPromptText("Search by ID, name, location, building, or status...");
 
         TableView<Room> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
+        // FULL COLUMN SET
         TableColumn<Room, String> idCol = new TableColumn<>("Room ID");
         idCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getRoomId())
-        );
+                new javafx.beans.property.SimpleStringProperty(c.getValue().getRoomId()));
+
+        TableColumn<Room, String> nameCol = new TableColumn<>("Room Name");
+        nameCol.setCellValueFactory(c ->
+                new javafx.beans.property.SimpleStringProperty(c.getValue().getRoomName()));
 
         TableColumn<Room, Number> capCol = new TableColumn<>("Capacity");
         capCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleIntegerProperty(c.getValue().getCapacity())
-        );
+                new javafx.beans.property.SimpleIntegerProperty(c.getValue().getCapacity()));
 
         TableColumn<Room, String> locCol = new TableColumn<>("Location");
         locCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getLocation())
-        );
+                new javafx.beans.property.SimpleStringProperty(c.getValue().getLocation()));
+
+        TableColumn<Room, String> amenCol = new TableColumn<>("Amenities");
+        amenCol.setCellValueFactory(c ->
+                new javafx.beans.property.SimpleStringProperty(c.getValue().getAmenities()));
+
+        TableColumn<Room, String> buildingCol = new TableColumn<>("Building");
+        buildingCol.setCellValueFactory(c ->
+                new javafx.beans.property.SimpleStringProperty(c.getValue().getBuilding()));
 
         TableColumn<Room, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(c ->
-                new javafx.beans.property.SimpleStringProperty(c.getValue().getStatus())
+                new javafx.beans.property.SimpleStringProperty(c.getValue().getStatus()));
+
+        // ADD ALL COLUMNS TO TABLE
+        table.getColumns().addAll(
+                idCol, nameCol, capCol, locCol, amenCol, buildingCol, statusCol
         );
 
-        table.getColumns().addAll(idCol, capCol, locCol, statusCol);
+        // Load data
         table.getItems().setAll(repo.getAllRooms().values());
 
-        // search logic
+        // Search logic
         searchField.textProperty().addListener((obs, old, newText) -> {
             String q = newText.toLowerCase().trim();
             table.getItems().clear();
             for (Room r : repo.getAllRooms().values()) {
                 if (r.getRoomId().toLowerCase().contains(q)
+                        || (r.getRoomName() != null && r.getRoomName().toLowerCase().contains(q))
                         || r.getLocation().toLowerCase().contains(q)
+                        || (r.getBuilding() != null && r.getBuilding().toLowerCase().contains(q))
                         || r.getStatus().toLowerCase().contains(q)) {
                     table.getItems().add(r);
                 }
             }
         });
 
-        // buttons
+        // Buttons
         Button enableBtn = new Button("Enable");
         enableBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "ENABLED"));
 
@@ -325,7 +391,6 @@ public class AdminFX extends Application {
         });
 
         Button deleteBtn = new Button("Delete");
-        deleteBtn.setStyle("-fx-background-color: #b91c1c; -fx-text-fill: white;");
         deleteBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -338,13 +403,14 @@ public class AdminFX extends Application {
             confirm.setContentText("Delete room '" + selected.getRoomId() + "'?");
             confirm.showAndWait().ifPresent(btn -> {
                 if (btn == ButtonType.OK) {
-                    repo.getAllRooms().remove(selected.getRoomId());
+                    repo.deleteRoom(selected.getRoomId());
+                    repo.saveToCSV();  // ← REQUIRED
                     table.getItems().remove(selected);
                 }
             });
         });
 
-        // NEW — VIEW OCCUPANCY BUTTON
+
         Button occupancyBtn = new Button("View Occupancy");
         occupancyBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
         occupancyBtn.setOnAction(e -> {
@@ -370,7 +436,7 @@ public class AdminFX extends Application {
         HBox actions = new HBox(10,
                 enableBtn, disableBtn, maintenanceBtn,
                 editBtn, deleteBtn,
-                occupancyBtn,     // <-- NEW BUTTON
+                occupancyBtn,
                 detailsBtn
         );
 
@@ -379,6 +445,7 @@ public class AdminFX extends Application {
         mainContent.getChildren().addAll(title, subtitle, card);
         fade();
     }
+
 
     private void updateRoomStatusFromTable(TableView<Room> table, RoomRepository repo, String status) {
         Room selected = table.getSelectionModel().getSelectedItem();
@@ -415,6 +482,7 @@ public class AdminFX extends Application {
                 room.locationProperty().set(newLoc);
 
                 repo.updateRoom(room);
+                repo.saveToCSV();
                 table.refresh();
                 dialog.close();
             } catch (Exception ex) {

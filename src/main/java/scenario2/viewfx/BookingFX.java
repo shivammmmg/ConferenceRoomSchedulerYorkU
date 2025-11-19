@@ -155,9 +155,16 @@ public class BookingFX extends Application {
         Label userEmailLabel = new Label(currentUserEmail);
         userEmailLabel.setStyle("-fx-text-fill: rgba(255,255,255,0.9); -fx-font-size: 11;");
 
-        Label userRoleChip = new Label(
-                currentUserType.equalsIgnoreCase("student") ? "Student" : "Staff"
-        );
+        String roleDisplay = switch (currentUserType.toUpperCase()) {
+            case "STUDENT" -> "Student";
+            case "FACULTY" -> "Faculty";
+            case "STAFF"   -> "Staff";
+            case "PARTNER" -> "Partner";
+            default        -> "User";
+        };
+
+        Label userRoleChip = new Label(roleDisplay);
+
         userRoleChip.setStyle(
                 "-fx-background-color: rgba(0,0,0,0.30);" +
                         "-fx-text-fill: #f8fafc;" +

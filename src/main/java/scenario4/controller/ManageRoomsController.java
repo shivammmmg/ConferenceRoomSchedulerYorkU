@@ -40,21 +40,47 @@ public class ManageRoomsController {
         TableColumn<Room, String> idCol = new TableColumn<>("Room ID");
         idCol.setCellValueFactory(new PropertyValueFactory<>("roomId"));
 
+        TableColumn<Room, String> nameCol = new TableColumn<>("Name");
+        nameCol.setCellValueFactory(new PropertyValueFactory<>("roomName"));
+
         TableColumn<Room, Integer> capCol = new TableColumn<>("Capacity");
         capCol.setCellValueFactory(new PropertyValueFactory<>("capacity"));
 
         TableColumn<Room, String> locCol = new TableColumn<>("Location");
         locCol.setCellValueFactory(new PropertyValueFactory<>("location"));
 
+        TableColumn<Room, String> amenitiesCol = new TableColumn<>("Amenities");
+        amenitiesCol.setCellValueFactory(new PropertyValueFactory<>("amenities"));
+
+        TableColumn<Room, String> buildingCol = new TableColumn<>("Building");
+        buildingCol.setCellValueFactory(new PropertyValueFactory<>("building"));
+
         TableColumn<Room, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
 
-        roomsTable.getColumns().addAll(idCol, capCol, locCol, statusCol);
+        roomsTable.getColumns().addAll(
+                idCol, nameCol, capCol, locCol,
+                amenitiesCol, buildingCol, statusCol
+        );
     }
 
     private void loadRooms() {
-        roomsTable.getItems().setAll(repo.getAllRooms().values());
+        try {
+            var loaded = shared.util.CSVHelper.loadRooms("data/rooms.csv");
+
+            // Fill repository so other scenario-4 screens work correctly
+            for (Room r : loaded) {
+                repo.addRoom(r);
+            }
+
+            roomsTable.getItems().setAll(repo.getAllRooms().values());
+        }
+        catch (Exception ex) {
+            ex.printStackTrace();
+            showWarning("Failed to load room data from rooms.csv");
+        }
     }
+
 
     // -------------------------------------------------------------
     // ACTION BUTTON ROW
@@ -105,7 +131,9 @@ public class ManageRoomsController {
         if (selected == null) { showWarning("Select a room."); return; }
 
         selected.setStatus("ENABLED");
+        repo.updateRoom(selected);
         roomsTable.refresh();
+
     }
 
     private void disableRoom() {
@@ -161,6 +189,7 @@ public class ManageRoomsController {
 
                 roomsTable.refresh();
                 stage.close();
+                repo.updateRoom(selected);
 
             } catch (Exception ex) {
                 showWarning("Enter valid values.");

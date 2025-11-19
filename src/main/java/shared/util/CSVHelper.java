@@ -13,23 +13,23 @@ import java.util.UUID;
  * ----------
  * Handles reading/writing concrete SystemUser, Booking, and Room objects.
  *
- * USERS CSV FORMAT:
- * 0: userId (UUID)
- * 1: name
- * 2: email
- * 3: passwordHash
- * 4: userType
- * 5: orgId
- * 6: studentId
- * 7: isActive
- * 8: createdAt (ISO string)
+ * USERS CSV FORMAT (NEW ORDER):
+ * 0: name
+ * 1: email
+ * 2: passwordHash
+ * 3: userType
+ * 4: orgId
+ * 5: studentId
+ * 6: isActive
+ * 7: createdAt
+ * 8: userId
  *
  * BOOKINGS CSV FORMAT (matches Booking.toString()):
  * 0: bookingId
  * 1: roomId
  * 2: userId
- * 3: startTime (yyyy-MM-dd HH:mm)
- * 4: endTime (yyyy-MM-dd HH:mm)
+ * 3: startTime
+ * 4: endTime
  * 5: purpose
  * 6: status
  * 7: paymentStatus
@@ -67,36 +67,46 @@ public class CSVHelper {
             String line;
             while ((line = br.readLine()) != null) {
 
+                // Skip empty rows
                 if (line.trim().isEmpty()) continue;
+
+                // Skip header row
+                if (line.toLowerCase().startsWith("name,email")) continue;
 
                 String[] p = line.split(",");
 
-                String name     = p.length > 0 ? p[0] : "";
-                String email    = p.length > 1 ? p[1] : "";
-                String pass     = p.length > 2 ? p[2] : "";
-                String type     = p.length > 3 ? p[3] : "PARTNER";
-                String orgId    = p.length > 4 ? p[4] : "";
-                String stuId    = p.length > 5 ? p[5] : "";
-                boolean active  = p.length > 6 && Boolean.parseBoolean(p[6]);
-                LocalDateTime created = p.length > 7 ? LocalDateTime.parse(p[7]) : LocalDateTime.now();
-                String id       = p.length > 8 ? p[8] : UUID.randomUUID().toString();
+                try {
+                    String name     = p.length > 0 ? p[0].trim() : "";
+                    String email    = p.length > 1 ? p[1].trim() : "";
+                    String pass     = p.length > 2 ? p[2].trim() : "";
+                    String type     = p.length > 3 ? p[3].trim() : "PARTNER";
+                    String orgId    = p.length > 4 ? p[4].trim() : "";
+                    String stuId    = p.length > 5 ? p[5].trim() : "";
+                    boolean active  = p.length > 6 && Boolean.parseBoolean(p[6].trim());
+                    LocalDateTime created =
+                            p.length > 7 ? LocalDateTime.parse(p[7].trim()) : LocalDateTime.now();
+                    String id       = p.length > 8 ? p[8].trim() : UUID.randomUUID().toString();
 
+                    SystemUser u = (SystemUser) new UserBuilder()
+                            .setName(name)
+                            .setEmail(email)
+                            .setPassword(pass)
+                            .setUserType(UserType.valueOf(type.toUpperCase()))
+                            .setOrgId(orgId)
+                            .setStudentId(stuId)
+                            .build();
 
-                // Build SystemUser using Builder
-                SystemUser u = (SystemUser) new UserBuilder()
-                        .setName(name)
-                        .setEmail(email)
-                        .setPassword(pass)
-                        .setUserType(UserType.valueOf(type.toUpperCase()))
-                        .setOrgId(orgId)
-                        .setStudentId(stuId)
-                        .build();
+                    u.setUserId(UUID.fromString(id));
+                    u.setCreatedAt(created);
 
-                u.setUserId(UUID.fromString(id));
-                u.setCreatedAt(created);
-                if (!active) u.deactivate();
+                    if (!active) u.deactivate();
 
-                list.add(u);
+                    list.add(u);
+                }
+                catch (Exception ex) {
+                    System.out.println("[CSV ERROR] Failed to parse user row: " + line);
+                    ex.printStackTrace();
+                }
             }
         }
 
@@ -124,13 +134,12 @@ public class CSVHelper {
                         u.getStudentId() == null ? "" : u.getStudentId(),
                         Boolean.toString(u.isActive()),
                         u.getCreatedAt().toString(),
-                        u.getUserId().toString()     // New last column
+                        u.getUserId().toString()
                 ));
                 bw.newLine();
             }
         }
     }
-
 
 
     // ============================================================
@@ -158,15 +167,15 @@ public class CSVHelper {
                 String[] p = line.split(",");
 
                 Booking b = new Booking(
-                        p[0],                                      // bookingId
-                        p[1],                                      // roomId
-                        p[2],                                      // userId
-                        LocalDateTime.parse(p[3].trim()),          // startTime
-                        LocalDateTime.parse(p[4].trim()),          // endTime
-                        p[5],                                      // purpose
-                        p[6],                                      // status
-                        p[7],                                      // paymentStatus
-                        Double.parseDouble(p[8])                   // depositAmount
+                        p[0],
+                        p[1],
+                        p[2],
+                        LocalDateTime.parse(p[3].trim()),
+                        LocalDateTime.parse(p[4].trim()),
+                        p[5],
+                        p[6],
+                        p[7],
+                        Double.parseDouble(p[8])
                 );
 
                 list.add(b);
@@ -214,12 +223,12 @@ public class CSVHelper {
                 String[] p = line.split(",");
 
                 Room r = new Room(
-                        p[0],                                   // roomId
-                        p.length > 1 ? p[1] : "",               // roomName
+                        p[0],
+                        p.length > 1 ? p[1] : "",
                         p.length > 2 ? Integer.parseInt(p[2]) : 0,
-                        p.length > 3 ? p[3] : "",               // location
-                        p.length > 4 ? p[4] : "",               // amenities
-                        p.length > 5 ? p[5] : ""                // building
+                        p.length > 3 ? p[3] : "",
+                        p.length > 4 ? p[4] : "",
+                        p.length > 5 ? p[5] : ""
                 );
 
                 list.add(r);

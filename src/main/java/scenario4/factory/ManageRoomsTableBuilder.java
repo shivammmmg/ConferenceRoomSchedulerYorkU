@@ -36,7 +36,9 @@ public class ManageRoomsTableBuilder {
             {
                 deleteBtn.setOnAction(e -> {
                     Room r = getTableView().getItems().get(getIndex());
-                    RoomRepository.getInstance().deleteRoom(r.getRoomId());
+                    RoomRepository repo = RoomRepository.getInstance();
+                    repo.deleteRoom(r.getRoomId());
+                    repo.saveToCSV();
                     getTableView().getItems().remove(r);
                 });
             }

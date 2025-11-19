@@ -13,24 +13,36 @@ public class AddRoomController {
     private TextField roomIdField;
 
     @FXML
+    private TextField roomNameField;
+
+    @FXML
     private TextField capacityField;
 
     @FXML
     private TextField locationField;
 
-    private RoomRepository repo = RoomRepository.getInstance();
-    private RoomFactory factory = new RoomFactory();
+    @FXML
+    private TextField amenitiesField;
+
+    @FXML
+    private TextField buildingField;
+
+    private final RoomRepository repo = RoomRepository.getInstance();
 
     @FXML
     public void createRoom() {
 
         String roomId = roomIdField.getText().trim();
+        String roomName = roomNameField.getText().trim();
         String capacityTxt = capacityField.getText().trim();
         String location = locationField.getText().trim();
+        String amenities = amenitiesField.getText().trim();
+        String building = buildingField.getText().trim();
 
         // VALIDATION
-        if (roomId.isEmpty() || capacityTxt.isEmpty() || location.isEmpty()) {
-            showAlert("All fields are required.");
+        if (roomId.isEmpty() || roomName.isEmpty() || capacityTxt.isEmpty()
+                || location.isEmpty()) {
+            showAlert("Room ID, Room Name, Capacity, and Location are required.");
             return;
         }
 
@@ -42,29 +54,33 @@ public class AddRoomController {
             return;
         }
 
-        // CHECK DUPLICATE
         if (repo.roomExists(roomId)) {
             showAlert("Room already exists!");
             return;
         }
 
-        // CREATE ROOM USING FACTORY
-        Room room = factory.createRoom(roomId, capacity, location);
+        // CREATE ROOM WITH FULL DETAILS
+        Room room = new Room(
+                roomId,
+                roomName,
+                capacity,
+                location,
+                amenities,
+                building
+        );
 
-        // SAVE TO REPOSITORY
         repo.addRoom(room);
-
+        repo.saveToCSV();
         showSuccess("Room created successfully!");
 
         // CLEAR FIELDS
         roomIdField.clear();
+        roomNameField.clear();
         capacityField.clear();
         locationField.clear();
+        amenitiesField.clear();
+        buildingField.clear();
     }
-
-    // --------------------------------------------
-    // ALERT HELPERS
-    // --------------------------------------------
 
     private void showAlert(String msg) {
         Alert a = new Alert(Alert.AlertType.WARNING);
@@ -79,4 +95,5 @@ public class AddRoomController {
         a.setContentText(msg);
         a.showAndWait();
     }
+
 }
