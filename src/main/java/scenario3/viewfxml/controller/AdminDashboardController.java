@@ -7,8 +7,9 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import scenario3.controller.RoomStatusManager;
 import scenario3.controller.SensorSystem;
-import scenario3.model.Room;
 import scenario3.observer.RoomStatusObserver;
+
+import shared.model.Room;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -68,7 +69,7 @@ public class AdminDashboardController implements Initializable, RoomStatusObserv
     private void showRoomDetails(Room room) {
         if (room == null) return;
         roomNameLabel.setText(room.getName());
-        roomStatusLabel.setText(room.getStatus().name());
+        roomStatusLabel.setText(room.getStatus());
     }
 
     private void appendLog(String msg) {

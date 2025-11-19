@@ -30,7 +30,7 @@ public class SystemUser extends User {
     private String studentId;   // only used when type = STUDENT
 
     /**
-     * Main constructor — used by UserBuilder and CSVHelper.
+     * Launcher constructor — used by UserBuilder and CSVHelper.
      */
     public SystemUser(
             String name,

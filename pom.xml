@@ -47,7 +47,7 @@
 
                 <configuration>
                     <!-- Update this later once integration is done -->
-                    <mainClass>Main</mainClass>
+                    <mainClass>Launcher</mainClass>
                 </configuration>
             </plugin>
         </plugins>

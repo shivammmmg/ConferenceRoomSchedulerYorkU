@@ -10,7 +10,7 @@ public class GlobalNavigationHelper {
 
     private static Stage primaryStage;
 
-    // Register the Stage from Main.java
+    // Register the Stage from Launcher.java
     public static void setStage(Stage stage) {
         primaryStage = stage;
     }

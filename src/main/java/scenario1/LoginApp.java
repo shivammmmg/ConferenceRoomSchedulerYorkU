@@ -58,7 +58,7 @@ public class LoginApp extends Application {
     }
 
     /**
-     * Main entrypoint.
+     * Launcher entrypoint.
      * Launches JavaFX, which then calls start().
      */
     public static void main(String[] args) {

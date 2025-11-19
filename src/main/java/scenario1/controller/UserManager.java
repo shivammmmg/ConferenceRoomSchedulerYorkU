@@ -6,6 +6,7 @@ import shared.model.UserType;
 import shared.util.CSVHelper;
 import scenario1.builder.UserBuilder;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -32,8 +33,24 @@ public class UserManager {
     // SINGLETON instance
     private static UserManager instance;
 
-    // CSV storage location
-    private final String CSV_PATH = "src/main/resources/shared/data/user.csv";
+    // =====================================================================
+    // FIX: ALWAYS RESOLVE REAL PROJECT ROOT (NOT target/classes)
+    // =====================================================================
+    private String getProjectRootPath() {
+        String base = System.getProperty("user.dir");
+
+        // If we are inside target/classes, go back to project root
+        if (base.endsWith("target/classes")) {
+            File f = new File(base);
+            return f.getParentFile().getParent();   // go up 2 levels
+        }
+
+        return base; // already project root
+    }
+
+    // CSV storage location (FINAL FIX)
+    private final String CSV_PATH = getProjectRootPath() + "/data/user.csv";
+
 
     // In-memory list of all users (loaded at startup)
     private ArrayList<User> users = new ArrayList<>();
@@ -41,6 +58,9 @@ public class UserManager {
 
     // PRIVATE constructor
     private UserManager() {
+        System.out.println("[DEBUG] Working Directory = " + System.getProperty("user.dir"));
+        System.out.println("[DEBUG] Using CSV Path = " + CSV_PATH);
+
         try {
             users = CSVHelper.loadUsers(CSV_PATH);
         } catch (Exception e) {
@@ -159,6 +179,7 @@ public class UserManager {
         CSVHelper.saveUsers(CSV_PATH, users);
 
         System.out.println("[INFO] Registration successful for: " + name);
+        System.out.println("[INFO] Saved to CSV: " + CSV_PATH);
         return true;
     }
 

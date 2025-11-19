@@ -54,6 +54,8 @@ public class CSVHelper {
         ArrayList<User> list = new ArrayList<>();
         File file = new File(path);
 
+        System.out.println(">>> [LOAD USERS] Reading from: " + file.getAbsolutePath());
+
         if (!file.exists()) {
             file.getParentFile().mkdirs();
             file.createNewFile();
@@ -69,17 +71,16 @@ public class CSVHelper {
 
                 String[] p = line.split(",");
 
-                String id       = p.length > 0 ? p[0] : UUID.randomUUID().toString();
-                String name     = p.length > 1 ? p[1] : "";
-                String email    = p.length > 2 ? p[2] : "";
-                String pass     = p.length > 3 ? p[3] : "";
-                String type     = p.length > 4 ? p[4] : "PARTNER";
-                String orgId    = p.length > 5 ? p[5] : "";
-                String stuId    = p.length > 6 ? p[6] : "";
-                boolean active  = p.length > 7 && Boolean.parseBoolean(p[7]);
+                String name     = p.length > 0 ? p[0] : "";
+                String email    = p.length > 1 ? p[1] : "";
+                String pass     = p.length > 2 ? p[2] : "";
+                String type     = p.length > 3 ? p[3] : "PARTNER";
+                String orgId    = p.length > 4 ? p[4] : "";
+                String stuId    = p.length > 5 ? p[5] : "";
+                boolean active  = p.length > 6 && Boolean.parseBoolean(p[6]);
+                LocalDateTime created = p.length > 7 ? LocalDateTime.parse(p[7]) : LocalDateTime.now();
+                String id       = p.length > 8 ? p[8] : UUID.randomUUID().toString();
 
-                LocalDateTime created =
-                        p.length > 8 ? LocalDateTime.parse(p[8]) : LocalDateTime.now();
 
                 // Build SystemUser using Builder
                 SystemUser u = (SystemUser) new UserBuilder()
@@ -107,12 +108,14 @@ public class CSVHelper {
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
 
-            for (User base : list) {
+            // NEW HEADER ORDER
+            bw.write("name,email,passwordHash,userType,orgId,studentId,isActive,createdAt,userId");
+            bw.newLine();
 
+            for (User base : list) {
                 SystemUser u = (SystemUser) base;
 
                 bw.write(String.join(",",
-                        u.getUserId().toString(),
                         u.getName(),
                         u.getEmail(),
                         u.getPasswordHash(),
@@ -120,13 +123,14 @@ public class CSVHelper {
                         u.getOrgId(),
                         u.getStudentId() == null ? "" : u.getStudentId(),
                         Boolean.toString(u.isActive()),
-                        u.getCreatedAt().toString()
+                        u.getCreatedAt().toString(),
+                        u.getUserId().toString()     // New last column
                 ));
-
                 bw.newLine();
             }
         }
     }
+
 
 
     // ============================================================

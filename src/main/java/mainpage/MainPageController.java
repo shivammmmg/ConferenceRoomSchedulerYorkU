@@ -56,7 +56,14 @@ public class MainPageController {
 
     @FXML
     private void onGetStarted() {
+
+        // 🔥 CRITICAL FIX:
+        // Force-initialize the entire user/account system early.
+        scenario1.controller.UserManager.getInstance();
+
+        // Now safely navigate to login screen.
         GlobalNavigationHelper.navigateTo("/scenario1/fxml/login.fxml");
     }
+
 
 }

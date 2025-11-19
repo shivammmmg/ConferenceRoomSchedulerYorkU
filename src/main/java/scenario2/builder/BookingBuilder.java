@@ -1,4 +1,4 @@
-package Scenario2.builder;
+package scenario2.builder;
 
 import shared.model.Booking;
 import java.time.LocalDateTime;

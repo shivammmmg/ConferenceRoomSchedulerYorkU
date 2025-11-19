@@ -142,76 +142,26 @@ public class Booking {
     //                     GETTERS
     // =====================================================
 
-    /** @return unique booking identifier */
     public String getBookingId() { return bookingId; }
-
-    /** @return room ID associated with this booking */
     public String getRoomId() { return roomId; }
-
-    /** @return user ID who created this booking */
     public String getUserId() { return userId; }
-
-    /** @return start time of this reservation */
     public LocalDateTime getStartTime() { return startTime; }
-
-    /** @return end time of this reservation */
     public LocalDateTime getEndTime() { return endTime; }
-
-    /** @return purpose/description of the meeting */
     public String getPurpose() { return purpose; }
-
-    /** @return booking status */
     public String getStatus() { return status; }
-
-    /** @return payment status */
     public String getPaymentStatus() { return paymentStatus; }
-
-    /** @return deposit amount charged */
     public double getDepositAmount() { return depositAmount; }
 
     // =====================================================
     //                     SETTERS
     // =====================================================
 
-    /**
-     * Updates the booking status (e.g., after cancellation).
-     * @param status new status string
-     */
     public void setStatus(String status) { this.status = status; }
-
-    /**
-     * Updates the meeting purpose.
-     * Used when the user edits a booking.
-     *
-     * @param purpose new purpose value
-     */
     public void setPurpose(String purpose) { this.purpose = purpose; }
-
-    /**
-     * Sets the payment status after payment validation/processing.
-     *
-     * @param paymentStatus new payment status
-     */
-    public void setPaymentStatus(String paymentStatus) {
-        this.paymentStatus = paymentStatus;
-    }
-
-    /**
-     * Sets the deposit amount at booking creation.
-     *
-     * @param depositAmount amount to set
-     */
-    public void setDepositAmount(double depositAmount) {
-        this.depositAmount = depositAmount;
-    }
-
-    /** @param roomId updated room ID (used when editing booking) */
+    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
+    public void setDepositAmount(double depositAmount) { this.depositAmount = depositAmount; }
     public void setRoomId(String roomId) { this.roomId = roomId; }
-
-    /** @param startTime updated start datetime */
     public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
-
-    /** @param endTime updated end datetime */
     public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
 
     // =====================================================

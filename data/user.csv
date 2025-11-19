@@ -1,0 +1,2 @@
+name,email,passwordHash,userType,orgId,studentId,isActive,createdAt,userId
+Shivam Gupta,shivam11@my.yorku.ca,Shivam1234@,STUDENT,,219923309,true,2025-11-18T21:41:21.857809,8466b8b8-f97e-4cd7-8bd9-9fe01b383b50

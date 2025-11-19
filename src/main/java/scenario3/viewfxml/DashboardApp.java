@@ -11,7 +11,7 @@ public class DashboardApp extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
 
-        boolean admin = true;  // <-- switch between admin/user dashboard
+        boolean admin = false;  // <-- switch between admin/user dashboard
 
         String fxml = admin ?
                 "/scenario3/viewfxml/fxml/admin_dashboard.fxml" :

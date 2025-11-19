@@ -117,7 +117,7 @@ public class RegisterController implements Initializable {
         logoImage.setTranslateY(-700);
         logoImage.setOpacity(1); // no fade, only movement animation
 
-        // Main slide animation
+        // Launcher slide animation
         TranslateTransition slide = new TranslateTransition(Duration.millis(2500), logoImage);
         slide.setFromY(-700);
         slide.setToY(0);

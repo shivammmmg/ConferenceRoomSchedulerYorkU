@@ -1,9 +1,9 @@
-package Scenario2.controller;
+package scenario2.controller;
 
 import shared.model.Booking;
 import shared.model.Room;
 import shared.util.CSVHelper;
-import Scenario2.builder.BookingBuilder;
+import scenario2.builder.BookingBuilder;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -593,7 +593,7 @@ public class BookingManager {
         try {
             CSVHelper.saveBookings(BOOKING_CSV, bookings);
         } catch (Exception e) {
-            System.err.println("Failed to save bookings: " + e.getMessage());
+            System.err.println("[ERROR] Failed to save bookings: " + e.getMessage());
         }
     }
 
@@ -602,7 +602,7 @@ public class BookingManager {
         try {
             CSVHelper.saveRooms(ROOM_CSV, rooms);
         } catch (Exception e) {
-            System.err.println("Failed to save rooms: " + e.getMessage());
+            System.err.println("[ERROR] Failed to save rooms: " + e.getMessage());
         }
     }
 

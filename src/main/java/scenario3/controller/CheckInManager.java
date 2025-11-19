@@ -1,6 +1,7 @@
 package scenario3.controller;
 
-import scenario3.model.Booking;
+import shared.model.Booking;
+import scenario3.model.CheckInBookingWrapper;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -13,51 +14,83 @@ import java.util.concurrent.*;
 public class CheckInManager {
 
     private final RoomStatusManager manager = RoomStatusManager.getInstance();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+    private final ScheduledExecutorService scheduler =
+            Executors.newScheduledThreadPool(2);
 
-    private final long NO_SHOW_MINUTES = 30; // for testing you can set 5 seconds
-    private final ConcurrentHashMap<String, ScheduledFuture<?>> noShowTasks = new ConcurrentHashMap<>();
+    private final long NO_SHOW_MINUTES = 30;  // (can shorten for testing)
+    private final ConcurrentHashMap<String, ScheduledFuture<?>> noShowTasks =
+            new ConcurrentHashMap<>();
 
-    public String createBooking(String roomId, String userId, LocalDateTime start, LocalDateTime end) {
+    /**
+     * Creates a new booking and schedules a no-show check.
+     */
+    public String createBooking(String roomId, String userId,
+                                LocalDateTime start, LocalDateTime end) {
+
         String bookingId = "BKG-" + UUID.randomUUID().toString().substring(0, 8);
-        Booking b = new Booking(bookingId, roomId, userId, start, end);
+
+        // Create actual booking (shared model)
+        Booking b = new Booking(
+                bookingId,
+                roomId,
+                userId,
+                start,
+                end,
+                "No purpose specified" // default, not important for scenario 3
+        );
+
+        // Store as wrapper inside manager
         manager.addBooking(b);
 
-        long delaySeconds = Duration.between(LocalDateTime.now(), start.plusMinutes(NO_SHOW_MINUTES)).getSeconds();
-        if (delaySeconds < 0) delaySeconds = 5; // test 5 seconds
+        // Calculate no-show delay
+        long delaySeconds =
+                Duration.between(LocalDateTime.now(),
+                        start.plusMinutes(NO_SHOW_MINUTES)).getSeconds();
 
-        ScheduledFuture<?> f = scheduler.schedule(() -> {
-            Booking latest = manager.getBooking(bookingId);
-            if (latest != null && !latest.isCheckedIn()) {
-                // ✅ Double-check if still not checked in
-                if (!latest.isCheckedIn()) {
-                    manager.markNoShow(bookingId);
-                }
+        if (delaySeconds < 0) delaySeconds = 5; // For testing
+
+        // Schedule task to detect no-show
+        ScheduledFuture<?> future = scheduler.schedule(() -> {
+
+            CheckInBookingWrapper wrap = manager.getBooking(bookingId);
+
+            if (wrap != null && !wrap.isCheckedIn()) {
+                manager.markNoShow(bookingId);
             }
+
         }, delaySeconds, TimeUnit.SECONDS);
 
-        noShowTasks.put(bookingId, f);
+        noShowTasks.put(bookingId, future);
+
         return bookingId;
     }
 
+    /**
+     * Attempts a check-in for the given booking.
+     */
     public boolean checkIn(String bookingId, String userId) {
-        Booking b = manager.getBooking(bookingId);
-        if (b == null || !b.getUserId().equals(userId)) return false;
 
-        // ✅ Cancel scheduled no-show task
+        CheckInBookingWrapper wrap = manager.getBooking(bookingId);
+
+        // Validate wrapper + user
+        if (wrap == null) return false;
+        Booking b = wrap.getBooking();
+        if (!b.getUserId().equals(userId)) return false;
+
+        // Cancel scheduled no-show detection
         ScheduledFuture<?> f = noShowTasks.remove(bookingId);
-        if (f != null) f.cancel(false); // cancel(false) avoids interrupting if already running
+        if (f != null) f.cancel(false);
 
-        // ✅ Mark as checked in
-        b.setCheckedIn(true);
+        // Mark wrapper state
+        wrap.setCheckedIn(true);
+
+        // Inform manager to update room status
         manager.markCheckedIn(bookingId);
+
         return true;
     }
 
     public void shutdown() { scheduler.shutdownNow(); }
 
-    // Getter for RoomStatusManager
-    public RoomStatusManager getRoomManager() {
-        return manager;
-    }
+    public RoomStatusManager getRoomManager() { return manager; }
 }

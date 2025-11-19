@@ -1,4 +1,4 @@
-package Scenario2.viewfx;
+package scenario2.viewfx;
 
 import javafx.animation.FadeTransition;
 import javafx.application.Application;
@@ -19,8 +19,10 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import shared.util.GlobalNavigationHelper;
 
-import Scenario2.controller.BookingManager;
+
+import scenario2.controller.BookingManager;
 import shared.model.Booking;
 import shared.model.Room;
 
@@ -65,6 +67,15 @@ public class BookingFX extends Application {
     private Button myBookingsBtn;
     private Button backToLoginBtn;
 
+    private String loggedInEmail;
+    private String loggedInUserType;
+
+    public void setLoggedInUser(String email, String userType) {
+        this.loggedInEmail = email;
+        this.loggedInUserType = userType;
+    }
+
+
     @Override
     public void start(Stage stage) {
 
@@ -73,8 +84,9 @@ public class BookingFX extends Application {
         // ==========================================================
 
         bookingManager = BookingManager.getInstance();
-        currentUserEmail = "test@yorku.ca";    // replace with logged-in user
-        currentUserType  = "student";          // determines pricing tier
+        currentUserEmail = (loggedInEmail != null) ? loggedInEmail : "test@yorku.ca";
+        currentUserType  = (loggedInUserType != null) ? loggedInUserType : "student";
+
 
         // ==========================================================
         // =============== 2. LEFT NAVIGATION PANEL =================
@@ -255,12 +267,11 @@ public class BookingFX extends Application {
 
         backToLoginBtn.setOnAction(e -> {
             stage.close();
-            try {
-                new Scenario1.viewfx.LoginFX().start(new Stage());
-            } catch (Exception ex) {
-                System.out.println("Could not open login screen: " + ex.getMessage());
-            }
+            GlobalNavigationHelper.navigateTo("/scenario1/fxml/login.fxml");
         });
+
+
+
 
         // ==========================================================
         // =============== 7. SCENE + CSS ===========================
@@ -409,7 +420,7 @@ public class BookingFX extends Application {
 
 
 
-// ==============================================================
+    // ==============================================================
     // ======================  MODAL OVERLAYS  ======================
     // ==============================================================
     private VBox createEditBookingModal() {
@@ -1815,31 +1826,31 @@ public class BookingFX extends Application {
     private boolean isValidCvv(String cvv) {
         return cvv != null && cvv.matches("\\d{3}");
     }
-// ====================== Edit Booking Dialog ======================
-private String validateCardForm(String cardNumber,
-                                String expiry,
-                                String cvv,
-                                String nameOnCard) {
+    // ====================== Edit Booking Dialog ======================
+    private String validateCardForm(String cardNumber,
+                                    String expiry,
+                                    String cvv,
+                                    String nameOnCard) {
 
-    if (nameOnCard == null || nameOnCard.trim().isEmpty()) {
-        return "Name on card is required.";
+        if (nameOnCard == null || nameOnCard.trim().isEmpty()) {
+            return "Name on card is required.";
+        }
+
+        String normalized = cardNumber == null ? "" : cardNumber.replaceAll("\\s+", "");
+        if (!normalized.matches("\\d{16}")) {
+            return "Card number must be exactly 16 digits.";
+        }
+
+        if (expiry == null || !expiry.matches("(0[1-9]|1[0-2])/\\d{2}")) {
+            return "Expiry must be in MM/YY format.";
+        }
+
+        if (cvv == null || !cvv.matches("\\d{3}")) {
+            return "CVV must be 3 digits.";
+        }
+
+        return null; // valid
     }
-
-    String normalized = cardNumber == null ? "" : cardNumber.replaceAll("\\s+", "");
-    if (!normalized.matches("\\d{16}")) {
-        return "Card number must be exactly 16 digits.";
-    }
-
-    if (expiry == null || !expiry.matches("(0[1-9]|1[0-2])/\\d{2}")) {
-        return "Expiry must be in MM/YY format.";
-    }
-
-    if (cvv == null || !cvv.matches("\\d{3}")) {
-        return "CVV must be 3 digits.";
-    }
-
-    return null; // valid
-}
     private void showModal(VBox modal) {
         modal.setVisible(true);
         FadeTransition ft = new FadeTransition(Duration.millis(200), modal);
