@@ -8,9 +8,9 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import scenario3.controller.CheckInManager;
 import scenario3.controller.RoomStatusManager;
-import scenario3.model.CheckInBookingWrapper;
-import shared.model.Room;
-import shared.model.RoomStatus;
+import scenario3.model.Booking;
+import scenario3.model.Room;
+import scenario3.model.RoomStatus;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -26,7 +26,6 @@ public class UserDashboardController {
     @FXML private ListView<String> roomListView;
     @FXML private Label roomNameLabel;
     @FXML private Label roomStatusLabel;
-    @FXML private Button createBookingBtn;
     @FXML private Button checkInBtn;
     @FXML private Label currentBookingLabel;
     @FXML private VBox timerBox; // NEW: Timer container
@@ -35,15 +34,13 @@ public class UserDashboardController {
     private final RoomStatusManager roomManager = RoomStatusManager.getInstance();
     private final CheckInManager checkInManager = new CheckInManager();
     private final Map<String, String> roomIdMap = new HashMap<>();
-
     private Label timerLabel;
     private AtomicInteger remainingSeconds;
 
     @FXML
     public void initialize() {
+        // Load rooms from RoomStatusManager
         rooms = FXCollections.observableArrayList();
-
-        // Load rooms
         for (Room r : roomManager.getAllRooms()) {
             rooms.add(r.getName());
             roomIdMap.put(r.getName(), r.getId());
@@ -52,16 +49,13 @@ public class UserDashboardController {
         roomListView.setItems(rooms);
         roomListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
 
-        roomListView.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldVal, newVal) -> showRoomDetails(newVal)
-        );
+        roomListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            showRoomDetails(newVal);
+        });
 
-        createBookingBtn.setOnAction(e -> createBooking());
         checkInBtn.setOnAction(e -> checkIn());
 
-        if (!rooms.isEmpty()) {
-            roomListView.getSelectionModel().selectFirst();
-        }
+        if (!rooms.isEmpty()) roomListView.getSelectionModel().selectFirst();
     }
 
     private void showRoomDetails(String roomName) {
@@ -73,10 +67,8 @@ public class UserDashboardController {
             roomNameLabel.setText(roomName);
             String roomId = roomIdMap.get(roomName);
             Room r = roomManager.getRoom(roomId);
-
-            RoomStatus status = (r != null) ? r.getStatusEnum() : RoomStatus.AVAILABLE;
+            RoomStatus status = (r != null) ? r.getStatus() : RoomStatus.AVAILABLE;
             roomStatusLabel.setText(status.name());
-
             String bookingId = (r != null) ? r.getCurrentBookingId() : null;
             currentBookingLabel.setText(bookingId != null ? bookingId : "None");
         }
@@ -88,41 +80,30 @@ public class UserDashboardController {
 
         String roomId = roomIdMap.get(selectedRoom);
         LocalDateTime now = LocalDateTime.now();
-
-        String bookingId = checkInManager.createBooking(
-                roomId,
-                "User1",
-                now,
-                now.plusHours(1)
-        );
+        String bookingId = checkInManager.createBooking(roomId, "User1", now, now.plusHours(1));
 
         currentBookingLabel.setText(bookingId);
         roomStatusLabel.setText("RESERVED");
 
-        startCountdown(30 * 60); // 30 minutes = 1800 seconds
+        startCountdown(30 * 60); // 30 minute timer
 
         showAlert("Booking Created", "You have successfully booked " + selectedRoom + ".");
     }
 
     private void checkIn() {
         String bookingId = currentBookingLabel.getText();
-
         if (bookingId == null || bookingId.equals("—") || bookingId.equals("None")) {
             showAlert("Check-In Error", "You do not have a booking to check in.");
-            return;
+        } else {
+            checkInManager.checkIn(bookingId, "User1");
+            roomStatusLabel.setText("IN_USE");
+            removeTimer();
+            showAlert("Checked In", "You have checked in successfully for booking " + bookingId + ".");
         }
-
-        checkInManager.checkIn(bookingId, "User1");
-        roomStatusLabel.setText("IN_USE");
-
-        removeTimer();
-
-        showAlert("Checked In", "You have checked in successfully for booking " + bookingId + ".");
     }
 
     private void startCountdown(int totalSeconds) {
-
-        removeTimer(); // clear previous timer
+        removeTimer(); // clear old timer if any
 
         remainingSeconds = new AtomicInteger(totalSeconds);
         timerLabel = new Label();
@@ -132,24 +113,21 @@ public class UserDashboardController {
             @Override
             public void run() {
                 int sec = remainingSeconds.getAndDecrement();
+
                 int minutes = sec / 60;
                 int seconds = sec % 60;
+                String timeStr = String.format("%02d:%02d", minutes, seconds);
 
-                Platform.runLater(() ->
-                        timerLabel.setText("Time to check-in: " + String.format("%02d:%02d", minutes, seconds))
-                );
+                Platform.runLater(() -> timerLabel.setText("Time to check-in: " + timeStr));
 
                 if (sec <= 0) {
                     Platform.runLater(() -> {
                         removeTimer();
-
+                        // ✅ Only show popup if the booking is NOT checked in
                         String bookingId = currentBookingLabel.getText();
-                        CheckInBookingWrapper wrap =
-                                checkInManager.getRoomManager().getBooking(bookingId);
-
-                        // If still not checked in → no-show
-                        if (wrap != null && !wrap.isCheckedIn()) {
-                            showAlert("No-Show", "Did not check-in in time. Deposit forfeited.");
+                        Booking b = checkInManager.getRoomManager().getBooking(bookingId);
+                        if (b != null && !b.isCheckedIn()) {
+                            showAlert("No-Show", "Did not check-in in time. Forfeit Deposited.");
                             checkInManager.getRoomManager().markNoShow(bookingId);
                             roomStatusLabel.setText("NO_SHOW");
                         }
@@ -166,10 +144,11 @@ public class UserDashboardController {
                 }
             } catch (InterruptedException ignored) {}
         });
-
         timerThread.setDaemon(true);
         timerThread.start();
     }
+
+
 
     private void removeTimer() {
         if (timerLabel != null) {
@@ -186,3 +165,4 @@ public class UserDashboardController {
         alert.showAndWait();
     }
 }
+

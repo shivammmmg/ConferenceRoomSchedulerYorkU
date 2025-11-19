@@ -10,21 +10,16 @@ import javafx.scene.text.Text;
 import scenario3.controller.CheckInManager;
 import scenario3.controller.RoomStatusManager;
 import scenario3.controller.SensorSystem;
+import scenario3.model.Booking;
+import scenario3.model.Room;
+import scenario3.model.RoomStatus;
 import scenario3.observer.RoomStatusObserver;
-import scenario3.model.CheckInBookingWrapper;
-
-
-import shared.model.Booking;
-import shared.model.Room;
-import shared.model.RoomStatus;
-
 
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.concurrent.*;
 
@@ -51,10 +46,6 @@ public class DashboardController implements Initializable, RoomStatusObserver {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
     private final Map<String, ScheduledFuture<?>> bookingTimers = new ConcurrentHashMap<>();
     private final Map<String, Long> bookingCountdowns = new ConcurrentHashMap<>();
-
-    // Scenario 3 additional wrapper-based booking state
-    private final Map<String, CheckInBookingWrapper> bookingMap = new HashMap<>();
-
 
     private static final DateTimeFormatter LOG_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -177,7 +168,7 @@ public class DashboardController implements Initializable, RoomStatusObserver {
             return;
         }
         roomNameLabel.setText(room.getName() + " (" + room.getId() + ")");
-        updateStatusLabel(room.getStatusEnum());
+        updateStatusLabel(room.getStatus());
     }
 
     private void updateStatusLabel(RoomStatus s) {
@@ -205,7 +196,7 @@ public class DashboardController implements Initializable, RoomStatusObserver {
 
             @Override
             public void run() {
-                CheckInBookingWrapper b = bookingMap.get(bookingId);
+                Booking b = manager.getBooking(bookingId);
                 if (b == null) {
                     stopCountdown(bookingId);
                     return;
@@ -216,7 +207,6 @@ public class DashboardController implements Initializable, RoomStatusObserver {
                     stopCountdown(bookingId);
                     return;
                 }
-
 
                 // Update countdown
                 bookingCountdowns.put(bookingId, remaining);

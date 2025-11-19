@@ -34,7 +34,6 @@
             <Label fx:id="roomStatusLabel" text="—" styleClass="status-label" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
 
             <HBox spacing="12">
-                <Button fx:id="createBookingBtn" text="Create Booking" style="-fx-font-size: 18px;"/>
                 <Button fx:id="checkInBtn" text="Check In" style="-fx-font-size: 18px;"/>
             </HBox>
 

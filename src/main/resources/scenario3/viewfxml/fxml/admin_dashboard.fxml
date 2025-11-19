@@ -13,7 +13,6 @@
             <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
             <Label text="Admin — Room Monitoring Dashboard" styleClass="top-title"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Button fx:id="simulateBtn" text="Start Sensors" />
         </HBox>
     </top>
 

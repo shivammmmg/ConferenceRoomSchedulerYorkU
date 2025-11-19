@@ -4,12 +4,14 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextArea;
 import scenario3.controller.RoomStatusManager;
 import scenario3.controller.SensorSystem;
+import scenario3.model.Room;
 import scenario3.observer.RoomStatusObserver;
-
-import shared.model.Room;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -20,7 +22,6 @@ public class AdminDashboardController implements Initializable, RoomStatusObserv
     @FXML private ListView<Room> roomListView;
     @FXML private Label roomNameLabel;
     @FXML private Label roomStatusLabel;
-    @FXML private Button simulateBtn;
     @FXML private TextArea eventLog;
 
     private final RoomStatusManager manager = RoomStatusManager.getInstance();
@@ -29,11 +30,15 @@ public class AdminDashboardController implements Initializable, RoomStatusObserv
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
+        // Observer setup
         manager.registerObserver(this);
+
+        // Configure and immediately start sensors (NO button needed)
         sensors.configure(new ArrayList<>(manager.getAllRooms()), this::appendLog);
+        sensors.startSimulation(); // <-- ALWAYS RUNNING
 
+        // List rooms
         roomListView.setItems(FXCollections.observableArrayList(manager.getAllRooms()));
-
         roomListView.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(Room room, boolean empty) {
@@ -43,33 +48,22 @@ public class AdminDashboardController implements Initializable, RoomStatusObserv
             }
         });
 
+        // Selection updates room display
         roomListView.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldV, newV) -> showRoomDetails(newV)
         );
 
-        simulateBtn.setOnAction(e -> handleSimulateSensors());
-
-        // select first room by default
+        // Auto-select first room
         Platform.runLater(() -> {
             if (!roomListView.getItems().isEmpty())
                 roomListView.getSelectionModel().select(0);
         });
     }
 
-    private void handleSimulateSensors() {
-        if (simulateBtn.getText().startsWith("Start")) {
-            sensors.startSimulation();
-            simulateBtn.setText("Stop Sensors");
-        } else {
-            sensors.stopSimulation();
-            simulateBtn.setText("Start Sensors");
-        }
-    }
-
     private void showRoomDetails(Room room) {
         if (room == null) return;
         roomNameLabel.setText(room.getName());
-        roomStatusLabel.setText(room.getStatus());
+        roomStatusLabel.setText(room.getStatus().name());
     }
 
     private void appendLog(String msg) {
@@ -78,6 +72,11 @@ public class AdminDashboardController implements Initializable, RoomStatusObserv
 
     @Override
     public void onRoomStatusChanged(Room room) {
-        Platform.runLater(roomListView::refresh);
+        Platform.runLater(() -> {
+            roomListView.refresh();
+            if (roomListView.getSelectionModel().getSelectedItem() == room) {
+                showRoomDetails(room);
+            }
+        });
     }
 }

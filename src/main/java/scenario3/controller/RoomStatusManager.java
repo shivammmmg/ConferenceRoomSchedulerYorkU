@@ -1,12 +1,10 @@
 package scenario3.controller;
 
 import javafx.application.Platform;
+import scenario3.model.Booking;
+import scenario3.model.Room;
+import scenario3.model.RoomStatus;
 import scenario3.observer.RoomStatusObserver;
-import scenario3.model.CheckInBookingWrapper;
-
-import shared.model.Booking;
-import shared.model.Room;
-import shared.model.RoomStatus;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -21,22 +19,14 @@ public class RoomStatusManager {
 
     private static RoomStatusManager instance;
 
-    // Rooms remain NORMAL
     private final Map<String, Room> rooms = new ConcurrentHashMap<>();
-
-    // ✅ BOOKINGS ARE NOW WRAPPERS (Scenario 3 state)
-    private final Map<String, CheckInBookingWrapper> bookings = new ConcurrentHashMap<>();
-
-    private final List<RoomStatusObserver> observers =
-            Collections.synchronizedList(new ArrayList<>());
-
-    private static final DateTimeFormatter LOG_FORMAT =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final Map<String, Booking> bookings = new ConcurrentHashMap<>();
+    private final List<RoomStatusObserver> observers = Collections.synchronizedList(new ArrayList<>());
+    private static final DateTimeFormatter LOG_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private String ts() { return LocalDateTime.now().format(LOG_FORMAT); }
 
     private RoomStatusManager() {
-        // Preload demo rooms
         rooms.put("R101", new Room("R101", "Seminar Rm 101"));
         rooms.put("R102", new Room("R102", "Seminar Rm 102"));
         rooms.put("R201", new Room("R201", "Small Group Room A"));
@@ -48,37 +38,23 @@ public class RoomStatusManager {
         return instance;
     }
 
-    // ============================================================
     // Observer management
-    // ============================================================
-    public void registerObserver(RoomStatusObserver o) {
-        if (o != null && !observers.contains(o)) observers.add(o);
-    }
-
-    public void unregisterObserver(RoomStatusObserver o) {
-        observers.remove(o);
-    }
+    public void registerObserver(RoomStatusObserver o) { if (o != null && !observers.contains(o)) observers.add(o); }
+    public void unregisterObserver(RoomStatusObserver o) { observers.remove(o); }
 
     private void notifyObservers(Room room) {
         Platform.runLater(() -> {
             synchronized (observers) {
                 for (RoomStatusObserver o : observers) {
                     try { o.onRoomStatusChanged(room); }
-                    catch (Exception ex) {
-                        System.out.println(ts() + " — [Observer Error] " + ex.getMessage());
-                    }
+                    catch (Exception ex) { System.out.println(ts() + " — [Observer Error] " + ex.getMessage()); }
                 }
             }
         });
     }
 
-    // ============================================================
     // Room operations
-    // ============================================================
-    public Collection<Room> getAllRooms() {
-        return Collections.unmodifiableCollection(rooms.values());
-    }
-
+    public Collection<Room> getAllRooms() { return Collections.unmodifiableCollection(rooms.values()); }
     public Room getRoom(String roomId) { return rooms.get(roomId); }
 
     public synchronized void updateRoomStatus(String roomId, RoomStatus status) {
@@ -107,32 +83,20 @@ public class RoomStatusManager {
         notifyObservers(r);
     }
 
-    // ============================================================
     // Booking operations
-    // ============================================================
     public void addBooking(Booking b) {
-        // Wrap it before storing (important!)
-        bookings.put(b.getBookingId(), new CheckInBookingWrapper(b));
+        bookings.put(b.getBookingId(), b);
         assignBookingToRoom(b.getRoomId(), b.getBookingId());
     }
 
-    // OLD return type was Booking. Now return wrapper if needed.
-    public CheckInBookingWrapper getBooking(String bookingId) {
-        return bookings.get(bookingId);
-    }
+    public Booking getBooking(String bookingId) { return bookings.get(bookingId); }
 
-    // ============================================================
-    // CHECK-IN
-    // ============================================================
     public void markCheckedIn(String bookingId) {
-        CheckInBookingWrapper wrap = bookings.get(bookingId);
-        if (wrap == null) return;
+        Booking b = bookings.get(bookingId);
+        if (b == null) return;
 
-        wrap.setCheckedIn(true);
-
-        Booking b = wrap.getBooking();
+        b.setCheckedIn(true);
         Room r = rooms.get(b.getRoomId());
-
         if (r != null) {
             r.setStatus(RoomStatus.IN_USE);
             System.out.println(ts() + " — Booking " + bookingId + " checked in.");
@@ -140,27 +104,24 @@ public class RoomStatusManager {
         }
     }
 
-    // ============================================================
-    // NO-SHOW
-    // ============================================================
     public void markNoShow(String bookingId) {
-        CheckInBookingWrapper wrap = bookings.get(bookingId);
-        if (wrap == null) return;
+        Booking b = bookings.get(bookingId);
+        if (b == null) return;
 
         // Already processed? Exit early
-        if (wrap.isDepositForfeited() && wrap.isForfeitPopupShown()) return;
+        if (b.isDepositForfeited() && b.isForfeitPopupShown()) return;
 
-        wrap.forfeitDeposit();
-        wrap.setForfeitPopupShown(true);
+        b.forfeitDeposit();
+        b.setForfeitPopupShown(true);
 
-        Booking b = wrap.getBooking();
         Room r = rooms.get(b.getRoomId());
-
         if (r != null) {
             r.setStatus(RoomStatus.NO_SHOW);
             r.setCurrentBookingId(null);
             notifyObservers(r);
         }
+
+
 
         System.out.println(ts() + " — Booking " + bookingId + " marked NO_SHOW (deposit forfeited)");
     }

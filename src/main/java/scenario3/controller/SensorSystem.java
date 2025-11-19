@@ -1,13 +1,12 @@
 package scenario3.controller;
 
 import javafx.application.Platform;
+import scenario3.model.Room;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Consumer;
-
-import shared.model.Room;
 
 public class SensorSystem implements Runnable {
 
@@ -36,12 +35,10 @@ public class SensorSystem implements Runnable {
         sensorThread.setDaemon(true);
         sensorThread.start();
 
-        log("Sensor simulation started.");
     }
 
     public void stopSimulation() {
         running = false;
-        log("Sensor simulation stopped.");
     }
 
     @Override
