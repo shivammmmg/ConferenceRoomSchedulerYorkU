@@ -380,15 +380,19 @@ public class AdminFX extends Application {
 
         // Buttons
         Button enableBtn = new Button("Enable");
+        enableBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
         enableBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "ENABLED"));
 
         Button disableBtn = new Button("Disable");
+        disableBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white;");
         disableBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "DISABLED"));
 
         Button maintenanceBtn = new Button("Maintenance");
+        maintenanceBtn.setStyle("-fx-background-color: #d97706; -fx-text-fill: white;");
         maintenanceBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "MAINTENANCE"));
 
         Button editBtn = new Button("Edit");
+        editBtn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white;");
         editBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -399,6 +403,7 @@ public class AdminFX extends Application {
         });
 
         Button deleteBtn = new Button("Delete");
+        deleteBtn.setStyle("-fx-background-color: #dc2626; -fx-text-fill: white;");
         deleteBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -435,7 +440,6 @@ public class AdminFX extends Application {
         });
 
         Button occupancyBtn = new Button("View Occupancy");
-        occupancyBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
         occupancyBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -446,7 +450,6 @@ public class AdminFX extends Application {
         });
 
         Button detailsBtn = new Button("View Details");
-        detailsBtn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white;");
         detailsBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -691,7 +694,7 @@ public class AdminFX extends Application {
         table.getItems().setAll(repo.getAllAdmins().values());
 
         Button deleteBtn = new Button("Delete");
-        deleteBtn.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
+        deleteBtn.setStyle("-fx-background-color: #dc2626; -fx-text-fill: white;");
         deleteBtn.setOnAction(e -> {
             Admin selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
