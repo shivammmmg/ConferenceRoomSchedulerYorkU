@@ -21,7 +21,7 @@ public class ManageRoomsController {
     private TableView<Room> roomsTable;
 
     @FXML
-    private VBox tableContainer;
+    private VBox tableContainer;   // VBox that holds the table + buttons row
 
     private final RoomRepository repo = RoomRepository.getInstance();
 
@@ -40,7 +40,7 @@ public class ManageRoomsController {
         TableColumn<Room, String> idCol = new TableColumn<>("Room ID");
         idCol.setCellValueFactory(new PropertyValueFactory<>("roomId"));
 
-        TableColumn<Room, String> nameCol = new TableColumn<>("Name");
+        TableColumn<Room, String> nameCol = new TableColumn<>("Room Name");
         nameCol.setCellValueFactory(new PropertyValueFactory<>("roomName"));
 
         TableColumn<Room, Integer> capCol = new TableColumn<>("Capacity");
@@ -64,13 +64,14 @@ public class ManageRoomsController {
         );
     }
 
+    // -------------------------------------------------------------
+    // LOAD ROOMS FROM CSV INTO REPOSITORY + TABLE
+    // -------------------------------------------------------------
     private void loadRooms() {
         try {
             var loaded = shared.util.CSVHelper.loadRooms("data/rooms.csv");
 
-            // DO NOT CALL repo.addRoom() — this overwrites CSV!
             repo.getAllRooms().clear();
-
             for (Room r : loaded) {
                 repo.getAllRooms().put(r.getRoomId(), r);
             }
@@ -79,17 +80,17 @@ public class ManageRoomsController {
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            showWarning("Failed to load room data from rooms.csv");
+            showWarning("Failed to load room data.");
         }
     }
-
-
-
 
     // -------------------------------------------------------------
     // ACTION BUTTON ROW
     // -------------------------------------------------------------
     private void addActionButtons() {
+
+        // Remove any OLD button rows (but keep the table and search etc.)
+        tableContainer.getChildren().removeIf(node -> node instanceof HBox);
 
         Button enableBtn = new Button("Enable");
         enableBtn.setOnAction(e -> enableRoom());
@@ -114,50 +115,61 @@ public class ManageRoomsController {
     }
 
     // -------------------------------------------------------------
-    // LOGIC: VIEW DETAILS
+    // VIEW DETAILS POPUP
     // -------------------------------------------------------------
     private void onViewDetails() {
         Room selected = roomsTable.getSelectionModel().getSelectedItem();
-
         if (selected == null) {
             showWarning("Please select a room first.");
             return;
         }
-
         RoomDetailsPopup.show(selected);
     }
 
     // -------------------------------------------------------------
-    // LOGIC: ENABLE / DISABLE / MAINTENANCE
+    // ENABLE / DISABLE / MAINTENANCE
     // -------------------------------------------------------------
     private void enableRoom() {
         Room selected = roomsTable.getSelectionModel().getSelectedItem();
-        if (selected == null) { showWarning("Select a room."); return; }
+        if (selected == null) {
+            showWarning("Select a room.");
+            return;
+        }
 
         selected.setStatus("ENABLED");
-        repo.updateRoom(selected);
+        repo.updateRoom(selected);      // persist to CSV
         roomsTable.refresh();
-
+        System.out.println("[ManageRooms] Enabled: " + selected.getRoomId());
     }
 
     private void disableRoom() {
         Room selected = roomsTable.getSelectionModel().getSelectedItem();
-        if (selected == null) { showWarning("Select a room."); return; }
+        if (selected == null) {
+            showWarning("Select a room.");
+            return;
+        }
 
         selected.setStatus("DISABLED");
+        repo.updateRoom(selected);      // persist to CSV
         roomsTable.refresh();
+        System.out.println("[ManageRooms] Disabled: " + selected.getRoomId());
     }
 
     private void markMaintenance() {
         Room selected = roomsTable.getSelectionModel().getSelectedItem();
-        if (selected == null) { showWarning("Select a room."); return; }
+        if (selected == null) {
+            showWarning("Select a room.");
+            return;
+        }
 
         selected.setStatus("MAINTENANCE");
+        repo.updateRoom(selected);      // persist to CSV
         roomsTable.refresh();
+        System.out.println("[ManageRooms] Maintenance: " + selected.getRoomId());
     }
 
     // -------------------------------------------------------------
-    // LOGIC: UPDATE ROOM POPUP
+    // UPDATE ROOM POPUP
     // -------------------------------------------------------------
     private void openUpdateRoomPopup() {
 
@@ -188,12 +200,12 @@ public class ManageRoomsController {
                 int newCap = Integer.parseInt(capField.getText());
                 String newLoc = locField.getText();
 
-                selected.capacityProperty().set(newCap);
-                selected.locationProperty().set(newLoc);
+                selected.setCapacity(newCap);
+                selected.setLocation(newLoc);
 
+                repo.updateRoom(selected);
                 roomsTable.refresh();
                 stage.close();
-                repo.updateRoom(selected);
 
             } catch (Exception ex) {
                 showWarning("Enter valid values.");
@@ -205,13 +217,12 @@ public class ManageRoomsController {
         root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color: white; -fx-background-radius: 15;");
 
-        Scene scene = new Scene(root, 350, 300);
-        stage.setScene(scene);
+        stage.setScene(new Scene(root, 350, 300));
         stage.show();
     }
 
     // -------------------------------------------------------------
-    // UTILITY POPUP
+    // WARNING POPUP
     // -------------------------------------------------------------
     private void showWarning(String msg) {
         Alert alert = new Alert(Alert.AlertType.WARNING);

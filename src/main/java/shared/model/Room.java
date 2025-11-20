@@ -3,17 +3,7 @@ package shared.model;
 import javafx.beans.property.*;
 
 /**
- * Unified Room class supporting ALL scenarios:
- *
- * Scenario 2:
- *  - roomId, roomName, capacity, location, amenities, building, amenitiesIcon
- *
- * Scenario 3:
- *  - getId(), getName(), status enum, booking assignment
- *
- * Scenario 4:
- *  - JavaFX properties for UI binding
- *  - full edit support for name/capacity/location/building/amenities
+ * Unified Room class supporting ALL scenarios.
  */
 public class Room {
 
@@ -46,7 +36,6 @@ public class Room {
     // Constructors
     // ============================================================
 
-    // Full constructor (Scenario 2)
     public Room(String roomId, String roomName, int capacity,
                 String location, String amenities, String building) {
 
@@ -60,14 +49,12 @@ public class Room {
         syncToProperties();
     }
 
-    // Scenario 3 constructor
     public Room(String id, String name) {
         this.roomId = id;
         this.roomName = name;
         syncToProperties();
     }
 
-    // Scenario 4 constructor (minimal)
     public Room(String roomId, int capacity, String location) {
         this.roomId = roomId;
         this.capacity = capacity;
@@ -76,7 +63,7 @@ public class Room {
     }
 
     // ============================================================
-    // Sync fields → JavaFX properties
+    // Sync core fields → JavaFX properties
     // ============================================================
     private void syncToProperties() {
         roomIdProperty.set(roomId);
@@ -89,7 +76,7 @@ public class Room {
     }
 
     // ============================================================
-    // Getters (Scenario 2 & 3)
+    // Basic Getters
     // ============================================================
 
     public String getRoomId() { return roomId; }
@@ -103,7 +90,7 @@ public class Room {
     public synchronized String getId() { return roomId; }
     public synchronized String getName() { return roomName; }
 
-    // Amenity icon logic (Scenario 2 tiles)
+    // Emoji icon (Scenario 2)
     public String getAmenitiesIcon() {
         if (amenities == null) return "";
         if (amenities.contains("Projector") && amenities.contains("VideoConference")) return "📊📹";
@@ -112,7 +99,9 @@ public class Room {
         return "📋";
     }
 
-    // Scenario 3 status
+    // ============================================================
+    // STATUS — FIXED AND MADE 100% CONSISTENT
+    // ============================================================
     public synchronized String getStatus() { return status.name(); }
     public synchronized RoomStatus getStatusEnum() { return status; }
 
@@ -121,17 +110,38 @@ public class Room {
         statusProperty.set(status.name());
     }
 
-    // Accept String status for Scenario 4
+    /**
+     * THIS WAS THE BUG — now fixed completely.
+     */
     public synchronized void setStatus(String statusString) {
         if (statusString == null) return;
+
         switch (statusString.toUpperCase()) {
+
             case "ENABLED":
-            case "ACTIVE": this.status = RoomStatus.AVAILABLE; break;
+            case "ACTIVE":
+            case "AVAILABLE":
+                this.status = RoomStatus.AVAILABLE;
+                break;
+
             case "DISABLED":
-            case "INACTIVE": this.status = RoomStatus.MAINTENANCE; break;
-            case "OCCUPIED": this.status = RoomStatus.OCCUPIED; break;
-            default: this.status = RoomStatus.AVAILABLE;
+            case "INACTIVE":
+                this.status = RoomStatus.DISABLED;
+                break;
+
+            case "MAINTENANCE":
+            case "MAINT":
+                this.status = RoomStatus.MAINTENANCE;
+                break;
+
+            case "OCCUPIED":
+                this.status = RoomStatus.OCCUPIED;
+                break;
+
+            default:
+                this.status = RoomStatus.AVAILABLE;
         }
+
         statusProperty.set(this.status.name());
     }
 
@@ -139,36 +149,36 @@ public class Room {
     public synchronized void setCurrentBookingId(String bid) { this.currentBookingId = bid; }
 
     // ============================================================
-    // Setters — NOW SYNC BOTH FIELD + PROPERTY
+    // Setters — sync BOTH field + JavaFX property
     // ============================================================
 
     public void setRoomName(String name) {
         this.roomName = name;
-        this.roomNameProperty.set(name);
+        roomNameProperty.set(name);
     }
 
     public void setCapacity(int capacity) {
         this.capacity = capacity;
-        this.capacityProperty.set(capacity);
+        capacityProperty.set(capacity);
     }
 
     public void setLocation(String location) {
         this.location = location;
-        this.locationProperty.set(location);
+        locationProperty.set(location);
     }
 
     public void setAmenities(String amenities) {
         this.amenities = amenities;
-        this.amenitiesProperty.set(amenities);
+        amenitiesProperty.set(amenities);
     }
 
     public void setBuilding(String building) {
         this.building = building;
-        this.buildingProperty.set(building);
+        buildingProperty.set(building);
     }
 
     // ============================================================
-    // JavaFX property getters (Scenario 4)
+    // JavaFX property getters
     // ============================================================
 
     public StringProperty roomIdProperty() { return roomIdProperty; }
@@ -180,17 +190,19 @@ public class Room {
     public StringProperty statusProperty() { return statusProperty; }
 
     // ============================================================
-    // CSV output
+    // CSV FORMAT
     // ============================================================
     @Override
     public String toString() {
-        return String.format("%s,%s,%d,%s,%s,%s",
+        return String.format(
+                "%s,%s,%d,%s,%s,%s,%s",
                 roomId,
                 roomName != null ? roomName : "",
                 capacity,
                 location != null ? location : "",
                 amenities != null ? amenities : "",
-                building != null ? building : ""
+                building != null ? building : "",
+                status.name()
         );
     }
 }
