@@ -53,19 +53,6 @@ public class AdminFX extends Application {
     @Override
     public void start(Stage stage) {
 
-        // 1️⃣ Load rooms from CSV before building UI
-        try {
-            var rooms = shared.util.CSVHelper.loadRooms("data/rooms.csv");
-            shared.model.RoomRepository repo = shared.model.RoomRepository.getInstance();
-            for (shared.model.Room r : rooms) {
-                repo.addRoom(r);
-            }
-            // System.out.println("[AdminFX] Loaded " + rooms.size() + " rooms from rooms.csv");
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            System.out.println("[AdminFX] Failed to load data/rooms.csv");
-        }
-
         // 2️⃣ Continue your existing UI build
         VBox left = buildLeftPanel();
         mainContent = new VBox();
@@ -485,15 +472,39 @@ public class AdminFX extends Application {
 
 
     private void updateRoomStatusFromTable(TableView<Room> table, RoomRepository repo, String status) {
+
         Room selected = table.getSelectionModel().getSelectedItem();
         if (selected == null) {
             alertWarning("Please select a room.");
             return;
         }
+
+        // =============================
+        // ROOM STATUS CHANGE AUDIT LOG
+        // =============================
+        String oldStatus = selected.getStatus();
+        String newStatus = status;
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String ts = LocalDateTime.now().format(fmt);
+
+        System.out.println("----- Room Status Update Log -----");
+        System.out.println("[Time] " + ts);
+        System.out.println("[RoomID] " + selected.getRoomId());
+        System.out.println("[Old Status] " + oldStatus);
+        System.out.println("[New Status] " + newStatus);
+        System.out.println("----------------------------------");
+
+        // Apply new status
         selected.setStatus(status);
+
+        // Save to CSV
         repo.updateRoom(selected);
+
+        // Refresh UI
         table.refresh();
     }
+
 
     // EDIT POPUP
     private void openEditRoomDialog(Room room, RoomRepository repo, TableView<Room> table) {

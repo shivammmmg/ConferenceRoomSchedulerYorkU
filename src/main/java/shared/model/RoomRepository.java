@@ -72,11 +72,21 @@ public class RoomRepository {
     // -------------------------------------------------------
     public void saveToCSV() {
         try {
-            CSVHelper.saveRooms("data/rooms.csv", new java.util.ArrayList<>(rooms.values()));
-            // System.out.println("[RoomRepository] Saved " + rooms.size() + " rooms to rooms.csv");
+            String path = getCsvPath();
+            CSVHelper.saveRooms(path, new java.util.ArrayList<>(rooms.values()));
         } catch (Exception e) {
             System.out.println("[RoomRepository] Failed to save rooms.csv: " + e.getMessage());
         }
+    }
+
+    private String getCsvPath() {
+        String base = System.getProperty("user.dir");
+
+        // If running inside target/classes, go back to project root
+        if (base.endsWith("target/classes")) {
+            return base.replace("target/classes", "data/rooms.csv");
+        }
+        return base + "/data/rooms.csv";
     }
 
     // -------------------------------------------------------
@@ -84,14 +94,19 @@ public class RoomRepository {
     // -------------------------------------------------------
     private void loadRoomsFromCSV() {
         try {
-            var loaded = CSVHelper.loadRooms("data/rooms.csv");
+            String path = getCsvPath();
+
+            var loaded = CSVHelper.loadRooms(path);
             rooms.clear();
+
             for (Room r : loaded) {
                 rooms.put(r.getRoomId(), r);
             }
-            System.out.println("[RoomRepository] Loaded " + rooms.size() + " rooms from rooms.csv");
+
+            System.out.println("[RoomRepository] Loaded " + rooms.size() + " rooms from " + path);
         } catch (Exception ex) {
             System.out.println("[RoomRepository] Failed to read rooms.csv: " + ex.getMessage());
         }
     }
+
 }

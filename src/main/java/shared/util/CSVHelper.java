@@ -42,6 +42,7 @@ import java.util.UUID;
  * 3: location
  * 4: amenities
  * 5: building
+ * 6: status
  */
 public class CSVHelper {
 
@@ -220,13 +221,15 @@ public class CSVHelper {
 
                 String[] p = line.split(",");
 
+                // FIXED: added status (p[6])
                 Room r = new Room(
-                        p[0],
-                        p.length > 1 ? p[1] : "",
-                        p.length > 2 ? Integer.parseInt(p[2]) : 0,
-                        p.length > 3 ? p[3] : "",
-                        p.length > 4 ? p[4] : "",
-                        p.length > 5 ? p[5] : ""
+                        p[0],                                         // roomId
+                        p.length > 1 ? p[1] : "",                     // roomName
+                        p.length > 2 ? Integer.parseInt(p[2]) : 0,    // capacity
+                        p.length > 3 ? p[3] : "",                     // location
+                        p.length > 4 ? p[4] : "",                     // amenities
+                        p.length > 5 ? p[5] : "",                     // building
+                        p.length > 6 ? p[6] : "AVAILABLE"             // status
                 );
 
                 list.add(r);

@@ -36,19 +36,44 @@ public class Room {
     // Constructors
     // ============================================================
 
-    public Room(String roomId, String roomName, int capacity,
-                String location, String amenities, String building) {
-
-        this.roomId = roomId;
-        this.roomName = roomName;
+    /**
+     * FIXED — this was wrong before (you were assigning wrong variables).
+     * Now it correctly assigns the passed parameters to the fields.
+     */
+    public Room(String id,
+                String name,
+                int capacity,
+                String location,
+                String amenities,
+                String building,
+                String statusString)
+    {
+        this.roomId = id;
+        this.roomName = name;
         this.capacity = capacity;
         this.location = location;
         this.amenities = amenities;
         this.building = building;
 
+        // Load correct status into enum
+        setStatus(statusString);
+
         syncToProperties();
     }
 
+    // NEW: Restore old 6-argument constructor used by Scenario 2 + 4
+    public Room(String id,
+                String name,
+                int capacity,
+                String location,
+                String amenities,
+                String building)
+    {
+        this(id, name, capacity, location, amenities, building, "AVAILABLE");
+    }
+
+
+    // Minimal constructors still allowed for other scenarios
     public Room(String id, String name) {
         this.roomId = id;
         this.roomName = name;
@@ -78,7 +103,6 @@ public class Room {
     // ============================================================
     // Basic Getters
     // ============================================================
-
     public String getRoomId() { return roomId; }
     public String getRoomName() { return roomName; }
     public int getCapacity() { return capacity; }
@@ -100,7 +124,7 @@ public class Room {
     }
 
     // ============================================================
-    // STATUS — FIXED AND MADE 100% CONSISTENT
+    // STATUS — FIXED AND MADE CONSISTENT
     // ============================================================
     public synchronized String getStatus() { return status.name(); }
     public synchronized RoomStatus getStatusEnum() { return status; }
@@ -111,35 +135,37 @@ public class Room {
     }
 
     /**
-     * THIS WAS THE BUG — now fixed completely.
+     * FIXED — this correctly interprets CSV text status.
      */
     public synchronized void setStatus(String statusString) {
-        if (statusString == null) return;
+        if (statusString == null) {
+            this.status = RoomStatus.AVAILABLE;
+        } else {
+            switch (statusString.toUpperCase()) {
 
-        switch (statusString.toUpperCase()) {
+                case "ENABLED":
+                case "ACTIVE":
+                case "AVAILABLE":
+                    this.status = RoomStatus.AVAILABLE;
+                    break;
 
-            case "ENABLED":
-            case "ACTIVE":
-            case "AVAILABLE":
-                this.status = RoomStatus.AVAILABLE;
-                break;
+                case "DISABLED":
+                case "INACTIVE":
+                    this.status = RoomStatus.DISABLED;
+                    break;
 
-            case "DISABLED":
-            case "INACTIVE":
-                this.status = RoomStatus.DISABLED;
-                break;
+                case "MAINTENANCE":
+                case "MAINT":
+                    this.status = RoomStatus.MAINTENANCE;
+                    break;
 
-            case "MAINTENANCE":
-            case "MAINT":
-                this.status = RoomStatus.MAINTENANCE;
-                break;
+                case "OCCUPIED":
+                    this.status = RoomStatus.OCCUPIED;
+                    break;
 
-            case "OCCUPIED":
-                this.status = RoomStatus.OCCUPIED;
-                break;
-
-            default:
-                this.status = RoomStatus.AVAILABLE;
+                default:
+                    this.status = RoomStatus.AVAILABLE;
+            }
         }
 
         statusProperty.set(this.status.name());
@@ -149,9 +175,8 @@ public class Room {
     public synchronized void setCurrentBookingId(String bid) { this.currentBookingId = bid; }
 
     // ============================================================
-    // Setters — sync BOTH field + JavaFX property
+    // Setters (sync both field & JavaFX prop)
     // ============================================================
-
     public void setRoomName(String name) {
         this.roomName = name;
         roomNameProperty.set(name);
@@ -180,7 +205,6 @@ public class Room {
     // ============================================================
     // JavaFX property getters
     // ============================================================
-
     public StringProperty roomIdProperty() { return roomIdProperty; }
     public StringProperty roomNameProperty() { return roomNameProperty; }
     public IntegerProperty capacityProperty() { return capacityProperty; }
