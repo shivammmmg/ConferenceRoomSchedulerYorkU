@@ -9,40 +9,18 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 /**
- * CSVHelper
- * ----------
- * Handles reading/writing concrete SystemUser, Booking, and Room objects.
+ * CSVHelper (FINAL FIXED VERSION)
  *
- * USERS CSV FORMAT (NEW ORDER):
- * 0: name
- * 1: email
- * 2: passwordHash
- * 3: userType
- * 4: orgId
- * 5: studentId
- * 6: isActive
- * 7: createdAt
- * 8: userId
- *
- * BOOKINGS CSV FORMAT (matches Booking.toString()):
- * 0: bookingId
- * 1: roomId
- * 2: userId
- * 3: startTime
- * 4: endTime
- * 5: purpose
- * 6: status
- * 7: paymentStatus
- * 8: depositAmount
- *
- * ROOMS CSV FORMAT (matches Room.toString()):
- * 0: roomId
- * 1: roomName
- * 2: capacity
- * 3: location
- * 4: amenities
- * 5: building
- * 6: status
+ * Consistent CSV Format:
+ * 0: userId
+ * 1: name
+ * 2: email
+ * 3: passwordHash
+ * 4: userType
+ * 5: orgId
+ * 6: studentId
+ * 7: isActive
+ * 8: createdAt
  */
 public class CSVHelper {
 
@@ -66,44 +44,40 @@ public class CSVHelper {
             String line;
             while ((line = br.readLine()) != null) {
 
-                // Skip empty rows
                 if (line.trim().isEmpty()) continue;
-
-                // Skip header row
-                if (line.toLowerCase().startsWith("name,email")) continue;
+                if (line.toLowerCase().startsWith("userid,")) continue;
 
                 String[] p = line.split(",");
 
                 try {
-                    String name     = p.length > 0 ? p[0].trim() : "";
-                    String email    = p.length > 1 ? p[1].trim() : "";
-                    String pass     = p.length > 2 ? p[2].trim() : "";
-                    String type     = p.length > 3 ? p[3].trim() : "PARTNER";
-                    String orgId    = p.length > 4 ? p[4].trim() : "";
-                    String stuId    = p.length > 5 ? p[5].trim() : "";
-                    boolean active  = p.length > 6 && Boolean.parseBoolean(p[6].trim());
-                    LocalDateTime created =
-                            p.length > 7 ? LocalDateTime.parse(p[7].trim()) : LocalDateTime.now();
-                    String id       = p.length > 8 ? p[8].trim() : UUID.randomUUID().toString();
+                    UUID id          = UUID.fromString(p[0].trim());
+                    String name      = p[1].trim();
+                    String email     = p[2].trim();
+                    String pass      = p[3].trim(); // already hashed
+                    UserType type    = UserType.valueOf(p[4].trim());
+                    String orgId     = p[5].trim();
+                    String stuId     = p[6].trim();
+                    boolean active   = Boolean.parseBoolean(p[7].trim());
+                    LocalDateTime createdAt = LocalDateTime.parse(p[8].trim());
 
-                    SystemUser u = (SystemUser) new UserBuilder()
-                            .setName(name)
-                            .setEmail(email)
-                            .setPassword(pass)
-                            .setUserType(UserType.valueOf(type.toUpperCase()))
-                            .setOrgId(orgId)
-                            .setStudentId(stuId)
-                            .build();
+                    // Build WITHOUT hashing the password again
+                    SystemUser u = new SystemUser(
+                            name,
+                            email,
+                            pass,
+                            type,
+                            orgId,
+                            stuId.isEmpty() ? null : stuId
+                    );
 
-                    u.setUserId(UUID.fromString(id));
-                    u.setCreatedAt(created);
-
+                    u.setUserId(id);
+                    u.setCreatedAt(createdAt);
                     if (!active) u.deactivate();
 
                     list.add(u);
                 }
                 catch (Exception ex) {
-                    System.out.println("[CSV ERROR] Failed to parse user row: " + line);
+                    System.out.println("[CSV ERROR] Failed: " + line);
                     ex.printStackTrace();
                 }
             }
@@ -117,14 +91,15 @@ public class CSVHelper {
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
 
-            // NEW HEADER ORDER
-            bw.write("name,email,passwordHash,userType,orgId,studentId,isActive,createdAt,userId");
+            // Header
+            bw.write("userId,name,email,passwordHash,userType,orgId,studentId,isActive,createdAt");
             bw.newLine();
 
             for (User base : list) {
                 SystemUser u = (SystemUser) base;
 
                 bw.write(String.join(",",
+                        u.getUserId().toString(),
                         u.getName(),
                         u.getEmail(),
                         u.getPasswordHash(),
@@ -132,21 +107,18 @@ public class CSVHelper {
                         u.getOrgId(),
                         u.getStudentId() == null ? "" : u.getStudentId(),
                         Boolean.toString(u.isActive()),
-                        u.getCreatedAt().toString(),
-                        u.getUserId().toString()
+                        u.getCreatedAt().toString()
                 ));
                 bw.newLine();
             }
         }
     }
 
-
     // ============================================================
     // BOOKINGS
     // ============================================================
 
     public static ArrayList<Booking> loadBookings(String path) throws Exception {
-
         ArrayList<Booking> list = new ArrayList<>();
         File file = new File(path);
 
@@ -157,7 +129,6 @@ public class CSVHelper {
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-
             String line;
             while ((line = br.readLine()) != null) {
 
@@ -188,7 +159,6 @@ public class CSVHelper {
     public static void saveBookings(String path, ArrayList<Booking> list) throws Exception {
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
-
             for (Booking b : list) {
                 bw.write(b.toString());
                 bw.newLine();
@@ -221,15 +191,13 @@ public class CSVHelper {
 
                 String[] p = line.split(",");
 
-                // FIXED: added status (p[6])
                 Room r = new Room(
-                        p[0],                                         // roomId
-                        p.length > 1 ? p[1] : "",                     // roomName
-                        p.length > 2 ? Integer.parseInt(p[2]) : 0,    // capacity
-                        p.length > 3 ? p[3] : "",                     // location
-                        p.length > 4 ? p[4] : "",                     // amenities
-                        p.length > 5 ? p[5] : "",                     // building
-                        p.length > 6 ? p[6] : "AVAILABLE"             // status
+                        p[0],
+                        p.length > 1 ? p[1] : "",
+                        p.length > 2 ? Integer.parseInt(p[2]) : 0,
+                        p.length > 3 ? p[3] : "",
+                        p.length > 4 ? p[4] : "",
+                        p.length > 5 ? p[5] : ""
                 );
 
                 list.add(r);
@@ -243,12 +211,10 @@ public class CSVHelper {
     public static void saveRooms(String path, ArrayList<Room> list) throws Exception {
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
-
             for (Room r : list) {
                 bw.write(r.toString());
                 bw.newLine();
             }
         }
     }
-
 }

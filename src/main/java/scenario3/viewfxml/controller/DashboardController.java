@@ -1,255 +1,244 @@
-package scenario3.viewfxml.controller;
+package scenario1.controller;
 
-import javafx.application.Platform;
-import javafx.collections.FXCollections;
+import shared.model.User;
+import scenario1.controller.UserManager;
+import scenario1.controller.NavigationHelper;
+import shared.util.GlobalNavigationHelper;
+import shared.model.UserType;
+import shared.model.SystemUser;
+
+import javafx.animation.FadeTransition;
+import javafx.animation.TranslateTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Side;
 import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
-import javafx.scene.text.Text;
-import scenario3.controller.CheckInManager;
-import scenario3.controller.RoomStatusManager;
-import scenario3.controller.SensorSystem;
-import shared.model.Booking;
-import shared.model.Room;
-import shared.model.RoomStatus;
-import scenario3.observer.RoomStatusObserver;
+import javafx.scene.effect.GaussianBlur;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.net.URL;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.List;
 import java.util.ResourceBundle;
-import java.util.concurrent.*;
 
-/**
- * DashboardController with countdown timer displayed in the ListView.
- * Updated so that when countdown reaches zero, a "Deposit Forfeited"
- * popup appears exactly once — never repeats.
- */
-public class DashboardController implements Initializable, RoomStatusObserver {
+import scenario4.AdminFX;
 
-    @FXML private ListView<Room> roomListView;
-    @FXML private Label roomNameLabel;
-    @FXML private Label roomStatusLabel;
-    @FXML private Button checkInBtn;
-    @FXML private Button clearBookingBtn;
-    @FXML private Button simulateBtn;
-    @FXML private Button createBookingBtn;
-    @FXML private TextArea eventLog;
+public class LoginController implements Initializable {
 
-    private final RoomStatusManager manager = RoomStatusManager.getInstance();
-    private final SensorSystem sensors = new SensorSystem();
-    private final CheckInManager checkInManager = new CheckInManager();
+    @FXML private StackPane root;
+    @FXML private ImageView backgroundImage;
+    @FXML private Rectangle darkOverlay;
+    @FXML private ImageView logoImage;
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-    private final Map<String, ScheduledFuture<?>> bookingTimers = new ConcurrentHashMap<>();
-    private final Map<String, Long> bookingCountdowns = new ConcurrentHashMap<>();
+    @FXML private TextField emailField;
+    @FXML private PasswordField passwordField;
+    @FXML private TextField visiblePasswordField;
 
-    private static final DateTimeFormatter LOG_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    @FXML private Button showPassBtn;
+    @FXML private Button loginBtn;
+    @FXML private Button forgotBtn;
+    @FXML private Button registerBtn;
+
+    private final ContextMenu emailSuggestions = new ContextMenu();
+
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
-        manager.registerObserver(this);
-        sensors.configure(new ArrayList<>(manager.getAllRooms()), this::appendLog);
+        setupBackgroundEffects();
+        setupLogoAnimation();
+        setupEmailSuggestions();
+        setupPasswordToggle();
+        setupLoginButton();
+        setupForgotButton();
+        setupRegisterButton();
 
-        roomListView.setItems(FXCollections.observableArrayList(manager.getAllRooms()));
+        root.setOpacity(0);
 
-        // Custom cell factory for showing countdown
-        roomListView.setCellFactory(lv -> new ListCell<>() {
-            private final HBox hbox = new HBox(10);
-            private final Text nameText = new Text();
-            private final Text statusText = new Text();
-            private final Text countdownText = new Text();
-
-            {
-                hbox.getChildren().addAll(nameText, statusText, countdownText);
-            }
-
-            @Override
-            protected void updateItem(Room room, boolean empty) {
-                super.updateItem(room, empty);
-                if (empty || room == null) {
-                    setGraphic(null);
-                    return;
-                }
-                nameText.setText(room.getName() + " (" + room.getId() + ")");
-                statusText.setText("[" + room.getStatus() + "]");
-
-                Long remaining = room.getCurrentBookingId() != null ?
-                        bookingCountdowns.get(room.getCurrentBookingId()) : null;
-
-                if (remaining != null && remaining >= 0) {
-                    long min = remaining / 60;
-                    long sec = remaining % 60;
-                    countdownText.setText(String.format("%02d:%02d", min, sec));
-                } else {
-                    countdownText.setText("");
-                }
-                setGraphic(hbox);
-            }
-        });
-
-        roomListView.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldV, newV) -> showRoomDetails(newV)
-        );
-
-        checkInBtn.setOnAction(e -> handleCheckIn());
-        clearBookingBtn.setOnAction(e -> handleClearBooking());
-        simulateBtn.setOnAction(e -> handleSimulateSensors());
-        createBookingBtn.setOnAction(e -> handleCreateBooking());
-
-        Platform.runLater(() -> {
-            if (!roomListView.getItems().isEmpty()) {
-                roomListView.getSelectionModel().select(0);
-            }
+        javafx.application.Platform.runLater(() -> {
+            FadeTransition fade = new FadeTransition(Duration.millis(900), root);
+            fade.setFromValue(0);
+            fade.setToValue(1);
+            fade.play();
         });
     }
 
-    private void handleCheckIn() {
-        Room r = roomListView.getSelectionModel().getSelectedItem();
-        if (r == null) return;
-
-        String bookingId = r.getCurrentBookingId();
-        if (bookingId == null) return;
-
-        boolean ok = checkInManager.checkIn(bookingId, "demo-user");
-        appendLog(ok ? "Checked in booking " + bookingId : "Check-in failed");
-
-        stopCountdown(bookingId);
+    private void setupBackgroundEffects() {
+        backgroundImage.setEffect(new GaussianBlur(10));
+        darkOverlay.widthProperty().bind(backgroundImage.fitWidthProperty());
+        darkOverlay.heightProperty().bind(backgroundImage.fitHeightProperty());
     }
 
-    private void handleClearBooking() {
-        Room r = roomListView.getSelectionModel().getSelectedItem();
-        if (r == null) return;
+    private void setupLogoAnimation() {
+        logoImage.setTranslateY(-500);
+        logoImage.setOpacity(0);
 
-        String bookingId = r.getCurrentBookingId();
-        manager.clearBookingFromRoom(r.getId());
-        appendLog("Cleared booking for " + r.getId());
+        TranslateTransition slide = new TranslateTransition(Duration.millis(2000), logoImage);
+        slide.setFromY(-500);
+        slide.setToY(0);
 
-        stopCountdown(bookingId);
+        FadeTransition fade = new FadeTransition(Duration.millis(300), logoImage);
+        fade.setFromValue(0);
+        fade.setToValue(1);
+
+        TranslateTransition bounce = new TranslateTransition(Duration.millis(250), logoImage);
+        bounce.setFromY(0);
+        bounce.setToY(-20);
+        bounce.setAutoReverse(true);
+        bounce.setCycleCount(2);
+
+        slide.setOnFinished(e -> bounce.play());
+
+        fade.play();
+        slide.play();
     }
 
-    private void handleSimulateSensors() {
-        if (simulateBtn.getText().startsWith("Start")) {
-            sensors.startSimulation();
-            simulateBtn.setText("Stop Sensors");
-        } else {
-            sensors.stopSimulation();
-            simulateBtn.setText("Start Sensors");
-        }
-    }
+    private void setupEmailSuggestions() {
 
-    private void handleCreateBooking() {
-        Room r = roomListView.getSelectionModel().getSelectedItem();
-        if (r == null) {
-            r = manager.getAllRooms().iterator().next();
-        }
+        List<String> domains = Arrays.asList("@my.yorku.ca", "@yorku.ca", "@gmail.com");
 
-        String bookingId = checkInManager.createBooking(
-                r.getId(),
-                "demo-user",
-                LocalDateTime.now(),
-                LocalDateTime.now().plusHours(1)
-        );
+        emailField.textProperty().addListener((obs, oldVal, newVal) -> {
+            emailSuggestions.getItems().clear();
 
-        appendLog("Created booking " + bookingId + " for room " + r.getId());
-
-        startBookingCountdown(r, bookingId, 30 * 60); // 30 minute timer
-    }
-
-    private void showRoomDetails(Room room) {
-        if (room == null) {
-            roomNameLabel.setText("—");
-            roomStatusLabel.setText("—");
-            return;
-        }
-        roomNameLabel.setText(room.getName() + " (" + room.getId() + ")");
-        updateStatusLabel(room.getStatus());
-    }
-
-    private void updateStatusLabel(RoomStatus s) {
-        roomStatusLabel.setText(s.name());
-        roomStatusLabel.getStyleClass().removeIf(c -> c.startsWith("status-"));
-        roomStatusLabel.getStyleClass().add("status-" + s.name());
-    }
-
-    private void appendLog(String msg) {
-        eventLog.appendText(LOG_FORMATTER.format(LocalDateTime.now()) +
-                " — " + msg + "\n");
-    }
-
-    /**
-     * Starts countdown. When it reaches zero:
-     * - markNoShow() triggers
-     * - popup appears ONLY ONCE
-     */
-    private void startBookingCountdown(Room room, String bookingId, long seconds) {
-
-        bookingCountdowns.put(bookingId, seconds);
-
-        Runnable countdown = new Runnable() {
-            long remaining = seconds;
-
-            @Override
-            public void run() {
-                Booking b = manager.getBooking(bookingId);
-                if (b == null) {
-                    stopCountdown(bookingId);
-                    return;
-                }
-
-                // Stop if user already checked in
-                if (b.isCheckedIn()) {
-                    stopCountdown(bookingId);
-                    return;
-                }
-
-                // Update countdown
-                bookingCountdowns.put(bookingId, remaining);
-                Platform.runLater(roomListView::refresh);
-                remaining--;
-
-                // When countdown hits zero — mark no-show immediately
-                if (remaining < 0) {
-                    stopCountdown(bookingId);
-
-                    // prevent double popup
-                    if (!b.isForfeitPopupShown()) {
-                        b.setForfeitPopupShown(true);
-
-                        Platform.runLater(() -> {
-                            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                            alert.setTitle("No Show");
-                            alert.setHeaderText(null);
-                            alert.setContentText("Check in was not on time! Deposit has been forfeited.");
-                            alert.showAndWait();
-                        });
-                    }
-
-                    manager.markNoShow(bookingId);
-                }
+            int atIndex = newVal.indexOf("@");
+            if (atIndex == -1) {
+                emailSuggestions.hide();
+                return;
             }
-        };
 
-        ScheduledFuture<?> future =
-                scheduler.scheduleAtFixedRate(countdown, 0, 1, TimeUnit.SECONDS);
+            String before = newVal.substring(0, atIndex);
 
-        bookingTimers.put(bookingId, future);
+            for (String d : domains) {
+                MenuItem item = new MenuItem(before + d);
+                item.setOnAction(e -> emailField.setText(item.getText()));
+                emailSuggestions.getItems().add(item);
+            }
+
+            emailSuggestions.show(emailField, Side.BOTTOM, 0, 0);
+        });
+
+        emailField.focusedProperty().addListener((obs, old, focused) -> {
+            if (!focused) emailSuggestions.hide();
+        });
     }
 
-    private void stopCountdown(String bookingId) {
-        bookingCountdowns.remove(bookingId);
-        ScheduledFuture<?> task = bookingTimers.remove(bookingId);
-        if (task != null) task.cancel(true);
-        Platform.runLater(roomListView::refresh);
+    private void setupPasswordToggle() {
+
+        passwordField.textProperty().bindBidirectional(visiblePasswordField.textProperty());
+
+        showPassBtn.setOnAction(e -> {
+            boolean showing = visiblePasswordField.isVisible();
+
+            visiblePasswordField.setVisible(!showing);
+            visiblePasswordField.setManaged(!showing);
+
+            passwordField.setVisible(showing);
+            passwordField.setManaged(showing);
+
+            showPassBtn.setText(showing ? "👁" : "🙈");
+        });
     }
 
-    @Override
-    public void onRoomStatusChanged(Room room) {
-        Platform.runLater(roomListView::refresh);
+    private void setupLoginButton() {
+        loginBtn.setOnAction(e -> {
+
+            String email = emailField.getText().trim();
+            String pass = passwordField.getText().trim();
+
+            if (email.isEmpty() || pass.isEmpty()) {
+                showError("Please fill in all fields.");
+                return;
+            }
+
+            if (!UserManager.getInstance().checkIfEmailRegistered(email)) {
+                showError("No account found with this email.\nCreate an account first.");
+                return;
+            }
+
+            User logged = UserManager.getInstance().login(email, pass);
+
+            if (logged == null) {
+                showError("Incorrect password.");
+                return;
+            }
+
+            SystemUser sysUser = (SystemUser) logged;
+            UserType type = sysUser.getType();
+
+            switch (type) {
+
+                case STUDENT:
+                case FACULTY:
+                case STAFF:
+                case PARTNER:
+
+                    scenario2.viewfx.BookingFX app = new scenario2.viewfx.BookingFX();
+                    app.setLoggedInUser(logged.getEmail(), type.name());
+                    app.start(new Stage());
+                    break;
+
+                // =========================================================
+                // 🔥 ADMIN + CHIEF → Scenario 4 Admin Dashboard
+                // =========================================================
+                case ADMIN:
+                case CHIEF_EVENT_COORDINATOR:
+
+                    AdminFX adminApp = new AdminFX();
+                    adminApp.setRole(type.name());   // 🔥 Pass role to Scenario 4
+                    adminApp.start(new Stage());
+                    break;
+
+                default:
+                    showError("Unknown user type: " + type);
+            }
+        });
+    }
+
+
+    private void setupForgotButton() {
+        forgotBtn.setOnAction(e ->
+                NavigationHelper.navigate((Stage) forgotBtn.getScene().getWindow(), "forgot_password.fxml"));
+    }
+
+    private void setupRegisterButton() {
+        registerBtn.setOnAction(e ->
+                NavigationHelper.navigate((Stage) registerBtn.getScene().getWindow(), "register.fxml"));
+    }
+
+    @FXML
+    private void goBack() {
+        GlobalNavigationHelper.navigateTo("/mainpage/MainPage.fxml");
+    }
+
+    private void showError(String message) {
+        Stage stage = (Stage) root.getScene().getWindow();
+
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Login Failed");
+        alert.setHeaderText("Error");
+        alert.setContentText(message);
+        alert.initOwner(stage);
+
+        stage.setFullScreen(false);
+        alert.showAndWait();
+        stage.setFullScreen(true);
+    }
+
+    private void showInfo(String message) {
+        Stage stage = (Stage) root.getScene().getWindow();
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Success");
+        alert.setHeaderText("Login Successful");
+        alert.setContentText(message);
+        alert.initOwner(stage);
+
+        stage.setFullScreen(false);
+        alert.showAndWait();
+        stage.setFullScreen(true);
     }
 }

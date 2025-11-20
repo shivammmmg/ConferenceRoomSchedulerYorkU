@@ -1,13 +1,12 @@
 package scenario1.controller;
-
+import Scenario2.viewfx.BookingFX;
 
 import shared.model.User;
+import shared.model.UserType;
+import shared.model.SystemUser;
 import scenario1.controller.UserManager;
 import scenario1.controller.NavigationHelper;
 import shared.util.GlobalNavigationHelper;
-import shared.model.UserType;
-import shared.model.SystemUser;
-import scenario2.viewfx.BookingFX;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
@@ -27,56 +26,35 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 
-/**
- * Controller for the Login screen.
- *
- * Responsibilities:
- *  - Handle login validation
- *  - Animate the UI (logo drop, fade-in)
- *  - Provide email auto-completion suggestions
- *  - Toggle password visibility (eye icon)
- *  - Navigate to Register or Forgot Password screens
- *
- * Scenario 1 – Registration & Account Management
- */
 public class LoginController implements Initializable {
 
-    // ------------------------------
-    // FXML UI COMPONENTS
-    // ------------------------------
-    @FXML private StackPane root;                // Root container for fade-in animation
-    @FXML private ImageView backgroundImage;     // Blurred background image
-    @FXML private Rectangle darkOverlay;         // Dark overlay for better contrast
-    @FXML private ImageView logoImage;           // YorkU logo with slide + bounce animation
+    @FXML private StackPane root;
+    @FXML private ImageView backgroundImage;
+    @FXML private Rectangle darkOverlay;
+    @FXML private ImageView logoImage;
 
-    @FXML private TextField emailField;          // Email input
-    @FXML private PasswordField passwordField;   // Hidden password field
-    @FXML private TextField visiblePasswordField;// Visible password replacement
+    @FXML private TextField emailField;
+    @FXML private PasswordField passwordField;
+    @FXML private TextField visiblePasswordField;
 
-    @FXML private Button showPassBtn;            // Eye icon button
-    @FXML private Button loginBtn;               // Login button
-    @FXML private Button forgotBtn;              // Forgot Password navigation
-    @FXML private Button registerBtn;            // Register navigation
+    @FXML private Button showPassBtn;
+    @FXML private Button loginBtn;
+    @FXML private Button forgotBtn;
+    @FXML private Button registerBtn;
 
-    // Email auto-completion context menu
     private final ContextMenu emailSuggestions = new ContextMenu();
 
-
-    // ----------------------------------------------------------
-    // INITIALIZATION
-    // ----------------------------------------------------------
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
-        setupBackgroundEffects();     // Blur + overlay binding
-        setupLogoAnimation();         // Slide + bounce animation
-        setupEmailSuggestions();      // Email domain suggestions
-        setupPasswordToggle();        // Eye icon logic
-        setupLoginButton();           // Login validation + model interaction
-        setupForgotButton();          // Navigation to Forgot Password
-        setupRegisterButton();        // Navigation to Register
+        setupBackgroundEffects();
+        setupLogoAnimation();
+        setupEmailSuggestions();
+        setupPasswordToggle();
+        setupLoginButton();
+        setupForgotButton();
+        setupRegisterButton();
 
-        // Screen fade-in for cleaner UI transition
         root.setOpacity(0);
         javafx.application.Platform.runLater(() -> {
             FadeTransition fade = new FadeTransition(Duration.millis(900), root);
@@ -86,37 +64,24 @@ public class LoginController implements Initializable {
         });
     }
 
-
-    // ----------------------------------------------------------
-    // BACKGROUND (BLUR + OVERLAY)
-    // ----------------------------------------------------------
     private void setupBackgroundEffects() {
         backgroundImage.setEffect(new GaussianBlur(10));
-
-        // Bind overlay dimensions so it always covers the scene
         darkOverlay.widthProperty().bind(backgroundImage.fitWidthProperty());
         darkOverlay.heightProperty().bind(backgroundImage.fitHeightProperty());
     }
 
-
-    // ----------------------------------------------------------
-    // LOGO ANIMATION (DROP + BOUNCE)
-    // ----------------------------------------------------------
     private void setupLogoAnimation() {
         logoImage.setTranslateY(-500);
         logoImage.setOpacity(0);
 
-        // Smooth drop animation
         TranslateTransition slide = new TranslateTransition(Duration.millis(2000), logoImage);
         slide.setFromY(-500);
         slide.setToY(0);
 
-        // Fade-in during drop
         FadeTransition fade = new FadeTransition(Duration.millis(300), logoImage);
         fade.setFromValue(0);
         fade.setToValue(1);
 
-        // Small bounce effect at the end
         TranslateTransition bounce = new TranslateTransition(Duration.millis(250), logoImage);
         bounce.setFromY(0);
         bounce.setToY(-20);
@@ -124,24 +89,15 @@ public class LoginController implements Initializable {
         bounce.setCycleCount(2);
 
         slide.setOnFinished(e -> bounce.play());
-
         fade.play();
         slide.play();
     }
 
-
-    // ----------------------------------------------------------
-    // EMAIL AUTOCOMPLETE
-    // ----------------------------------------------------------
-    /**
-     * Suggests domain completions when the user types something like "name@".
-     * Works similarly to email apps.
-     */
     private void setupEmailSuggestions() {
-
         List<String> domains = Arrays.asList("@my.yorku.ca", "@yorku.ca", "@gmail.com");
 
         emailField.textProperty().addListener((obs, oldVal, newVal) -> {
+
             emailSuggestions.getItems().clear();
 
             int atIndex = newVal.indexOf("@");
@@ -161,117 +117,93 @@ public class LoginController implements Initializable {
             emailSuggestions.show(emailField, Side.BOTTOM, 0, 0);
         });
 
-        // Hide suggestions when user clicks away
         emailField.focusedProperty().addListener((obs, old, focused) -> {
             if (!focused) emailSuggestions.hide();
         });
     }
 
-
-    // ----------------------------------------------------------
-    // PASSWORD SHOW / HIDE (EYE ICON)
-    // ----------------------------------------------------------
     private void setupPasswordToggle() {
 
-        // Keep text synced between visible and hidden password fields
         passwordField.textProperty().bindBidirectional(visiblePasswordField.textProperty());
 
         showPassBtn.setOnAction(e -> {
+
             boolean showing = visiblePasswordField.isVisible();
 
-            // Toggle which password field is visible
             visiblePasswordField.setVisible(!showing);
             visiblePasswordField.setManaged(!showing);
 
             passwordField.setVisible(showing);
             passwordField.setManaged(showing);
 
-            // Update icon
             showPassBtn.setText(showing ? "👁" : "🙈");
         });
     }
 
-
-    // ----------------------------------------------------------
-    // LOGIN VALIDATION LOGIC
-    // ----------------------------------------------------------
+    // -----------------------------------------------------------------------------------
+    // UPDATED LOGIN LOGIC (ADMIN + CHIEF → AdminFX, OTHERS → BookingFX)
+    // -----------------------------------------------------------------------------------
     private void setupLoginButton() {
         loginBtn.setOnAction(e -> {
 
             String email = emailField.getText().trim();
             String pass = passwordField.getText().trim();
 
-            // Basic field validation
             if (email.isEmpty() || pass.isEmpty()) {
                 showError("Please fill in all fields.");
                 return;
             }
 
-            // Email not registered
             if (!UserManager.getInstance().checkIfEmailRegistered(email)) {
-                showError("No account found with this email.\nCreate an account first.");
+                showError("No account found with this email.");
                 return;
             }
 
-            // Attempt login
             User logged = UserManager.getInstance().login(email, pass);
 
             if (logged == null) {
-                // Password incorrect
                 showError("Incorrect password.");
-            } else {
+                return;
+            }
 
-                // Cast to SystemUser (because User is abstract)
-                shared.model.SystemUser sysUser = (shared.model.SystemUser) logged;
+            SystemUser sysUser = (SystemUser) logged;
+            UserType type = sysUser.getType();
 
-                // Extract user type (from enum UserType)
-                UserType type = sysUser.getType();
+            switch (type) {
 
-                // Redirect based on user type
-                switch (type) {
+                // NORMAL USERS → Scenario 2
+                case STUDENT:
+                case FACULTY:
+                case STAFF:
+                case PARTNER:
+                    BookingFX app = new BookingFX();
+                    app.setLoggedInUser(logged.getEmail(), type.name());
+                    app.start(new Stage());
+                    break;
 
-                    // =====================================================
-                    // NORMAL USERS → Scenario 2 Booking Dashboard
-                    // =====================================================
-                    case STUDENT:
-                    case FACULTY:
-                    case STAFF:
-                    case PARTNER:
+                // ADMIN + CHIEF → Scenario 4
+                case ADMIN:
+                case CHIEF_EVENT_COORDINATOR:
+                    showInfo("Redirecting to Admin Panel...");
+                    try {
+                        new scenario4.AdminFX().start(new Stage());
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        showError("Failed to load Admin Panel.");
+                    }
+                    break;
 
-                        scenario2.viewfx.BookingFX app = new scenario2.viewfx.BookingFX();
-                        app.setLoggedInUser(logged.getEmail(), type.name());
-                        app.start(new Stage());
-                        break;
-
-                    // =====================================================
-                    // SPECIAL USERS → Admin Dashboards (Scenario 3/4)
-                    // =====================================================
-                    case ADMIN:
-                    case CHIEF_EVENT_COORDINATOR:
-                        showInfo("Redirecting to admin dashboard...");
-                        // Later you will give me the admin FXML/dashboard
-                        // GlobalNavigationHelper.navigateTo("/admin/dashboard.fxml");
-                        break;
-
-                    default:
-                        showError("Unknown user type: " + type);
-                }
-
+                default:
+                    showError("Unknown user type: " + type);
             }
         });
     }
 
-
-    // ----------------------------------------------------------
-    // NAVIGATION BUTTONS
-    // ----------------------------------------------------------
-    /** Navigates to Forgot Password screen. */
     private void setupForgotButton() {
         forgotBtn.setOnAction(e ->
                 NavigationHelper.navigate((Stage) forgotBtn.getScene().getWindow(), "forgot_password.fxml"));
     }
 
-    /** Navigates to Registration screen. */
     private void setupRegisterButton() {
         registerBtn.setOnAction(e ->
                 NavigationHelper.navigate((Stage) registerBtn.getScene().getWindow(), "register.fxml"));
@@ -282,14 +214,6 @@ public class LoginController implements Initializable {
         GlobalNavigationHelper.navigateTo("/mainpage/MainPage.fxml");
     }
 
-
-
-    // ----------------------------------------------------------
-    // POPUP HELPERS
-    // ----------------------------------------------------------
-    /**
-     * Shows an error popup dialog.
-     */
     private void showError(String message) {
         Stage stage = (Stage) root.getScene().getWindow();
 
@@ -299,7 +223,6 @@ public class LoginController implements Initializable {
         alert.setContentText(message);
         alert.initOwner(stage);
 
-        // FIX: Leave fullscreen temporarily so JavaFX can show the alert
         stage.setFullScreen(false);
         alert.showAndWait();
         stage.setFullScreen(true);

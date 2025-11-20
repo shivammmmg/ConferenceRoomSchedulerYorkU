@@ -10,23 +10,18 @@ import java.util.UUID;
  *
  * Base class for all system users.
  *
- * IMPORTANT:
- *   - No user type logic lives here anymore.
- *   - No student/faculty/staff fields.
- *   - Concrete user object = SystemUser.
- *
  * This class only stores what's common for ALL users:
  *   ✔ name
  *   ✔ email
- *   ✔ passwordHash (not raw password)
+ *   ✔ passwordHash
  *   ✔ userId (UUID)
  *   ✔ createdAt timestamp
  *   ✔ isActive status
  *
  * SystemUser extends this class and adds:
  *   ✔ UserType type
- *   ✔ String orgId
- *   ✔ String studentId
+ *   ✔ orgId
+ *   ✔ studentId
  *
  * =============================================================================
  */
@@ -97,6 +92,13 @@ public abstract class User {
         this.passwordHash = newPasswordHash;
     }
 
+    /**
+     * NEW — REQUIRED BY ManageAdminsController
+     */
+    public void setActive(boolean active) {
+        this.isActive = active;
+    }
+
     public void deactivate() {
         this.isActive = false;
     }
@@ -106,7 +108,7 @@ public abstract class User {
     }
 
     // -----------------------------------
-    // Utility from UML Diagram
+    // Utility
     // -----------------------------------
     public boolean isYorkUEmail() {
         return email.endsWith("@yorku.ca") || email.endsWith("@my.yorku.ca");

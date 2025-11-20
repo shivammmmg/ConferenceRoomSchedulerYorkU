@@ -1,4 +1,4 @@
-package scenario2.viewfx;
+package Scenario2.viewfx;
 
 import javafx.animation.FadeTransition;
 import javafx.application.Application;

@@ -1,2 +1,3 @@
-name,email,passwordHash,userType,orgId,studentId,isActive,createdAt,userId
-Shivam Gupta,shivam11@my.yorku.ca,Shivam1234@,STUDENT,,219923309,true,2025-11-19T17:21:13.376628,dd6ddc5b-d3b8-4a3c-85c7-7922489438ae
+userId,name,email,passwordHash,userType,orgId,studentId,isActive,createdAt
+bcdfff57-8d67-4851-a083-a3985bb1a212,Chief Event Coordinator,chief@yorku.ca,Chief123@,CHIEF_EVENT_COORDINATOR,,,true,2025-11-20T17:25:42.215897
+42495e70-e18b-4268-8448-d2832ebf8cde,savy@gmaol.com,savy@gmaol.com,Sharqin@5668,ADMIN,,,true,2025-11-20T17:26:01.571241

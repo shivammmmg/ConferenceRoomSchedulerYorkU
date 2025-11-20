@@ -2,6 +2,7 @@ package scenario4;
 
 import javafx.animation.FadeTransition;
 import javafx.application.Application;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -14,18 +15,18 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
-
-import shared.model.Admin;
-import shared.model.AdminRepository;
+import scenario1.controller.UserManager;
+import shared.model.SystemUser;
 import shared.model.Room;
 import shared.model.RoomRepository;
+import shared.util.CSVHelper;
 import scenario4.components.RoomDetailsPopup;
 import scenario4.components.RoomOccupancyPopup;
-
-import java.util.Map;
 
 public class AdminFX extends Application {
 
@@ -38,6 +39,9 @@ public class AdminFX extends Application {
     private Button manageAdminsBtn;
     private Button logoutBtn;
 
+    // single source of truth for users/admins
+    private final UserManager userManager = UserManager.getInstance();
+
     private static final String NAV_BASE =
             "-fx-background-radius: 999;" +
                     "-fx-padding: 10 16;" +
@@ -49,11 +53,22 @@ public class AdminFX extends Application {
     private static final String NAV_INACTIVE = "-fx-background-color: transparent;";
     private static final String NAV_HOVER    = "-fx-background-color: rgba(255,255,255,0.15);";
 
-
     @Override
     public void start(Stage stage) {
 
-        // 2️⃣ Continue your existing UI build
+        // 1️⃣ Load rooms from CSV before building UI
+        try {
+            var rooms = CSVHelper.loadRooms("data/rooms.csv");
+            RoomRepository repo = RoomRepository.getInstance();
+            for (Room r : rooms) {
+                repo.addRoom(r);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.out.println("[AdminFX] Failed to load data/rooms.csv");
+        }
+
+        // 2️⃣ Build UI
         VBox left = buildLeftPanel();
         mainContent = new VBox();
         mainContent.setPadding(new Insets(30));
@@ -80,9 +95,7 @@ public class AdminFX extends Application {
         stage.setOnCloseRequest(e -> {
             RoomRepository.getInstance().saveToCSV();
         });
-
     }
-
 
     // LEFT PANEL
     private VBox buildLeftPanel() {
@@ -96,7 +109,7 @@ public class AdminFX extends Application {
         title.setTextFill(Color.WHITE);
 
         Label subtitle = new Label("Room & User Management");
-        subtitle.setTextFill(Color.rgb(255,255,255,0.8));
+        subtitle.setTextFill(Color.rgb(255, 255, 255, 0.8));
 
         VBox header = new VBox(5, title, subtitle);
 
@@ -171,12 +184,11 @@ public class AdminFX extends Application {
         Label title    = labelH1("Admin Dashboard");
         Label subtitle = labelSub("System overview.");
 
-        RoomRepository roomRepo   = RoomRepository.getInstance();
-        AdminRepository adminRepo = AdminRepository.getInstance();
+        RoomRepository roomRepo = RoomRepository.getInstance();
 
         Map<String, Room> rooms = roomRepo.getAllRooms();
-        int totalRooms   = rooms.size();
-        int activeRooms  = 0;
+        int totalRooms    = rooms.size();
+        int activeRooms   = 0;
         int disabledRooms = 0;
         int maintenanceRooms = 0;
 
@@ -187,7 +199,8 @@ public class AdminFX extends Application {
             else activeRooms++;
         }
 
-        int totalAdmins = adminRepo.getAllAdmins().size();
+        // admins directly from UserManager / user.csv
+        int totalAdmins = userManager.getAdminAccounts().size();
 
         HBox row1 = new HBox(20,
                 statCard("Total Rooms", String.valueOf(totalRooms), "Configured rooms in the system."),
@@ -205,9 +218,8 @@ public class AdminFX extends Application {
         fade();
     }
 
-
     // -----------------------------------------
-    // ADD ROOM (UPDATED WITH FULL 6 FIELDS)
+    // ADD ROOM
     // -----------------------------------------
     private void showAddRoomView() {
         mainContent.getChildren().clear();
@@ -256,11 +268,6 @@ public class AdminFX extends Application {
                     return;
                 }
 
-                // -------------------------------------
-                // AUDIT LOG – NEW ROOM ADDED
-                // -------------------------------------
-
-                // TIMESTAMP FORMATTER
                 DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                 String ts = LocalDateTime.now().format(fmt);
 
@@ -274,7 +281,6 @@ public class AdminFX extends Application {
                 System.out.println("[RoomAdd] Building: \"" + building + "\"");
                 System.out.println("-----------------------------------------");
 
-                // CREATE ROOM OBJECT
                 Room room = new Room(id, name, cap, loc, amenities, building);
 
                 repo.addRoom(room);      // auto-save
@@ -306,9 +312,8 @@ public class AdminFX extends Application {
         fade();
     }
 
-
     // -----------------------------------------
-    // MANAGE ROOMS (with full CSV columns)
+    // MANAGE ROOMS
     // -----------------------------------------
     private void showManageRoomsView() {
         mainContent.getChildren().clear();
@@ -318,52 +323,39 @@ public class AdminFX extends Application {
 
         RoomRepository repo = RoomRepository.getInstance();
 
-        // Search bar
         TextField searchField = new TextField();
         searchField.setPromptText("Search by ID, name, location, building, or status...");
 
         TableView<Room> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        // FULL COLUMN SET
-
-        // RoomID
         TableColumn<Room, String> idCol = new TableColumn<>("Room ID");
         idCol.setCellValueFactory(c -> c.getValue().roomIdProperty());
 
-        // Room Name
         TableColumn<Room, String> nameCol = new TableColumn<>("Room Name");
         nameCol.setCellValueFactory(c -> c.getValue().roomNameProperty());
 
-        // Capacity (FIXED — now uses property)
         TableColumn<Room, Integer> capCol = new TableColumn<>("Capacity");
         capCol.setCellValueFactory(c -> c.getValue().capacityProperty().asObject());
 
-        // Location (FIXED — now uses property)
         TableColumn<Room, String> locCol = new TableColumn<>("Location");
         locCol.setCellValueFactory(c -> c.getValue().locationProperty());
 
-        // Amenities (FIXED — now uses property)
         TableColumn<Room, String> amenCol = new TableColumn<>("Amenities");
         amenCol.setCellValueFactory(c -> c.getValue().amenitiesProperty());
 
-        // Building (FIXED — now uses property)
         TableColumn<Room, String> buildingCol = new TableColumn<>("Building");
         buildingCol.setCellValueFactory(c -> c.getValue().buildingProperty());
 
-        // Status (already fine)
         TableColumn<Room, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(c -> c.getValue().statusProperty());
 
-        // ADD ALL COLUMNS TO TABLE
         table.getColumns().addAll(
                 idCol, nameCol, capCol, locCol, amenCol, buildingCol, statusCol
         );
 
-        // Load data
         table.getItems().setAll(repo.getAllRooms().values());
 
-        // Search logic
         searchField.textProperty().addListener((obs, old, newText) -> {
             String q = newText.toLowerCase().trim();
             table.getItems().clear();
@@ -378,21 +370,16 @@ public class AdminFX extends Application {
             }
         });
 
-        // Buttons
         Button enableBtn = new Button("Enable");
-        enableBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
         enableBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "ENABLED"));
 
         Button disableBtn = new Button("Disable");
-        disableBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white;");
         disableBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "DISABLED"));
 
         Button maintenanceBtn = new Button("Maintenance");
-        maintenanceBtn.setStyle("-fx-background-color: #d97706; -fx-text-fill: white;");
         maintenanceBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "MAINTENANCE"));
 
         Button editBtn = new Button("Edit");
-        editBtn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white;");
         editBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -403,7 +390,6 @@ public class AdminFX extends Application {
         });
 
         Button deleteBtn = new Button("Delete");
-        deleteBtn.setStyle("-fx-background-color: #dc2626; -fx-text-fill: white;");
         deleteBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -417,7 +403,6 @@ public class AdminFX extends Application {
             confirm.showAndWait().ifPresent(btn -> {
                 if (btn == ButtonType.OK) {
 
-                    // TIMESTAMP FORMATTER
                     DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                     String ts = LocalDateTime.now().format(fmt);
 
@@ -431,15 +416,14 @@ public class AdminFX extends Application {
                     System.out.println("[RoomDelete] Building: \"" + selected.getBuilding() + "\"");
                     System.out.println("-----------------------------------------");
 
-                    // Perform delete
                     repo.deleteRoom(selected.getRoomId());
                     table.getItems().remove(selected);
                 }
             });
-            ;
         });
 
         Button occupancyBtn = new Button("View Occupancy");
+        occupancyBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
         occupancyBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -450,6 +434,7 @@ public class AdminFX extends Application {
         });
 
         Button detailsBtn = new Button("View Details");
+        detailsBtn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white;");
         detailsBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -472,44 +457,17 @@ public class AdminFX extends Application {
         fade();
     }
 
-
-
     private void updateRoomStatusFromTable(TableView<Room> table, RoomRepository repo, String status) {
-
         Room selected = table.getSelectionModel().getSelectedItem();
         if (selected == null) {
             alertWarning("Please select a room.");
             return;
         }
-
-        // =============================
-        // ROOM STATUS CHANGE AUDIT LOG
-        // =============================
-        String oldStatus = selected.getStatus();
-        String newStatus = status;
-
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String ts = LocalDateTime.now().format(fmt);
-
-        System.out.println("----- Room Status Update Log -----");
-        System.out.println("[Time] " + ts);
-        System.out.println("[RoomID] " + selected.getRoomId());
-        System.out.println("[Old Status] " + oldStatus);
-        System.out.println("[New Status] " + newStatus);
-        System.out.println("----------------------------------");
-
-        // Apply new status
         selected.setStatus(status);
-
-        // Save to CSV
         repo.updateRoom(selected);
-
-        // Refresh UI
         table.refresh();
     }
 
-
-    // EDIT POPUP
     private void openEditRoomDialog(Room room, RoomRepository repo, TableView<Room> table) {
         Stage dialog = new Stage();
         dialog.initOwner(mainContent.getScene().getWindow());
@@ -519,14 +477,12 @@ public class AdminFX extends Application {
         Label idLabel = new Label("Room ID: " + room.getRoomId());
         idLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
 
-        // Editable fields
         TextField nameField = new TextField(room.getRoomName());
         TextField capField  = new TextField(String.valueOf(room.getCapacity()));
         TextField locField  = new TextField(room.getLocation());
         TextField amenField = new TextField(room.getAmenities());
         TextField buildField = new TextField(room.getBuilding());
 
-        // Labels
         Label nameLabel = new Label("Room Name:");
         Label capLabel  = new Label("Capacity:");
         Label locLabel  = new Label("Location:");
@@ -543,55 +499,38 @@ public class AdminFX extends Application {
                 String newAmen = amenField.getText().trim();
                 String newBuild = buildField.getText().trim();
 
-                // -------------------------------------
-                // CAPTURE OLD VALUES BEFORE UPDATING
-                // -------------------------------------
                 String oldName = room.getRoomName();
                 int oldCap     = room.getCapacity();
                 String oldLoc  = room.getLocation();
                 String oldAmen = room.getAmenities();
                 String oldBuild= room.getBuilding();
 
-                // -------------------------------------
-                // AUDIT LOG – print only changed fields
-                // -------------------------------------
-
-                // TIMESTAMP FORMATTER
                 DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                 String ts = LocalDateTime.now().format(fmt);
 
                 System.out.println("----- Room Update Log (" + room.getRoomId() + ") -----");
-
                 System.out.println("[Time] " + ts);
 
                 if (!oldName.equals(newName))
                     System.out.println("[RoomUpdate] Name: \"" + oldName + "\" → \"" + newName + "\"");
-
                 if (oldCap != newCap)
                     System.out.println("[RoomUpdate] Capacity: " + oldCap + " → " + newCap);
-
                 if (!oldLoc.equals(newLoc))
                     System.out.println("[RoomUpdate] Location: \"" + oldLoc + "\" → \"" + newLoc + "\"");
-
                 if (oldAmen != null && !oldAmen.equals(newAmen))
                     System.out.println("[RoomUpdate] Amenities: \"" + oldAmen + "\" → \"" + newAmen + "\"");
-
                 if (oldBuild != null && !oldBuild.equals(newBuild))
                     System.out.println("[RoomUpdate] Building: \"" + oldBuild + "\" → \"" + newBuild + "\"");
 
                 System.out.println("----------------------------------------------");
 
-                // -------------------------------------
-                // APPLY UPDATES TO ROOM OBJECT
-                // -------------------------------------
                 room.setRoomName(newName);
                 room.setCapacity(newCap);
                 room.setLocation(newLoc);
                 room.setAmenities(newAmen);
                 room.setBuilding(newBuild);
 
-                // Save to repository + refresh UI
-                repo.updateRoom(room);   // auto-saves CSV
+                repo.updateRoom(room);
                 table.refresh();
                 dialog.close();
 
@@ -599,8 +538,6 @@ public class AdminFX extends Application {
                 alertError("Invalid input.");
             }
         });
-
-
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.setOnAction(e -> dialog.close());
@@ -625,15 +562,14 @@ public class AdminFX extends Application {
         dialog.showAndWait();
     }
 
-
     // -----------------------------------------
-    // CREATE ADMIN
+    // CREATE ADMIN  (now uses UserManager + user.csv)
     // -----------------------------------------
     private void showCreateAdminView() {
         mainContent.getChildren().clear();
 
         Label title    = labelH1("Create Admin");
-        Label subtitle = labelSub("Add new admin accounts.");
+        Label subtitle = labelSub("Add new admin accounts (saved in user.csv).");
 
         TextField email = new TextField();
         email.setPromptText("Enter admin email");
@@ -651,17 +587,14 @@ public class AdminFX extends Application {
                 return;
             }
 
-            AdminRepository repo = AdminRepository.getInstance();
-            if (repo.adminExists(em)) {
-                alertWarning("Admin already exists!");
-                return;
+            try {
+                userManager.createAdminAccount(em, pw);
+                alertSuccess("Admin created successfully!");
+                email.clear();
+                pass.clear();
+            } catch (Exception ex) {
+                alertWarning(ex.getMessage());
             }
-
-            repo.addAdmin(new Admin(em, pw));
-            alertSuccess("Admin created successfully!");
-
-            email.clear();
-            pass.clear();
         });
 
         VBox card = formCard(email, pass, save);
@@ -671,56 +604,71 @@ public class AdminFX extends Application {
     }
 
     // -----------------------------------------
-    // MANAGE ADMINS
+    // MANAGE ADMINS  (UserManager + SystemUser)
     // -----------------------------------------
     private void showManageAdminsView() {
         mainContent.getChildren().clear();
 
         Label title    = labelH1("Manage Admins");
-        Label subtitle = labelSub("List of admin accounts.");
+        Label subtitle = labelSub("List of admin accounts (loaded from user.csv).");
 
-        TableView<Admin> table = new TableView<>();
+        TableView<SystemUser> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        TableColumn<Admin, String> nameCol = new TableColumn<>("Username");
-        nameCol.setCellValueFactory(c -> c.getValue().usernameProperty());
+        TableColumn<SystemUser, String> nameCol = new TableColumn<>("Username");
+        nameCol.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getEmail()));
 
-        TableColumn<Admin, String> statusCol = new TableColumn<>("Status");
-        statusCol.setCellValueFactory(c -> c.getValue().statusProperty());
+        TableColumn<SystemUser, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().isActive() ? "ACTIVE" : "DISABLED"));
 
         table.getColumns().addAll(nameCol, statusCol);
 
-        AdminRepository repo = AdminRepository.getInstance();
-        table.getItems().setAll(repo.getAllAdmins().values());
+        // Load admins every time we open this view
+        table.getItems().setAll(userManager.getAdminAccounts());
 
         Button deleteBtn = new Button("Delete");
-        deleteBtn.setStyle("-fx-background-color: #dc2626; -fx-text-fill: white;");
+        deleteBtn.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
         deleteBtn.setOnAction(e -> {
-            Admin selected = table.getSelectionModel().getSelectedItem();
+            SystemUser selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
                 alertWarning("Please select an admin.");
                 return;
             }
 
-            repo.deleteAdmin(selected.getUsername());
-            table.getItems().remove(selected);
+            boolean removed = userManager.deleteAdminByEmail(selected.getEmail());
+            if (removed) {
+                table.getItems().remove(selected);
+                alertSuccess("Admin deleted.");
+            } else {
+                alertWarning("Failed to delete admin.");
+            }
         });
 
         Button toggleBtn = new Button("Disable / Enable");
         toggleBtn.setStyle("-fx-background-color: #f0ad4e; -fx-text-fill: white;");
         toggleBtn.setOnAction(e -> {
-            Admin selected = table.getSelectionModel().getSelectedItem();
+            SystemUser selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
                 alertWarning("Please select an admin.");
                 return;
             }
 
-            if (selected.getStatus().equals("ACTIVE"))
-                selected.setStatus("DISABLED");
-            else
-                selected.setStatus("ACTIVE");
+            // flip active flag
+            if (selected.isActive()) {
+                selected.deactivate();
+            } else {
+                selected.activate();
+            }
 
-            table.refresh();
+            try {
+                // persist new active flag to user.csv
+                userManager.updateProfile(selected, null, null);
+                table.refresh();
+            } catch (Exception ex) {
+                alertError("Failed to update admin status: " + ex.getMessage());
+            }
         });
 
         HBox actions = new HBox(12, deleteBtn, toggleBtn);
@@ -811,7 +759,7 @@ public class AdminFX extends Application {
         launch();
     }
 
-    // Helper setters since Room fields aren't exposed as JavaFX properties
+    // old reflection helpers (no longer used, but kept for safety)
     private void roomNameSetter(Room r, String name) {
         try {
             var f = Room.class.getDeclaredField("roomName");
@@ -835,5 +783,4 @@ public class AdminFX extends Application {
             f.set(r, b);
         } catch (Exception ignored) {}
     }
-
 }
