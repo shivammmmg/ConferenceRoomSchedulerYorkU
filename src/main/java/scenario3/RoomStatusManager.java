@@ -137,27 +137,34 @@ public class RoomStatusManager implements Subject {
     // ======================================================
     public synchronized void startNoShowCountdown(String bookingId, String roomId, LocalDateTime bookingStart) {
 
+        Booking b = BookingManager.getInstance().getBookingById(bookingId);
+        if (b == null) return;
+
+        // ❌ Do NOT start timer if user already checked in
+        if ("IN_USE".equals(b.getStatus())) return;
+
+        // ❌ Do NOT start timer if already NO_SHOW
+        if ("NO_SHOW".equals(b.getStatus())) return;
+
+        // ❌ Do NOT restart timer if booking start has passed
+        if (LocalDateTime.now().isAfter(bookingStart)) return;
+
         cancelNoShowTimer(bookingId);
 
-        if (bookingId == null || roomId == null || bookingStart == null)
-            return;
-
         LocalDateTime fireTime = bookingStart.plusMinutes(NO_SHOW_MINUTES);
-
         long delayMs = Duration.between(LocalDateTime.now(), fireTime).toMillis();
         if (delayMs < 0) delayMs = 0;
 
         Timer timer = new Timer(true);
-
         timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
+            @Override public void run() {
                 handleNoShow(bookingId, roomId);
             }
         }, delayMs);
 
         noShowTimers.put(bookingId, timer);
     }
+
 
     // ======================================================
     // NO-SHOW HANDLER
