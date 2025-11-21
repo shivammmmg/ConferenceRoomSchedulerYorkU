@@ -162,12 +162,36 @@ public class RoomOccupancyPopup {
 
     private static void appendSensorTick(String roomId, ListView<String> logView) {
 
-        String status = RoomStatusManager.getInstance().getRoomStatus(roomId);
+        RoomStatusManager statusManager = RoomStatusManager.getInstance();
+        LocalDateTime now = LocalDateTime.now();
 
-        String line = "[" + LocalDateTime.now().format(NICE_FORMAT) + "] "
+        // Check if there is an active booking
+        Booking active = scenario2.controller.BookingManager.getInstance()
+                .getActiveBookingForRoom(roomId, now);
+
+        if (active == null) {
+            // No booking → room MUST be AVAILABLE
+            statusManager.updateOccupancy(roomId, false);
+        } else {
+            // Booking exists:
+            if (now.isAfter(active.getEndTime())) {
+                // Booking ended → room empty now
+                statusManager.updateOccupancy(roomId, false);
+            } else {
+                // Booking has not ended → only IN_USE if user checked in
+                boolean inUse = "IN_USE".equals(active.getStatus());
+                statusManager.updateOccupancy(roomId, inUse);
+            }
+        }
+
+        // Now fetch status AFTER updating
+        String status = statusManager.getRoomStatus(roomId);
+
+        String line = "[" + now.format(NICE_FORMAT) + "] "
                 + "Sensor ping → Room " + roomId + " status = " + status;
 
         logView.getItems().add(line);
         logView.scrollTo(logView.getItems().size() - 1);
     }
+
 }
