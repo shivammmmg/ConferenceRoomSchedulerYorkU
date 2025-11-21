@@ -196,14 +196,53 @@ public class RoomStatusManager implements Subject {
     }
 
     public synchronized void markRoomVacant(String roomId) {
-        roomStatuses.put(roomId, "AVAILaABLE");
+        roomStatuses.put(roomId, "AVAILABLE");
         notifyObservers();
     }
 
     public synchronized void updateOccupancy(String roomId, boolean occupied) {
-        roomStatuses.put(roomId, occupied ? "IN_USE" : "AVAILABLE");
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. Is there an active booking right now?
+        Booking active = BookingManager.getInstance().getActiveBookingForRoom(roomId, now);
+
+        if (active == null) {
+            // No booking → always AVAILABLE
+            roomStatuses.put(roomId, "AVAILABLE");
+            notifyObservers();
+            return;
+        }
+
+        String bookingStatus = active.getStatus();
+
+        // 2. If booking is NO_SHOW → ALWAYS AVAILABLE
+        if ("NO_SHOW".equals(bookingStatus)) {
+            roomStatuses.put(roomId, "AVAILABLE");
+            notifyObservers();
+            return;
+        }
+
+        // 3. If user checked in → IN_USE during booking window ONLY
+        if ("IN_USE".equals(bookingStatus)) {
+            // Inside booking window → IN_USE
+            if (!now.isBefore(active.getStartTime()) && !now.isAfter(active.getEndTime())) {
+                roomStatuses.put(roomId, "IN_USE");
+            }
+            // Outside booking window → AVAILABLE
+            else {
+                roomStatuses.put(roomId, "AVAILABLE");
+            }
+
+            notifyObservers();
+            return;
+        }
+
+        // 4. Booking exists but user has NOT checked in yet
+        // Room MUST be AVAILABLE during grace/check-in period
+        roomStatuses.put(roomId, "AVAILABLE");
         notifyObservers();
     }
+
 
     // ======================================================
     // HELPERS

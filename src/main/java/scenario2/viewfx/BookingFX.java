@@ -1838,6 +1838,50 @@ public class BookingFX extends Application {
                         !booking.getStatus().equals("NO_SHOW");
 
         if (allowCheckIn) {
+
+            // ======================= COUNTDOWN TIMER =======================
+            Label countdownLabel = new Label();
+            countdownLabel.setStyle("-fx-text-fill: #d9534f; -fx-font-size: 11; -fx-font-weight: bold;");
+
+            LocalDateTime deadline = latestCheckIn;
+
+            // Create timer reference as array so it can be stopped inside lambda
+            final Timeline[] countdownTimer = new Timeline[1];
+
+            countdownTimer[0] = new Timeline(
+                    new KeyFrame(Duration.seconds(1), ev -> {
+
+                        long secondsLeft = java.time.Duration.between(LocalDateTime.now(), deadline).getSeconds();
+
+                        if (secondsLeft <= 0) {
+                            countdownLabel.setText("Check-in window closed");
+
+                            try {
+                                scenario3.RoomStatusManager.getInstance().forceNoShow(
+                                        booking.getBookingId(),
+                                        booking.getRoomId(),
+                                        booking.getUserId()
+                                );
+                            } catch (Exception ex) {
+                                System.out.println("[ERROR] Auto no-show: " + ex.getMessage());
+                            }
+
+                            countdownTimer[0].stop();
+                            showMyBookingsView();
+                            return;
+                        }
+
+                        long mins = secondsLeft / 60;
+                        long secs = secondsLeft % 60;
+                        countdownLabel.setText("⏳ Check-in closes in " + mins + "m " + secs + "s");
+
+                    })
+            );
+
+            countdownTimer[0].setCycleCount(Animation.INDEFINITE);
+            countdownTimer[0].play();
+
+            // ========================= CHECK-IN BUTTON =========================
             Button checkInBtn = new Button("Check-In");
             checkInBtn.setPrefWidth(90);
             checkInBtn.setStyle(
@@ -1851,83 +1895,33 @@ public class BookingFX extends Application {
 
             checkInBtn.setOnAction(e -> {
                 try {
-                    scenario3.RoomStatusManager.getInstance().checkIn(
+                    // Stop countdown
+                    countdownTimer[0].stop();
+
+                    // Process check-in
+                    RoomStatusManager.getInstance().checkIn(
                             booking.getBookingId(),
                             booking.getRoomId(),
                             booking.getUserId()
                     );
 
-                    Alert a = new Alert(Alert.AlertType.INFORMATION);
-                    a.setHeaderText("Check-In Successful");
-                    a.setContentText("Sensor verified. Room is now marked as IN USE.");
-                    a.showAndWait();
+                    // Standard popup (Scenario 1 style)
+                    showAlert("Check-In Successful",
+                            "Sensor verified. Room is now marked as IN USE.");
 
+                    // Refresh UI
                     showMyBookingsView();
 
                 } catch (Exception ex) {
-                    Alert a = new Alert(Alert.AlertType.ERROR);
-                    a.setHeaderText("Check-In Failed");
-                    a.setContentText(ex.getMessage());
-                    a.showAndWait();
+                    showAlert("Check-In Failed", ex.getMessage());
                 }
             });
 
+
             buttonBox.getChildren().add(checkInBtn);
-
-            // ======================= COUNTDOWN TIMER =======================
-            Label countdownLabel = new Label();
-            countdownLabel.setStyle("-fx-text-fill: #d9534f; -fx-font-size: 11; -fx-font-weight: bold;");
-
-// Deadline = check-in closes at (start + 2 mins)
-            LocalDateTime deadline = latestCheckIn;
-
-// Create timer reference as array so it can be stopped inside lambda
-            final Timeline[] countdownTimer = new Timeline[1];
-
-            countdownTimer[0] = new Timeline(
-                    new KeyFrame(Duration.seconds(1), ev -> {
-
-                        long secondsLeft = java.time.Duration.between(LocalDateTime.now(), deadline).getSeconds();
-
-                        if (secondsLeft <= 0) {
-                            countdownLabel.setText("Check-in window closed");
-
-                            // Auto NO-SHOW trigger
-                            try {
-                                scenario3.RoomStatusManager.getInstance().forceNoShow(
-                                        booking.getBookingId(),
-                                        booking.getRoomId(),
-                                        booking.getUserId()
-                                );
-                            } catch (Exception ex) {
-                                System.out.println("[ERROR] Auto no-show: " + ex.getMessage());
-                            }
-
-                            // Stop timer
-                            countdownTimer[0].stop();
-
-                            // Refresh UI
-                            showMyBookingsView();
-                            return;
-                        }
-
-                        long mins = secondsLeft / 60;
-                        long secs = secondsLeft % 60;
-
-                        countdownLabel.setText("⏳ Check-in closes in " + mins + "m " + secs + "s");
-
-                    })
-            );
-
-            // Repeat forever
-            countdownTimer[0].setCycleCount(Animation.INDEFINITE);
-            countdownTimer[0].play();
-
-            // Add countdown text to UI
             buttonBox.getChildren().add(countdownLabel);
-
-
-        }   // ⭐ FIX 1 — CLOSE allowCheckIn IF
+        }
+        // ⭐ FIX 1 — CLOSE allowCheckIn IF
 
 
         // ======================= Edit + Cancel =======================
@@ -2403,16 +2397,21 @@ public class BookingFX extends Application {
         }
     }
 
-    private void handleCheckIn(Booking booking) {
+    /* private void handleCheckIn(Booking booking) {
         scenario3.SensorSystem.getInstance().simulateUserCheckIn(booking);
 
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Check-In Successful");
         alert.setHeaderText("Check-In Successful");
-        alert.setContentText("Sensor verification passed. Your booking is now ACTIVE.");
+        alert.setContentText("Sensor verified. Room is now marked as IN USE.");
+
+        Stage owner = (Stage) mainContent.getScene().getWindow();
+        alert.initOwner(owner);
+
         alert.showAndWait();
 
         showMyBookingsView(); // refresh UI
-    }
+    } */
 
 
 

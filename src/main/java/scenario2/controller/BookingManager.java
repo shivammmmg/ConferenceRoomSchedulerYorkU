@@ -610,10 +610,21 @@ public class BookingManager {
         return isRoomAvailable(roomId, start, end, null);
     }
 
+
     /** Availability check that excludes a booking ID (used for editing). */
     private boolean isRoomAvailable(
             String roomId, LocalDateTime start, LocalDateTime end, String excludeBookingId
     ) {
+        Room room = findRoomById(roomId);
+
+        if (room == null) return false;
+
+        // 🔥 Block if room is disabled or under maintenance
+        String status = room.getStatus();
+        if ("DISABLED".equals(status) || "MAINTENANCE".equals(status)) {
+            return false;
+        }
+
         for (Booking b : bookings) {
             if (!b.getRoomId().equals(roomId)) continue;
 
@@ -622,10 +633,14 @@ public class BookingManager {
                 continue;
             }
 
-            if (!b.getStatus().equals("CONFIRMED") &&
-                    !b.getStatus().equals("PENDING_PAYMENT")) {
-                continue;
-            }
+            // 🔥 These statuses must block room availability
+            boolean blocks =
+                    b.getStatus().equals("CONFIRMED") ||
+                            b.getStatus().equals("PENDING_PAYMENT") ||
+                            b.getStatus().equals("IN_USE") ||
+                            b.getStatus().equals("ACTIVE");
+
+            if (!blocks) continue;
 
             boolean overlap =
                     start.isBefore(b.getEndTime()) &&
@@ -633,8 +648,10 @@ public class BookingManager {
 
             if (overlap) return false;
         }
+
         return true;
     }
+
 
     // ============================================================
     //                        FINDERS
@@ -750,4 +767,16 @@ public class BookingManager {
         }
         return null;
     }
+
+    public Booking getActiveBookingForRoom(String roomId, LocalDateTime now) {
+        for (Booking b : bookings) {
+            if (b.getRoomId().equals(roomId)) {
+                if (!now.isBefore(b.getStartTime()) && !now.isAfter(b.getEndTime())) {
+                    return b;
+                }
+            }
+        }
+        return null;
+    }
+
 }
