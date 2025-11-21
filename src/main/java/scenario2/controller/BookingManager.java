@@ -6,7 +6,9 @@ import shared.util.CSVHelper;
 import scenario2.builder.BookingBuilder;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.io.File;
 
 /**
  * BookingManager (Singleton)
@@ -49,8 +51,8 @@ public class BookingManager {
     private static BookingManager instance;
 
     /** CSV files simulate the database as per Deliverable-2 instructions. */
-    private final String BOOKING_CSV = "src/shared/data/bookings.csv";
-    private final String ROOM_CSV    = "src/shared/data/rooms.csv";
+    private final String BOOKING_CSV = getProjectRootPath() + "/data/bookings.csv";
+    private final String ROOM_CSV    = getProjectRootPath() + "/data/rooms.csv";
 
     /** In-memory collections loaded from CSV. */
     private ArrayList<Booking> bookings = new ArrayList<>();
@@ -59,6 +61,14 @@ public class BookingManager {
     /** Internal payment component (Strategy-ready). */
     private PaymentService paymentService;
 
+    // Timestamp formatter for logs → "Nov 20 2025, 8:32:11 PM"
+    private static final DateTimeFormatter LOG_TS_FORMAT =
+            DateTimeFormatter.ofPattern("MMM dd yyyy, h:mm:ss a");
+
+    private void logAction(String msg) {
+        String ts = LocalDateTime.now().format(LOG_TS_FORMAT);
+        System.out.println("[BOOKING LOG | " + ts + "] " + msg);
+    }
 
     // ============================================================
     //                SINGLETON ENTRY POINT
@@ -83,6 +93,21 @@ public class BookingManager {
     private BookingManager() {
         this.paymentService = new PaymentService();
         loadInitialData();
+    }
+
+    // =====================================================================
+    // FIX: ALWAYS RESOLVE REAL PROJECT ROOT (NOT target/classes)
+    // =====================================================================
+    private String getProjectRootPath() {
+        String base = System.getProperty("user.dir");
+
+        // If we are inside target/classes, go back to project root
+        if (base.endsWith("target/classes")) {
+            File f = new File(base);
+            return f.getParentFile().getParent();   // go up 2 levels
+        }
+
+        return base; // already project root
     }
 
     // ============================================================
@@ -201,8 +226,8 @@ public class BookingManager {
     }
 
     // ============================================================
-//                PUBLIC API FOR UI (JavaFX)
-// ============================================================
+    //                PUBLIC API FOR UI (JavaFX)
+    // ============================================================
 
     /**
      * Req4 – Returns the one-hour deposit for a given user type.
@@ -280,7 +305,6 @@ public class BookingManager {
         return getAvailableRooms(startTime, endTime, capacity, building, equipment);
     }
 
-
     // ============================================================
     //                 BOOKING CREATION (REQ 3, 4, 10)
     // ============================================================
@@ -318,7 +342,7 @@ public class BookingManager {
         // 3. Duration restrictions
         long minutes = java.time.Duration.between(startTime, endTime).toMinutes();
         long hours   = (long) Math.ceil(minutes / 60.0);
-        if (minutes < 30) throw new Exception("Minimum booking is 30 minutes.");
+        if (minutes < 15) throw new Exception("Minimum booking is 30 minutes.");
         if (hours > 4)    throw new Exception("Max booking duration is 4 hours.");
 
         // 4. Business hours rule
@@ -354,6 +378,17 @@ public class BookingManager {
 
         bookings.add(newBooking);
         saveBookings();
+
+        // LOG: booking created
+        logAction("BOOKING CREATED - id=" + bookingId
+                + ", user=" + userId
+                + ", room=" + roomId
+                + ", start=" + startTime
+                + ", end=" + endTime
+                + ", userType=" + userType
+                + ", deposit=" + String.format("%.2f", depositAmount)
+                + ", paymentStatus=" + paymentStatus.name()
+                + ", status=" + initialStatus);
 
         return newBooking;
     }
@@ -402,6 +437,15 @@ public class BookingManager {
         booking.setPurpose(newPurpose);
 
         saveBookings();
+
+        // LOG: booking edited
+        logAction("BOOKING UPDATED - id=" + bookingId
+                + ", user=" + userId
+                + ", room=" + newRoomId
+                + ", start=" + newStart
+                + ", end=" + newEnd
+                + ", purpose=\"" + newPurpose + "\"");
+
         return booking;
     }
 
@@ -427,12 +471,23 @@ public class BookingManager {
             throw new Exception("Cannot cancel within 2 hours of start time.");
         }
 
+        boolean refundIssued = false;
         if ("APPROVED".equals(booking.getPaymentStatus())) {
-            System.out.println("[REFUND] Refund issued: $" + booking.getDepositAmount());
+            // refund simulated
+            refundIssued = true;
         }
 
         booking.setStatus("CANCELLED");
         saveBookings();
+
+        // LOG: booking cancelled
+        logAction("BOOKING CANCELLED - id=" + bookingId
+                + ", user=" + userId
+                + ", room=" + booking.getRoomId()
+                + ", start=" + booking.getStartTime()
+                + ", refundIssued=" + refundIssued
+                + ", deposit=" + String.format("%.2f", booking.getDepositAmount()));
+
         return true;
     }
 
@@ -449,12 +504,26 @@ public class BookingManager {
         for (Booking b : bookings) {
             if (b.getUserId().equals(userId) &&
                     (b.getStatus().equals("CONFIRMED") ||
-                            b.getStatus().equals("PENDING_PAYMENT"))) {
-
+                            b.getStatus().equals("PENDING_PAYMENT") ||
+                            b.getStatus().equals("ACTIVE"))) {
                 list.add(b);
             }
         }
         list.sort(Comparator.comparing(Booking::getStartTime));
+        return list;
+    }
+
+    /**
+     * Returns ALL bookings for a user (including past, cancelled, no-show, finished).
+     */
+    public List<Booking> getAllUserBookings(String userId) {
+        List<Booking> list = new ArrayList<>();
+        for (Booking b : bookings) {
+            if (b.getUserId().equals(userId)) {
+                list.add(b);
+            }
+        }
+        list.sort(Comparator.comparing(Booking::getStartTime).reversed());
         return list;
     }
 
@@ -597,7 +666,6 @@ public class BookingManager {
         }
     }
 
-
     private void saveRooms() {
         try {
             CSVHelper.saveRooms(ROOM_CSV, rooms);
@@ -605,7 +673,6 @@ public class BookingManager {
             System.err.println("[ERROR] Failed to save rooms: " + e.getMessage());
         }
     }
-
 
     // ============================================================
     //                     PUBLIC LIST ACCESSORS
@@ -637,5 +704,50 @@ public class BookingManager {
             }
         }
         return new ArrayList<>(set);
+    }
+
+    // ======================================================
+    // Scenario 3 — Deposit Adjustments (No-show / Check-in)
+    // ======================================================
+
+    // Called when a booking becomes NO_SHOW
+    public synchronized void markDepositForfeited(String bookingId) {
+        Booking b = findBookingById(bookingId);
+        if (b == null) return;
+
+        b.setStatus("NO_SHOW");
+        b.setPaymentStatus("FORFEITED");
+        saveBookings();
+
+        // LOG: no-show / deposit forfeited
+        logAction("NO_SHOW - bookingId=" + bookingId
+                + ", user=" + b.getUserId()
+                + ", room=" + b.getRoomId()
+                + ", depositForfeited=" + String.format("%.2f", b.getDepositAmount()));
+    }
+
+    // Called when the user checks in on time
+    public synchronized void applyDepositToFinalCost(String bookingId) {
+        Booking b = findBookingById(bookingId);
+        if (b == null) return;
+
+        // Change from ACTIVE → IN_USE to match Scenario 3 terminology
+        b.setStatus("IN_USE");
+        b.setPaymentStatus("APPROVED");
+
+        saveBookings();
+
+        // LOG: check-in / in-use
+        logAction("CHECK_IN - bookingId=" + bookingId
+                + ", user=" + b.getUserId()
+                + ", room=" + b.getRoomId()
+                + ", depositApplied=" + String.format("%.2f", b.getDepositAmount()));
+    }
+
+    public Booking getBookingById(String id) {
+        for (Booking b : bookings) {
+            if (b.getBookingId().equals(id)) return b;
+        }
+        return null;
     }
 }

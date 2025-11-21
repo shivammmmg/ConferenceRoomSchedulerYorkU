@@ -1,6 +1,6 @@
 package scenario1.controller;
-import Scenario2.viewfx.BookingFX;
 
+import scenario2.viewfx.BookingFX;
 import shared.model.User;
 import shared.model.UserType;
 import shared.model.SystemUser;

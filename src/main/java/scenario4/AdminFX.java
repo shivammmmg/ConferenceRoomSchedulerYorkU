@@ -371,15 +371,20 @@ public class AdminFX extends Application {
         });
 
         Button enableBtn = new Button("Enable");
+        enableBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
         enableBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "ENABLED"));
 
         Button disableBtn = new Button("Disable");
+        disableBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white;");
         disableBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "DISABLED"));
 
         Button maintenanceBtn = new Button("Maintenance");
+        maintenanceBtn.setStyle("-fx-background-color: #d97706; -fx-text-fill: white;");
         maintenanceBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "MAINTENANCE"));
 
+
         Button editBtn = new Button("Edit");
+        editBtn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white;");
         editBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -390,6 +395,7 @@ public class AdminFX extends Application {
         });
 
         Button deleteBtn = new Button("Delete");
+        deleteBtn.setStyle("-fx-background-color: #dc2626; -fx-text-fill: white;");
         deleteBtn.setOnAction(e -> {
             Room selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -403,6 +409,7 @@ public class AdminFX extends Application {
             confirm.showAndWait().ifPresent(btn -> {
                 if (btn == ButtonType.OK) {
 
+                    // TIMESTAMP FORMATTER
                     DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                     String ts = LocalDateTime.now().format(fmt);
 
@@ -421,6 +428,7 @@ public class AdminFX extends Application {
                 }
             });
         });
+
 
         Button occupancyBtn = new Button("View Occupancy");
         occupancyBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
@@ -458,15 +466,39 @@ public class AdminFX extends Application {
     }
 
     private void updateRoomStatusFromTable(TableView<Room> table, RoomRepository repo, String status) {
+
         Room selected = table.getSelectionModel().getSelectedItem();
         if (selected == null) {
             alertWarning("Please select a room.");
             return;
         }
+
+        // =============================
+        // ROOM STATUS CHANGE AUDIT LOG
+        // =============================
+        String oldStatus = selected.getStatus();
+        String newStatus = status;
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String ts = LocalDateTime.now().format(fmt);
+
+        System.out.println("----- Room Status Update Log -----");
+        System.out.println("[Time] " + ts);
+        System.out.println("[RoomID] " + selected.getRoomId());
+        System.out.println("[Old Status] " + oldStatus);
+        System.out.println("[New Status] " + newStatus);
+        System.out.println("----------------------------------");
+
+        // Apply new status
         selected.setStatus(status);
+
+        // Save to CSV
         repo.updateRoom(selected);
+
+        // Refresh UI
         table.refresh();
     }
+
 
     private void openEditRoomDialog(Room room, RoomRepository repo, TableView<Room> table) {
         Stage dialog = new Stage();

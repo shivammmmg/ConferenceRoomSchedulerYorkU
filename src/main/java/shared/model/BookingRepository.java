@@ -1,12 +1,13 @@
 package shared.model;
 
-import java.time.LocalDateTime;
+import shared.util.CSVHelper;
 import java.util.ArrayList;
 import java.util.List;
 
 public class BookingRepository {
 
     private static BookingRepository instance;
+    private final String BOOKING_CSV = "data/bookings.csv";
 
     private final List<Booking> bookings = new ArrayList<>();
 
@@ -17,22 +18,39 @@ public class BookingRepository {
     }
 
     private BookingRepository() {
-
-        bookings.add(new Booking(
-                "B1", "2", "studentA",
-                LocalDateTime.now().minusHours(3),
-                LocalDateTime.now().minusHours(1),
-                "Sample Purpose"
-        ));
-
-        bookings.add(new Booking(
-                "B2", "3", "studentB",
-                LocalDateTime.now().plusHours(1),
-                LocalDateTime.now().plusHours(3),
-                "Sample Purpose"
-        ));
+        loadFromCSV();
     }
 
+    // Load from CSV
+    private void loadFromCSV() {
+        try {
+            List<Booking> loaded = CSVHelper.loadBookings(BOOKING_CSV);
+            bookings.clear();
+            bookings.addAll(loaded);
+        } catch (Exception e) {
+            System.out.println("[BookingRepository] Could not load bookings.csv: " + e.getMessage());
+        }
+    }
+
+    // Save all back to CSV
+    public void saveAll() {
+        try {
+            CSVHelper.saveBookings(BOOKING_CSV, bookings);
+        } catch (Exception e) {
+            System.out.println("[BookingRepository] Could not save bookings.csv: " + e.getMessage());
+        }
+    }
+
+    public List<Booking> getAllBookings() {
+        return bookings;
+    }
+
+    public Booking findById(String id) {
+        for (Booking b : bookings) {
+            if (b.getBookingId().equals(id)) return b;
+        }
+        return null;
+    }
 
     public List<Booking> getBookingsForRoom(String roomId) {
         List<Booking> result = new ArrayList<>();
@@ -44,11 +62,4 @@ public class BookingRepository {
         return result;
     }
 
-    public void addBooking(Booking booking) {
-        bookings.add(booking);
-    }
-
-    public List<Booking> getAllBookings() {
-        return bookings;
-    }
 }

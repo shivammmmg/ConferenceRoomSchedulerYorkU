@@ -1,4 +1,4 @@
-package Scenario2.viewfx;
+package scenario2.viewfx;
 
 import javafx.animation.FadeTransition;
 import javafx.application.Application;
@@ -19,14 +19,19 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
+
 import shared.util.GlobalNavigationHelper;
-
-
 import scenario2.controller.BookingManager;
 import shared.model.Booking;
 import shared.model.Room;
 import shared.model.User;
 import scenario1.controller.UserManager;
+import scenario3.SensorSystem;
+import scenario3.RoomStatusManager;
+import scenario3.ui.BookingStatusObserver;
+import scenario2.controller.BookingManager;
+
 
 import java.io.InputStream;
 import java.net.URL;
@@ -35,6 +40,12 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
+import javafx.animation.Animation;
+import javafx.scene.layout.Region;
 
 /**
  * BookingFX (Scenario 2 GUI)
@@ -76,6 +87,20 @@ public class BookingFX extends Application {
     private Label sidebarEmailLabel;
     private String loggedInEmail;
     private String loggedInUserType;
+    private Timeline countdownTimer = null;
+
+
+    // Scenario 3 — Observer callback
+    public void update() {
+        System.out.println("[BookingFX] Observer event → refreshing MyBookings");
+
+        if (myBookingsBtn != null
+                && myBookingsBtn.getProperties().get("active").equals(true)) {
+
+            showMyBookingsView(); // auto-refresh only if user is on MyBookings
+        }
+    }
+
 
     public void setLoggedInUser(String email, String userType) {
         this.loggedInEmail = email;
@@ -91,6 +116,9 @@ public class BookingFX extends Application {
         // ==========================================================
 
         bookingManager = BookingManager.getInstance();
+        // Scenario 3 Observer — auto UI refresh
+        RoomStatusManager.getInstance().attach(new BookingStatusObserver(this));
+
         currentUserEmail = (loggedInEmail != null) ? loggedInEmail : "test@yorku.ca";
         currentUserType  = (loggedInUserType != null) ? loggedInUserType : "student";
         // Load current user from Scenario 1 user store (if available)
@@ -100,6 +128,10 @@ public class BookingFX extends Application {
             System.out.println("[Profile]   Could not load user for email: " + currentUserEmail);
             currentUser = null;
         }
+
+        // ====================== SCENARIO 3 OBSERVER ATTACH =========================
+        RoomStatusManager.getInstance().attach(new BookingStatusObserver(this));
+
 
         // ==========================================================
         // =============== 2. LEFT NAVIGATION PANEL =================
@@ -493,13 +525,16 @@ public class BookingFX extends Application {
         endLbl.setStyle(labelStyle);
         ComboBox<String> endBox = new ComboBox<>();
 
-        for (int h = 8; h <= 19; h++) {
-            startBox.getItems().add(String.format("%02d:00", h));
-            startBox.getItems().add(String.format("%02d:30", h));
+        for (int hour = 8; hour <= 19; hour++) {
+            for (int min = 0; min < 60; min += 15) {
+                startBox.getItems().add(String.format("%02d:%02d", hour, min));
+            }
         }
-        for (int h = 9; h <= 20; h++) {
-            endBox.getItems().add(String.format("%02d:00", h));
-            endBox.getItems().add(String.format("%02d:30", h));
+
+        for (int hour = 8; hour <= 20; hour++) {
+            for (int min = 0; min < 60; min += 15) {
+                endBox.getItems().add(String.format("%02d:%02d", hour, min));
+            }
         }
         applyModernFieldStyle(startBox);
         applyModernFieldStyle(endBox);
@@ -958,7 +993,14 @@ public class BookingFX extends Application {
 
             );
 
+            // Scenario 3: Start no-show countdown
+            scenario3.SensorSystem.getInstance().registerNewBooking(booking);
+
+
             showConfirmationModal(booking, room, startTime, endTime);
+
+            SensorSystem.getInstance().registerNewBooking(booking);
+
 
         } catch (Exception ex) {
             showAlert("Booking Failed", ex.getMessage());
@@ -1108,8 +1150,9 @@ public class BookingFX extends Application {
         startTimeLbl.setStyle(labelStyle);
         ComboBox<String> startTimeBox = new ComboBox<>();
         for (int hour = 8; hour <= 19; hour++) {
-            startTimeBox.getItems().add(String.format("%02d:00", hour));
-            startTimeBox.getItems().add(String.format("%02d:30", hour));
+            for (int min = 0; min < 60; min += 15) {
+                startTimeBox.getItems().add(String.format("%02d:%02d", hour, min));
+            }
         }
         startTimeBox.setValue("09:00");
         applyModernFieldStyle(startTimeBox);
@@ -1117,9 +1160,10 @@ public class BookingFX extends Application {
         Label endTimeLbl = new Label("End Time *");
         endTimeLbl.setStyle(labelStyle);
         ComboBox<String> endTimeBox = new ComboBox<>();
-        for (int hour = 9; hour <= 20; hour++) {
-            endTimeBox.getItems().add(String.format("%02d:00", hour));
-            endTimeBox.getItems().add(String.format("%02d:30", hour));
+        for (int hour = 8; hour <= 20; hour++) {
+            for (int min = 0; min < 60; min += 15) {
+                endTimeBox.getItems().add(String.format("%02d:%02d", hour, min));
+            }
         }
         endTimeBox.setValue("10:00");
         applyModernFieldStyle(endTimeBox);
@@ -1604,25 +1648,67 @@ public class BookingFX extends Application {
         tagRow.getChildren().addAll(buildingTag, amenityTag);
 
         card.getChildren().addAll(headerRow, building, capacity, vibe, tagRow);
+
+        // Scenario 3 — Live room status badge
+        String status = RoomStatusManager.getInstance().getRoomStatus(room.getRoomId());
+        Label liveStatus = new Label(status);
+        liveStatus.setStyle(getStatusBadgeStyle(status));
+        card.getChildren().add(liveStatus);
+
         return card;
     }
 
     // ==============================================================
-    // ======================  MY BOOKINGS VIEW  ====================
-    // ==============================================================
+// ======================  MY BOOKINGS VIEW  ====================
+// ==============================================================
 
     private void showMyBookingsView() {
         mainContent.getChildren().clear();
 
         HBox header = createPageHeader(
                 "My Bookings",
-                "Review your upcoming reservations, check payment status, or cancel if plans change."
+                "Review your reservations, check payment status, and revisit your history."
         );
 
-        List<Booking> userBookings = bookingManager.getUserBookings(currentUserEmail);
+        List<Booking> allBookings = bookingManager.getAllUserBookings(currentUserEmail);
 
-        if (userBookings.isEmpty()) {
-            Label noBookings = new Label("You don't have any upcoming bookings yet.");
+        // --- Split into UPCOMING and PAST ---
+        List<Booking> upcoming = new ArrayList<>();
+        List<Booking> past = new ArrayList<>();
+
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Booking b : allBookings) {
+
+            boolean isPast =
+                    b.getEndTime().isBefore(now)
+                            || b.getStatus().equals("CANCELLED")
+                            || b.getStatus().equals("NO_SHOW")
+                            || b.getStatus().equals("FINISHED")
+                            || (b.getStatus().equals("IN_USE") && b.getEndTime().isBefore(now));
+
+            if (isPast)
+                past.add(b);
+            else
+                upcoming.add(b);
+        }
+
+        // ============================================================
+        // SORT BOOKINGS
+        // ============================================================
+
+        // Upcoming: soonest → latest
+        upcoming.sort(Comparator.comparing(Booking::getStartTime));
+
+        // Past: latest → oldest
+        past.sort(Comparator.comparing(Booking::getStartTime).reversed());
+
+
+        // ------------------------------
+        // If no upcoming AND no past
+        // ------------------------------
+        if (upcoming.isEmpty() && past.isEmpty()) {
+            Label noBookings = new Label("You don't have any bookings yet.");
             noBookings.setStyle("-fx-text-fill: #666; -fx-font-size: 16;");
 
             Label hint = new Label("Head over to \"Book Room\" to make your first reservation.");
@@ -1636,19 +1722,58 @@ public class BookingFX extends Application {
             return;
         }
 
-        VBox bookingsList = new VBox(10);
-        for (Booking booking : userBookings) {
-            HBox bookingCard = createBookingCard(booking);
-            bookingsList.getChildren().add(bookingCard);
-            animateCardIn(bookingCard);
+        VBox container = new VBox(20);
+
+        // ============================================================
+        // UPCOMING BOOKINGS (Normal section)
+        // ============================================================
+        if (!upcoming.isEmpty()) {
+            Label upcomingHeader = new Label("Upcoming Bookings");
+            upcomingHeader.setStyle("-fx-font-size: 18; -fx-font-weight: bold;");
+
+            VBox upcomingList = new VBox(10);
+            for (Booking b : upcoming) {
+                HBox card = createBookingCard(b);
+                upcomingList.getChildren().add(card);
+                animateCardIn(card);
+            }
+
+            container.getChildren().addAll(upcomingHeader, upcomingList);
         }
 
-        ScrollPane scrollPane = new ScrollPane(bookingsList);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setPrefHeight(500);
-        scrollPane.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+        // ============================================================
+        // PAST BOOKINGS — collapsible section (TitledPane)
+        // ============================================================
+        if (!past.isEmpty()) {
+            Label pastHeader = new Label("Past Bookings");
+            pastHeader.setStyle("-fx-font-size: 18; -fx-font-weight: bold;");
 
-        mainContent.getChildren().addAll(header, scrollPane);
+            VBox pastList = new VBox(10);
+            for (Booking b : past) {
+                HBox card = createBookingCard(b);
+                // Disable all buttons for past bookings
+                card.setDisable(true);
+                pastList.getChildren().add(card);
+            }
+
+            TitledPane pastPane = new TitledPane("Show Past Bookings", pastList);
+            pastPane.setExpanded(false);
+            pastPane.setCollapsible(true);
+            pastPane.setStyle("-fx-font-size: 14;");
+
+            container.getChildren().addAll(pastHeader, pastPane);
+        }
+
+        ScrollPane scrollPane = new ScrollPane(container);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+        scrollPane.setPrefHeight(Region.USE_COMPUTED_SIZE);
+        scrollPane.setMinHeight(0);
+
+        mainContent.getChildren ().addAll(header, scrollPane);
         playMainContentFadeIn();
     }
 
@@ -1683,19 +1808,132 @@ public class BookingFX extends Application {
         payment.setStyle("-fx-text-fill: " + paymentColor
                 + "; -fx-font-size: 11; -fx-font-weight: bold;");
 
-        Label bookingId = new Label(
-                "ID: " + booking.getBookingId()
-                        + " | Status: " + booking.getStatus());
+        Label statusBadge = new Label(booking.getStatus());
+        statusBadge.setStyle(getStatusBadgeStyle(booking.getStatus()));
+
+        Label bookingId = new Label("ID: " + booking.getBookingId());
         bookingId.setStyle("-fx-text-fill: #999; -fx-font-size: 10;");
 
-        bookingInfo.getChildren().addAll(roomName, time, purpose, payment, bookingId);
+        bookingInfo.getChildren().addAll(
+                roomName,
+                time,
+                purpose,
+                payment,
+                statusBadge,
+                bookingId
+        );
 
         HBox buttonBox = new HBox(10);
 
+        // ======================= Scenario 3: Check-In Button =======================
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime earliestCheckIn = booking.getStartTime().minusMinutes(10);
+        LocalDateTime latestCheckIn   = booking.getStartTime().plusMinutes(2); // demo window
+
+        boolean allowCheckIn =
+                booking.getStatus().equals("CONFIRMED") &&
+                        now.isAfter(earliestCheckIn) &&
+                        now.isBefore(latestCheckIn) &&
+                        !booking.getStatus().equals("IN_USE") &&
+                        !booking.getStatus().equals("NO_SHOW");
+
+        if (allowCheckIn) {
+            Button checkInBtn = new Button("Check-In");
+            checkInBtn.setPrefWidth(90);
+            checkInBtn.setStyle(
+                    "-fx-background-color: #28a745;" +
+                            "-fx-text-fill: white;" +
+                            "-fx-font-weight: bold;" +
+                            "-fx-background-radius: 999;" +
+                            "-fx-padding: 6 16;"
+            );
+            Tooltip.install(checkInBtn, new Tooltip("Tap to check into your booked room."));
+
+            checkInBtn.setOnAction(e -> {
+                try {
+                    scenario3.RoomStatusManager.getInstance().checkIn(
+                            booking.getBookingId(),
+                            booking.getRoomId(),
+                            booking.getUserId()
+                    );
+
+                    Alert a = new Alert(Alert.AlertType.INFORMATION);
+                    a.setHeaderText("Check-In Successful");
+                    a.setContentText("Sensor verified. Room is now marked as IN USE.");
+                    a.showAndWait();
+
+                    showMyBookingsView();
+
+                } catch (Exception ex) {
+                    Alert a = new Alert(Alert.AlertType.ERROR);
+                    a.setHeaderText("Check-In Failed");
+                    a.setContentText(ex.getMessage());
+                    a.showAndWait();
+                }
+            });
+
+            buttonBox.getChildren().add(checkInBtn);
+
+            // ======================= COUNTDOWN TIMER =======================
+            Label countdownLabel = new Label();
+            countdownLabel.setStyle("-fx-text-fill: #d9534f; -fx-font-size: 11; -fx-font-weight: bold;");
+
+// Deadline = check-in closes at (start + 2 mins)
+            LocalDateTime deadline = latestCheckIn;
+
+// Create timer reference as array so it can be stopped inside lambda
+            final Timeline[] countdownTimer = new Timeline[1];
+
+            countdownTimer[0] = new Timeline(
+                    new KeyFrame(Duration.seconds(1), ev -> {
+
+                        long secondsLeft = java.time.Duration.between(LocalDateTime.now(), deadline).getSeconds();
+
+                        if (secondsLeft <= 0) {
+                            countdownLabel.setText("Check-in window closed");
+
+                            // Auto NO-SHOW trigger
+                            try {
+                                scenario3.RoomStatusManager.getInstance().forceNoShow(
+                                        booking.getBookingId(),
+                                        booking.getRoomId(),
+                                        booking.getUserId()
+                                );
+                            } catch (Exception ex) {
+                                System.out.println("[ERROR] Auto no-show: " + ex.getMessage());
+                            }
+
+                            // Stop timer
+                            countdownTimer[0].stop();
+
+                            // Refresh UI
+                            showMyBookingsView();
+                            return;
+                        }
+
+                        long mins = secondsLeft / 60;
+                        long secs = secondsLeft % 60;
+
+                        countdownLabel.setText("⏳ Check-in closes in " + mins + "m " + secs + "s");
+
+                    })
+            );
+
+            // Repeat forever
+            countdownTimer[0].setCycleCount(Animation.INDEFINITE);
+            countdownTimer[0].play();
+
+            // Add countdown text to UI
+            buttonBox.getChildren().add(countdownLabel);
+
+
+        }   // ⭐ FIX 1 — CLOSE allowCheckIn IF
+
+
+        // ======================= Edit + Cancel =======================
         if ("CONFIRMED".equals(booking.getStatus())
                 || "PENDING_PAYMENT".equals(booking.getStatus())) {
 
-            // --- Edit button ---
             Button editBtn = new Button("Edit");
             editBtn.setPrefWidth(80);
             editBtn.setStyle(
@@ -1707,7 +1945,6 @@ public class BookingFX extends Application {
 
             editBtn.setOnAction(e -> showEditBookingModal(booking));
 
-            // --- Cancel button ---
             Button cancelBtn = new Button("Cancel");
             cancelBtn.getStyleClass().add("danger-button");
             cancelBtn.setPrefWidth(80);
@@ -1718,6 +1955,7 @@ public class BookingFX extends Application {
 
             buttonBox.getChildren().addAll(editBtn, cancelBtn);
         }
+
 
         card.getChildren().addAll(bookingInfo, buttonBox);
 
@@ -1817,6 +2055,12 @@ public class BookingFX extends Application {
         confirmationModal.setVisible(false);
         editBookingModal.setVisible(true);
         showOverlay();
+    }
+
+    // ==============================================================
+    /** Refreshes the My Bookings screen after observer updates */
+    public void refreshMyBookingsView() {
+        showMyBookingsView();  // rebuilds full list
     }
 
     // ==============================================================
@@ -2133,4 +2377,43 @@ public class BookingFX extends Application {
         System.out.println("Starting YorkU Conference Room Booking System...");
         launch(args);
     }
+    private String getStatusBadgeStyle(String status) {
+        switch (status) {
+            case "CONFIRMED":
+                return "-fx-background-color: #0275d8; -fx-text-fill: white; "
+                        + "-fx-font-size: 10; -fx-font-weight: bold; "
+                        + "-fx-padding: 3 8; -fx-background-radius: 12;";
+            case "ACTIVE":
+            case "IN_USE":
+                return "-fx-background-color: #5cb85c; -fx-text-fill: white; "
+                        + "-fx-font-size: 10; -fx-font-weight: bold; "
+                        + "-fx-padding: 3 8; -fx-background-radius: 12;";
+            case "NO_SHOW":
+                return "-fx-background-color: #d9534f; -fx-text-fill: white; "
+                        + "-fx-font-size: 10; -fx-font-weight: bold; "
+                        + "-fx-padding: 3 8; -fx-background-radius: 12;";
+            case "CANCELLED":
+                return "-fx-background-color: #6c757d; -fx-text-fill: white; "
+                        + "-fx-font-size: 10; -fx-font-weight: bold; "
+                        + "-fx-padding: 3 8; -fx-background-radius: 12;";
+            default:
+                return "-fx-background-color: #999; -fx-text-fill: white; "
+                        + "-fx-font-size: 10; -fx-font-weight: bold; "
+                        + "-fx-padding: 3 8; -fx-background-radius: 12;";
+        }
+    }
+
+    private void handleCheckIn(Booking booking) {
+        scenario3.SensorSystem.getInstance().simulateUserCheckIn(booking);
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText("Check-In Successful");
+        alert.setContentText("Sensor verification passed. Your booking is now ACTIVE.");
+        alert.showAndWait();
+
+        showMyBookingsView(); // refresh UI
+    }
+
+
+
 }

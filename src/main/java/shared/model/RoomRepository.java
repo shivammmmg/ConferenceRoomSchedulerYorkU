@@ -103,10 +103,15 @@ public class RoomRepository {
                 rooms.put(r.getRoomId(), r);
             }
 
-            System.out.println("[RoomRepository] Loaded " + rooms.size() + " rooms from " + path);
+            //System.out.println("[RoomRepository] Loaded " + rooms.size() + " rooms from " + path);
         } catch (Exception ex) {
             System.out.println("[RoomRepository] Failed to read rooms.csv: " + ex.getMessage());
         }
     }
+
+    public Room getById(String roomId) {
+        return rooms.get(roomId);
+    }
+
 
 }
