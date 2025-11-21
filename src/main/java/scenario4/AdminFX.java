@@ -53,6 +53,15 @@ public class AdminFX extends Application {
     private static final String NAV_INACTIVE = "-fx-background-color: transparent;";
     private static final String NAV_HOVER    = "-fx-background-color: rgba(255,255,255,0.15);";
 
+    private String loggedInEmail;
+    private String loggedInType;
+
+    public void setLoggedInAdmin(String email, String type) {
+        this.loggedInEmail = email;
+        this.loggedInType = type;
+    }
+
+
     @Override
     public void start(Stage stage) {
 
@@ -89,6 +98,22 @@ public class AdminFX extends Application {
 
         showDashboardView();
         setActiveNav(dashboardBtn);
+
+        // ----------------------------------------------
+        // ROLE-BASED ACCESS CONTROL FOR SIDEBAR BUTTONS
+        // ----------------------------------------------
+        if (loggedInType != null) {
+            if (loggedInType.equals("ADMIN")) {
+                // Normal admins → hide these
+                createAdminBtn.setVisible(false);
+                createAdminBtn.setManaged(false);
+
+                manageAdminsBtn.setVisible(false);
+                manageAdminsBtn.setManaged(false);
+            }
+            // Chief Event Coordinator sees ALL options (no need to hide anything)
+        }
+
 
         stage.show();
 
@@ -181,6 +206,12 @@ public class AdminFX extends Application {
     private void showDashboardView() {
         mainContent.getChildren().clear();
 
+        // Logged-in info
+        Label loggedIn = new Label("Logged in as: " + loggedInEmail + " (" + loggedInType + ")");
+        loggedIn.setTextFill(Color.web("#374151"));
+        loggedIn.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 14));
+
+        // Title + subtitle MUST be declared BEFORE use
         Label title    = labelH1("Admin Dashboard");
         Label subtitle = labelSub("System overview.");
 
@@ -199,7 +230,6 @@ public class AdminFX extends Application {
             else activeRooms++;
         }
 
-        // admins directly from UserManager / user.csv
         int totalAdmins = userManager.getAdminAccounts().size();
 
         HBox row1 = new HBox(20,
@@ -213,10 +243,12 @@ public class AdminFX extends Application {
                 statCard("Admins", String.valueOf(totalAdmins), "Admin accounts in the system.")
         );
 
-        VBox content = new VBox(20, title, subtitle, row1, row2);
+        VBox content = new VBox(10, loggedIn, title, subtitle, row1, row2);
+
         mainContent.getChildren().setAll(content);
         fade();
     }
+
 
     // -----------------------------------------
     // ADD ROOM
@@ -763,29 +795,6 @@ public class AdminFX extends Application {
         return box;
     }
 
-    private void alertWarning(String msg) {
-        Alert a = new Alert(Alert.AlertType.WARNING);
-        a.setHeaderText(null);
-        a.setTitle("Warning");
-        a.setContentText(msg);
-        a.showAndWait();
-    }
-
-    private void alertError(String msg) {
-        Alert a = new Alert(Alert.AlertType.ERROR);
-        a.setHeaderText(null);
-        a.setTitle("Error");
-        a.setContentText(msg);
-        a.showAndWait();
-    }
-
-    private void alertSuccess(String msg) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
-        a.setHeaderText(null);
-        a.setTitle("Success");
-        a.setContentText(msg);
-        a.showAndWait();
-    }
 
     public static void main(String[] args) {
         launch();
@@ -815,4 +824,31 @@ public class AdminFX extends Application {
             f.set(r, b);
         } catch (Exception ignored) {}
     }
+
+    private void showPopup(Alert.AlertType type, String title, String msg) {
+        Alert alert = new Alert(type);
+        alert.setHeaderText(title);
+        alert.setTitle(title);
+        alert.setContentText(msg);
+
+        // IMPORTANT: attach popup to this window
+        Stage stage = (Stage) mainContent.getScene().getWindow();
+        alert.initOwner(stage);
+
+        alert.showAndWait();
+    }
+
+    private void alertWarning(String msg) {
+        showPopup(Alert.AlertType.WARNING, "Warning", msg);
+    }
+
+    private void alertError(String msg) {
+        showPopup(Alert.AlertType.ERROR, "Error", msg);
+    }
+
+    private void alertSuccess(String msg) {
+        showPopup(Alert.AlertType.INFORMATION, "Success", msg);
+    }
+
+
 }

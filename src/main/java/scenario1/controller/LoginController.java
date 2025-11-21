@@ -7,6 +7,7 @@ import shared.model.SystemUser;
 import scenario1.controller.UserManager;
 import scenario1.controller.NavigationHelper;
 import shared.util.GlobalNavigationHelper;
+import scenario4.AdminFX;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
@@ -166,6 +167,17 @@ public class LoginController implements Initializable {
                 return;
             }
 
+            // NEW: Block disabled accounts
+            if (logged instanceof SystemUser) {
+                SystemUser su = (SystemUser) logged;
+
+                if (!su.isActive()) {
+                    showError("Your admin account has been disabled.\nPlease contact the Chief Event Coordinator.");
+                    return;
+                }
+            }
+
+
             SystemUser sysUser = (SystemUser) logged;
             UserType type = sysUser.getType();
 
@@ -184,9 +196,13 @@ public class LoginController implements Initializable {
                 // ADMIN + CHIEF → Scenario 4
                 case ADMIN:
                 case CHIEF_EVENT_COORDINATOR:
-                    showInfo("Redirecting to Admin Panel...");
                     try {
-                        new scenario4.AdminFX().start(new Stage());
+                        AdminFX adminUI = new AdminFX();
+                        adminUI.setLoggedInAdmin(logged.getEmail(), type.name());
+                        adminUI.start(new Stage());
+
+                        // Close login window
+                        ((Stage) loginBtn.getScene().getWindow()).close();
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         showError("Failed to load Admin Panel.");
