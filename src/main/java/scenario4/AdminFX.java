@@ -1097,7 +1097,7 @@ public class AdminFX extends Application {
                 }
 
                 Label pill = new Label(text);
-                pill.setTextFill(Color.WHITE);
+                pill.setTextFill(Color.BLACK);
                 pill.setStyle(
                         "-fx-padding: 4 12;" +
                                 "-fx-background-radius: 999;" +

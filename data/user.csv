@@ -1,5 +1,5 @@
 userId,name,email,passwordHash,userType,orgId,studentId,isActive,createdAt
-bcdfff57-8d67-4851-a083-a3985bb1a212,Chief Event Coordinator,chief@yorku.ca,Chief123@,CHIEF_EVENT_COORDINATOR,,,true,2025-11-20T17:25:42.215897
+bcdfff57-8d67-4851-a083-a3985bb1a212,Chief Event Coordinator,chief@yorku.ca,Chief1234@,CHIEF_EVENT_COORDINATOR,,,true,2025-11-20T17:25:42.215897
 b8ce0c29-1cb3-4c92-bce6-0143e3f56bf0,admin@yorku.ca,admin@yorku.ca,Admin1234@,ADMIN,,,true,2025-11-20T22:46:30.324059
 11a8c2c2-433d-410b-8c19-49fcbf52eb2d,Admin2@yorku.ca,Admin2@yorku.ca,Admin1234@,ADMIN,,,true,2025-11-20T23:31:36.110084
 eadc8daa-c599-4b9a-bdf3-b40046aebd2c,Test,test@my.yorku.ca,Test1234@,STUDENT,,123456789,true,2025-11-22T12:35:44.798356
