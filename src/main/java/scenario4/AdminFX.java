@@ -1388,19 +1388,24 @@ private VBox statCard(String title, String value, String description) {
 
         table.getItems().setAll(userManager.getAdminAccounts());
 
-        table.setRowFactory(tv -> new TableRow<>() {
-            @Override
-            protected void updateItem(SystemUser u, boolean empty) {
-                super.updateItem(u, empty);
-                if (empty || u == null) {
-                    setStyle("");
-                    return;
+        table.setRowFactory(tv -> {
+            TableRow<SystemUser> row = new TableRow<>() {
+                @Override
+                protected void updateItem(SystemUser u, boolean empty) {
+                    super.updateItem(u, empty);
+                    updateAdminRowStyle(this, u, empty, isSelected());
                 }
-                setStyle(u.isActive()
-                        ? "-fx-background-color:transparent;"
-                        : "-fx-background-color:rgba(148,163,184,0.32);");
-            }
+            };
+
+            // Keep style in sync when the row gets selected/unselected
+            row.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
+                SystemUser u = row.getItem();
+                updateAdminRowStyle(row, u, row.isEmpty(), isNowSelected);
+            });
+
+            return row;
         });
+
 
         Button delete = pillBtn("Delete", YORK_RED);
         delete.setOnAction(e -> {
@@ -1518,6 +1523,33 @@ private VBox statCard(String title, String value, String description) {
         });
 
         return c;
+    }
+    private void updateAdminRowStyle(TableRow<SystemUser> row,
+                                     SystemUser u,
+                                     boolean empty,
+                                     boolean selected) {
+
+        if (empty || u == null) {
+            row.setStyle("");
+            return;
+        }
+
+        if (selected) {
+            // Selected row – soft York-red tinted highlight
+            row.setStyle(
+                    "-fx-background-color: rgba(186,12,47,0.12);"
+            );
+        } else if (!u.isActive()) {
+            // Disabled admin – keep your grey stripe
+            row.setStyle(
+                    "-fx-background-color: rgba(148,163,184,0.32);"
+            );
+        } else {
+            // Active admin – transparent background
+            row.setStyle(
+                    "-fx-background-color: transparent;"
+            );
+        }
     }
 
 

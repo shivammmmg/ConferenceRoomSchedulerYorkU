@@ -41,24 +41,39 @@ public class BookingManager {
     // =========================================================
 
     // You can tweak these numbers freely – UI will just display them.
-    private static final double STUDENT_RATE = 15.0;
-    private static final double FACULTY_RATE = 22.0;
-    private static final double STAFF_RATE   = 20.0;
-    private static final double PARTNER_RATE = 30.0;
-    private static final double DEFAULT_RATE = 18.0;
+    // Req3: Hourly rates (students 20, faculty 30, staff 40, partners 50)
+    // Req3: Hourly rates
+// Students: 20, Faculty: 30, Staff: 40, Partners: 50
+    private static final double STUDENT_RATE = 20.0;
+    private static final double FACULTY_RATE = 30.0;
+    private static final double STAFF_RATE   = 40.0;
+    private static final double PARTNER_RATE = 50.0;
+
+    // Default: use student rate for any new/unknown type (Req1: flexibility to add types)
+    private static final double DEFAULT_RATE = STUDENT_RATE;
+
 
     /** Returns the hourly rate based on user type. */
     public double getHourlyRateForUserType(String userType) {
-        if (userType == null) return DEFAULT_RATE;
+        if (userType == null || userType.isBlank()) {
+            return DEFAULT_RATE;
+        }
 
-        switch (userType.toUpperCase()) {
-            case "STUDENT": return STUDENT_RATE;
-            case "FACULTY": return FACULTY_RATE;
-            case "STAFF":   return STAFF_RATE;
-            case "PARTNER": return PARTNER_RATE;
-            default:        return DEFAULT_RATE;
+        switch (userType.trim().toUpperCase()) {
+            case "STUDENT":
+                return STUDENT_RATE;
+            case "FACULTY":
+                return FACULTY_RATE;
+            case "STAFF":
+                return STAFF_RATE;
+            case "PARTNER":
+                return PARTNER_RATE;
+            default:
+                // Future account types fall back to DEFAULT_RATE
+                return DEFAULT_RATE;
         }
     }
+
 
     /**
      * Deposit rule used in the UI:
