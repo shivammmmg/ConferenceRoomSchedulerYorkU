@@ -183,6 +183,25 @@ public class Booking {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm");
         return startTime.format(fmt) + " - " + endTime.format(fmt);
     }
+    public boolean overlapsInterval(LocalDateTime otherStart, LocalDateTime otherEnd) {
+        if (otherStart == null || otherEnd == null) return false;
+        // [startTime, endTime) overlaps [otherStart, otherEnd)
+        return startTime.isBefore(otherEnd) && endTime.isAfter(otherStart);
+    }
+
+    /**
+     * Extend this booking's end time.
+     * New end must be strictly after the current end.
+     */
+    public void extendTo(LocalDateTime newEndTime) {
+        if (newEndTime == null) {
+            throw new IllegalArgumentException("New end time cannot be null");
+        }
+        if (!newEndTime.isAfter(endTime)) {
+            throw new IllegalArgumentException("New end time must be after current end time");
+        }
+        this.endTime = newEndTime;
+    }
 
     /**
      * Serializes the booking to CSV format.

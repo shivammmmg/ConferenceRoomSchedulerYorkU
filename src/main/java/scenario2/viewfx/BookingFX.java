@@ -19,6 +19,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import java.util.Optional;
+
 
 
 import shared.util.GlobalNavigationHelper;
@@ -1857,6 +1859,9 @@ public class BookingFX extends Application {
         );
 
         HBox buttonBox = new HBox(10);
+        // after the check-in button section:
+        addExtensionButtonIfEligible(buttonBox, booking);
+
 
         // ======================= Scenario 3: Check-In Button =======================
         LocalDateTime now = LocalDateTime.now();
@@ -1878,13 +1883,14 @@ public class BookingFX extends Application {
 
             LocalDateTime deadline = latestCheckIn;
 
-            // Create timer reference as array so it can be stopped inside lambda
             final Timeline[] countdownTimer = new Timeline[1];
 
             countdownTimer[0] = new Timeline(
                     new KeyFrame(Duration.seconds(1), ev -> {
 
-                        long secondsLeft = java.time.Duration.between(LocalDateTime.now(), deadline).getSeconds();
+                        long secondsLeft = java.time.Duration
+                                .between(LocalDateTime.now(), deadline)
+                                .getSeconds();
 
                         if (secondsLeft <= 0) {
                             countdownLabel.setText("Check-in window closed");
@@ -1928,21 +1934,17 @@ public class BookingFX extends Application {
 
             checkInBtn.setOnAction(e -> {
                 try {
-                    // Stop countdown
                     countdownTimer[0].stop();
 
-                    // Process check-in
                     RoomStatusManager.getInstance().checkIn(
                             booking.getBookingId(),
                             booking.getRoomId(),
                             booking.getUserId()
                     );
 
-                    // Standard popup (Scenario 1 style)
                     showAlert("Check-In Successful",
                             "Sensor verified. Room is now marked as IN USE.");
 
-                    // Refresh UI
                     showMyBookingsView();
 
                 } catch (Exception ex) {
@@ -1950,14 +1952,12 @@ public class BookingFX extends Application {
                 }
             });
 
-
             buttonBox.getChildren().add(checkInBtn);
             buttonBox.getChildren().add(countdownLabel);
         }
         // ⭐ FIX 1 — CLOSE allowCheckIn IF
 
-
-        // ======================= Edit + Cancel =======================
+        // ======================= Edit / Cancel / Extend =======================
         if ("CONFIRMED".equals(booking.getStatus())
                 || "PENDING_PAYMENT".equals(booking.getStatus())) {
 
@@ -1981,13 +1981,156 @@ public class BookingFX extends Application {
             cancelBtn.setOnAction(e2 -> showCancelModal(booking));
 
             buttonBox.getChildren().addAll(editBtn, cancelBtn);
+
+
         }
 
-
         card.getChildren().addAll(bookingInfo, buttonBox);
-
         return card;
     }
+    // after the check-in button section:
+
+
+    private long mapChoiceToMinutes(String choice) {
+        if (choice == null) return 0;
+        String c = choice.toLowerCase();
+
+        if (c.contains("15"))  return 15;
+        if (c.contains("30"))  return 30;
+        if (c.contains("45"))  return 45;
+        if (c.contains("90"))  return 90;
+        if (c.contains("120") || c.contains("2 hour")) return 120;
+        if (c.contains("60")  || c.contains("1 hour")) return 60;
+
+        return 0;
+    }// you can reuse same buffer as manager for UI hint
+    private static final int FX_EXTENSION_BUFFER_MINUTES = 10;
+
+    private void addExtensionButtonIfEligible(HBox buttonBox, Booking booking) {
+
+        LocalDateTime now  = LocalDateTime.now();
+        LocalDateTime end  = booking.getEndTime();
+        String status      = booking.getStatus();
+
+        // Only CONFIRMED / IN_USE and still before (end - buffer)
+        boolean statusOk =
+                "CONFIRMED".equals(status) || "IN_USE".equals(status);
+
+        if (!statusOk) return;
+        if (!now.isBefore(end.minusMinutes(FX_EXTENSION_BUFFER_MINUTES))) {
+            return;
+        }
+
+        Button extendBtn = new Button("Extend");
+        extendBtn.setPrefWidth(80);
+        extendBtn.setStyle(
+                "-fx-background-color: #2563eb;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-padding: 6 16;"
+        );
+        Tooltip.install(extendBtn, new Tooltip(
+                "Extend this booking if the next slot is fully available."));
+
+        extendBtn.setOnAction(e -> showExtendPrompt(booking));
+
+        buttonBox.getChildren().add(extendBtn);
+    }
+    private void showExtendPrompt(Booking booking) {
+
+        // Step 1: ask how much time to add
+        List<String> options = List.of(
+                "15 minutes",
+                "30 minutes",
+                "45 minutes",
+                "60 minutes (1 hour)",
+                "90 minutes (1.5 hours)",
+                "120 minutes (2 hours)"
+        );
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("30 minutes", options);
+        dialog.setTitle("Extend Booking");
+        dialog.setHeaderText("Extend booking " + booking.getBookingId());
+        dialog.setContentText(
+                "How much extra time would you like to add?\n\n" +
+                        "• You must request at least 10 minutes before the current end time.\n" +
+                        "• Only full 15-minute slots are allowed.\n" +
+                        "• Extension is only possible if the next slot is fully available."
+        );
+
+        Stage owner = (Stage) mainContent.getScene().getWindow();
+        dialog.initOwner(owner);
+
+        dialog.showAndWait().ifPresent(choice -> {
+
+            long extraMinutes = mapChoiceToMinutes(choice);
+            if (extraMinutes <= 0) {
+                return;
+            }
+
+            try {
+                // Check availability + calculate extra deposit
+                if (!bookingManager.canExtendBooking(booking, extraMinutes)) {
+                    showAlert("Extension Unavailable",
+                            "The room is not fully available for that extension window.\n" +
+                                    "Try a shorter extension or a different booking.");
+                    return;
+                }
+
+                double extraDeposit =
+                        bookingManager.calculateExtensionDeposit(currentUserType, extraMinutes);
+
+                LocalDateTime newEnd = booking.getEndTime().plusMinutes(extraMinutes);
+
+                // Step 2: explicitly tell them about the extra charge
+                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                confirm.setTitle("Confirm Extension");
+                confirm.setHeaderText("Confirm booking extension");
+
+                confirm.setContentText(
+                        "Current end time: " + booking.getEndTime().toLocalTime() + "\n" +
+                                "New end time:     " + newEnd.toLocalTime() + "\n" +
+                                "Extra duration:   " + choice + "\n\n" +
+                                "Additional deposit to be charged now: $" +
+                                String.format("%.2f", extraDeposit) + "\n\n" +
+                                "Do you want to proceed with this extension?"
+                );
+                confirm.initOwner(owner);
+
+                confirm.showAndWait().ifPresent(btn -> {
+                    if (btn == ButtonType.OK) {
+                        try {
+                            bookingManager.extendBooking(
+                                    booking.getBookingId(),
+                                    currentUserEmail,
+                                    extraMinutes,
+                                    currentUserType
+                            );
+
+                            showAlert(
+                                    "Extension Confirmed",
+                                    "Your booking has been extended until " +
+                                            newEnd.toLocalTime() + ".\n" +
+                                            "An additional deposit of $" +
+                                            String.format("%.2f", extraDeposit) +
+                                            " has been applied (simulated payment)."
+                            );
+
+                            showMyBookingsView();
+
+                        } catch (Exception ex) {
+                            showAlert("Extension Failed", ex.getMessage());
+                        }
+                    }
+                });
+
+            } catch (Exception ex) {
+                showAlert("Extension Error", ex.getMessage());
+            }
+        });
+    }
+
 
     // ====================== Edit Booking Dialog ======================
     private void showEditBookingModal(Booking booking) {

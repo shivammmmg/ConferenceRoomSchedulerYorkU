@@ -2,6 +2,7 @@ package scenario2.controller;
 
 import scenario2.builder.BookingBuilder;
 import shared.model.*;
+import shared.util.CSVHelper;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -21,6 +22,9 @@ public class BookingManager {
     //                    SINGLETON
     // =========================================================
     private static BookingManager instance;
+    private static final int EXTENSION_BUFFER_MINUTES = 10;  // must request ≥10 min before end
+    private static final int TIME_SLOT_MINUTES       = 15;  // your granularity
+
 
     public static synchronized BookingManager getInstance() {
         if (instance == null) {
@@ -215,6 +219,197 @@ public class BookingManager {
     private void addBookingInternal(Booking booking) {
         bookingRepo.getAllBookings().add(booking);
         bookingRepo.saveAll();
+    }
+    public double calculateExtensionDeposit(String userType, long extraMinutes) {
+        long extraHours = (long) Math.ceil(extraMinutes / 60.0);
+        return getDepositForUserTypeAndDuration(userType, extraHours);
+    }
+    public Booking findBookingById(String bookingId) {
+        for (Booking b : bookingRepo.getAllBookings()) {   // ✅ use the repo list
+            if (b.getBookingId().equals(bookingId)) {
+                return b;
+            }
+        }
+        return null;
+    }
+    public boolean canExtendBooking(Booking booking, long extraMinutes) {
+        if (booking == null) return false;
+
+        LocalDateTime now         = LocalDateTime.now();
+        LocalDateTime originalEnd = booking.getEndTime();
+
+        // 1) Must be before end - buffer (Req 9)
+        if (!now.isBefore(originalEnd.minusMinutes(EXTENSION_BUFFER_MINUTES))) {
+            return false;
+        }
+
+        // 2) Only full time-slot increments (15, 30, 45, 60 ... minutes)
+        if (extraMinutes <= 0 || extraMinutes % TIME_SLOT_MINUTES != 0) {
+            return false;
+        }
+
+        LocalDateTime newEnd = originalEnd.plusMinutes(extraMinutes);
+
+        // 3) Check if room is fully free in [originalEnd, newEnd)
+        //    (no overlap with any other booking for the same room)
+        for (Booking other : bookingRepo.getAllBookings()) {
+            if (other.getBookingId().equals(booking.getBookingId())) continue;
+            if (!other.getRoomId().equals(booking.getRoomId()))     continue;
+
+            LocalDateTime otherStart = other.getStartTime();
+            LocalDateTime otherEnd   = other.getEndTime();
+
+            // overlap if:
+            //   [originalEnd, newEnd) ∩ [otherStart, otherEnd) ≠ ∅
+            boolean overlaps =
+                    originalEnd.isBefore(otherEnd) &&   // this extension starts before other ends
+                            otherStart.isBefore(newEnd);        // and other starts before extension ends
+
+            if (overlaps) {
+                // any overlap, even partial → NOT allowed (Req 9 edge case)
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public Booking extendBooking(String bookingId,
+                                 String userEmail,
+                                 long extraMinutes,
+                                 String userType) throws Exception {
+
+        Booking booking = findBookingById(bookingId);
+        if (booking == null) {
+            throw new Exception("Booking not found.");
+        }
+
+        // Ownership check (you use email as userId)
+        if (!booking.getUserId().equalsIgnoreCase(userEmail)) {
+            throw new Exception("You can only extend your own bookings.");
+        }
+
+        String status = booking.getStatus();
+        if (!"CONFIRMED".equals(status) && !"IN_USE".equals(status)) {
+            throw new Exception("Only active bookings can be extended.");
+        }
+
+        if (!canExtendBooking(booking, extraMinutes)) {
+            throw new Exception("Room is not available for that extension window " +
+                    "or the request is too close to the end time.");
+        }
+
+        double additionalDeposit = calculateExtensionDeposit(userType, extraMinutes);
+
+        // Apply the extension
+        booking.setEndTime(booking.getEndTime().plusMinutes(extraMinutes));
+        booking.setDepositAmount(
+                booking.getDepositAmount() + additionalDeposit
+        );
+
+        // If you store overall payment or history, update that here.
+        // TODO: persist to CSV/DB if that's what you normally do here.
+
+        return booking;
+    }
+
+    public Booking extendBooking(String bookingId,
+                                 LocalDateTime newEndTime,
+                                 double extraAmount) throws Exception {
+
+        // 1) load all bookings
+        List<Booking> all = CSVHelper.loadBookings("data/bookings.csv");
+
+        // 2) find the one we are extending
+        Booking target = null;
+        for (Booking b : all) {
+            if (b.getBookingId().equals(bookingId)) {
+                target = b;
+                break;
+            }
+        }
+
+        if (target == null) {
+            throw new IllegalArgumentException("Booking not found: " + bookingId);
+        }
+
+        // Only allow extending ACTIVE / CONFIRMED type statuses
+        String st = target.getStatus() == null ? "" : target.getStatus().toUpperCase();
+        if (!(st.contains("ACTIVE") || st.contains("CONFIRMED"))) {
+            throw new IllegalStateException("Only active/confirmed bookings can be extended.");
+        }
+
+        LocalDateTime oldEnd = target.getEndTime();
+
+        if (!newEndTime.isAfter(oldEnd)) {
+            throw new IllegalArgumentException("New end time must be after current end time.");
+        }
+
+        // 3) conflict check ONLY on the extra interval [oldEnd, newEndTime)
+        for (Booking other : all) {
+            if (other == target) continue;
+            if (!other.getRoomId().equals(target.getRoomId())) continue;
+
+            // Only clash if other booking overlaps the extension window
+            if (other.overlapsInterval(oldEnd, newEndTime)) {
+                throw new IllegalStateException(
+                        "Room " + target.getRoomId() +
+                                " is not available for extension; it is already booked in that time."
+                );
+            }
+        }
+
+        // 4) PAYMENT STEP (hook up your Payment Service here)
+        // ---------------------------------------------------
+        // Example idea (pseudo-code, so you don't get compile errors):
+        //
+        // PaymentResult result = paymentService.chargeExtension(target, extraAmount);
+        // if (!result.isSuccessful()) {
+        //     throw new IllegalStateException("Payment failed: " + result.getMessage());
+        // }
+        //
+        // For now we just assume payment succeeded:
+        target.setDepositAmount(target.getDepositAmount() + extraAmount);
+
+        // 5) actually extend the booking
+        target.extendTo(newEndTime);
+
+        // 6) save all bookings back
+        CSVHelper.saveBookings("data/bookings.csv", all);
+
+        return target;
+    }
+
+    /**
+     * Convenience method for "Extend Booking" by exactly one slot.
+     * - slotMinutes = length of one slot (e.g., 60)
+     * - pricePerSlot = how much to charge for one extra slot
+     *
+     * This matches the requirement "user may extend booking if next slot is available".
+     */
+    public Booking extendBookingOneSlot(String bookingId,
+                                        int slotMinutes,
+                                        double pricePerSlot) throws Exception {
+
+        // load again just to compute new end time based on current state
+        List<Booking> all = CSVHelper.loadBookings("data/bookings.csv");
+
+        Booking target = null;
+        for (Booking b : all) {
+            if (b.getBookingId().equals(bookingId)) {
+                target = b;
+                break;
+            }
+        }
+
+        if (target == null) {
+            throw new IllegalArgumentException("Booking not found: " + bookingId);
+        }
+
+        LocalDateTime newEnd = target.getEndTime().plusMinutes(slotMinutes);
+
+        // Re-use core logic
+        return extendBooking(bookingId, newEnd, pricePerSlot);
     }
 
     /** Saves current in-memory bookings list to CSV. */
