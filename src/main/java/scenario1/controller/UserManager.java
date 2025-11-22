@@ -276,7 +276,6 @@ public class UserManager {
         }
 
         System.out.println(String.format(borderLine, "Status", "CREATED"));
-        System.out.println(String.format(borderLine, "Saved To", CSV_PATH));
         System.out.println(String.format(borderLine, "Timestamp",
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
 
@@ -392,7 +391,7 @@ public class UserManager {
             System.out.println();
             System.out.println("┌──────────────────────────────────────── PROFILE EVENT ─────────────────────────────────────────┐");
 
-            String borderLine = "│ %-12s : %-77s │";
+            String borderLine = "│ %-12s : %-79s │";
             System.out.println(String.format(borderLine, "Action", "PASSWORD_UPDATE"));
             System.out.println(String.format(borderLine, "Change", "(hidden)"));
             System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
@@ -413,7 +412,7 @@ public class UserManager {
             System.out.println();
             System.out.println("┌──────────────────────────────────────── PROFILE EVENT ─────────────────────────────────────────┐");
 
-            String borderLine = "│ %-12s : %-77s │";
+            String borderLine = "│ %-12s : %-79s │";
             System.out.println(String.format(borderLine, "Action", "NAME_UPDATE"));
             System.out.println(String.format(borderLine, "Change", oldName + " → " + newName));
             System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
@@ -480,7 +479,7 @@ public class UserManager {
         System.out.println();
         System.out.println("┌──────────────────────────────────────── PROFILE EVENT ─────────────────────────────────────────┐");
 
-        String borderLine = "│ %-12s : %-77s │";
+        String borderLine = "│ %-12s : %-79s │";
         System.out.println(String.format(borderLine, "Action", "EMAIL_UPDATE"));
         System.out.println(String.format(borderLine, "Change", oldEmail + " → " + newEmail));
         System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));

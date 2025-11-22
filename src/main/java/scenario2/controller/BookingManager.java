@@ -286,7 +286,7 @@ public class BookingManager {
         System.out.println("");
         System.out.println("┌──────────────────────────────────────── BOOKING CREATED ─────────────────────────────────────────┐");
 
-        String logLine = "│ %-12s : %-77s │";
+        String logLine = "│ %-12s : %-81s │";
 
         System.out.println(String.format(logLine, "BookingID", bookingId));
         System.out.println(String.format(logLine, "RoomID", roomId));
@@ -357,7 +357,7 @@ public class BookingManager {
         System.out.println();
         System.out.println("┌──────────────────────────────────────── BOOKING CANCELLED ─────────────────────────────────────────┐");
 
-        String borderLine = "│ %-12s : %-77s │";
+        String borderLine = "│ %-12s : %-83s │";
 
         System.out.println(String.format(borderLine, "BookingID", bookingId));
         System.out.println(String.format(borderLine, "RoomID", booking.getRoomId()));
