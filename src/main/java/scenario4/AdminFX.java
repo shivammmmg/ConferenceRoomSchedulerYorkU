@@ -959,6 +959,31 @@ public class AdminFX extends Application {
         table.getColumns().addAll(
                 idCol, nameCol, capCol, locCol, amenCol, buildCol, statusCol
         );
+        // Color whole row based on status (persistent)
+        table.setRowFactory(tv -> {
+            TableRow<Room> row = new TableRow<>() {
+                @Override
+                protected void updateItem(Room room, boolean empty) {
+                    super.updateItem(room, empty);
+                    updateRoomRowStyle(this, room, empty);
+                }
+            };
+
+            // Re-apply style when hover / selection changes so we never lose the color
+            row.hoverProperty().addListener((obs, oldH, nowH) -> {
+                Room r = row.getItem();
+                updateRoomRowStyle(row, r, row.isEmpty());
+            });
+
+            row.selectedProperty().addListener((obs, oldS, nowS) -> {
+                Room r = row.getItem();
+                updateRoomRowStyle(row, r, row.isEmpty());
+            });
+
+            return row;
+        });
+
+
 
         // Row double-click => details popup
         table.setOnMouseClicked(e -> {
@@ -1225,6 +1250,42 @@ public class AdminFX extends Application {
     // ============================================================
     //  EDIT ROOM DIALOG (with blur)
     // ============================================================
+    private void updateRoomRowStyle(TableRow<Room> row,
+                                    Room room,
+                                    boolean empty,
+                                    boolean selected) {
+
+        if (empty || room == null) {
+            row.setStyle("");
+            return;
+        }
+
+        // If not selected → keep default white/striped look
+        if (!selected) {
+            row.setStyle("");
+            return;
+        }
+
+        String status = room.getStatus() == null ? "" : room.getStatus().toUpperCase();
+        String bg;
+
+        // Match the BUTTON colours:
+        // Enable  -> green  (#16a34a)
+        // Disable -> orange (#f97316)
+        // Maintenance -> yellow (#fbbf24)
+        if (status.contains("MAINT")) {
+            bg = "rgba(251,191,36,0.28)";   // yellow
+        } else if (status.contains("DIS")) {
+            bg = "rgba(249,115,22,0.26)";   // orange
+        } else {
+            bg = "rgba(22,163,74,0.22)";    // green
+        }
+
+        row.setStyle(
+                "-fx-background-color: " + bg + ";"
+        );
+    }
+
 
     private void openEditRoomDialog(Room room, RoomRepository repo, TableView<Room> table) {
 
@@ -1308,6 +1369,41 @@ public class AdminFX extends Application {
     // ============================================================
     //  CREATE ADMIN VIEW
     // ============================================================
+    private void updateRoomRowStyle(TableRow<Room> row,
+                                    Room room,
+                                    boolean empty) {
+
+        if (empty || room == null) {
+            row.setStyle("");
+            return;
+        }
+
+        String st = room.getStatus() == null
+                ? ""
+                : room.getStatus().toUpperCase();
+
+        // Default: white for normal/active rooms
+        String baseColor = "white";
+
+        // Match your button colours:
+        //  - Maintenance button: #fbbf24 (yellow)
+        //  - Disable button:     #f97316 (orange)
+        if (st.contains("MAINT")) {
+            baseColor = "rgba(251,191,36,0.25)";   // soft yellow
+        } else if (st.contains("DIS")) {
+            baseColor = "rgba(249,115,22,0.22)";   // soft orange
+        }
+        // (If you ever want active to be light green, you could add:
+        // else if (st.contains("ENABL") || st.contains("ACTIVE")) baseColor = "rgba(22,163,74,0.18)";
+
+        // Keep the same color, just give a tiny lift on hover
+        String extra =
+                row.isHover()
+                        ? " -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.12), 8, 0, 0, 1);"
+                        : "";
+
+        row.setStyle("-fx-background-color: " + baseColor + ";" + extra);
+    }
 
     private void showCreateAdminView() {
 

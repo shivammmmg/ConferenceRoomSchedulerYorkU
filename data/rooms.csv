@@ -1,6 +1,6 @@
-R202,Scott Library Room,30,Library Wing,Projector;VideoConference;Whiteboard,Scott Library,AVAILABLE
+R202,Scott Library Room,30,Library Wing,Projector;VideoConference;Whiteboard,Scott Library,MAINTENANCE
 R301,Accolade Room,25,East Wing,Projector;VideoConference,Accolade Building,MAINTENANCE
-R302,Student Center Room,8,Student Center,Whiteboard,Student Center,AVAILABLE
-R101,York Room,10,First Floor,Projector;Whiteboard,Launcher Building,AVAILABLE
-R102,Lassonde Room,20,Second Floor,Projector;VideoConference,Lassonde Building,AVAILABLE
+R302,Student Center Room,8,Student Center,Whiteboard,Student Center,MAINTENANCE
+R101,York Room,10,First Floor,Projector;Whiteboard,Launcher Building,DISABLED
+R102,Lassonde Room,20,Second Floor,Projector;VideoConference,Lassonde Building,DISABLED
 R201,Bergeron Room,15,Third Floor,Whiteboard,Bergeron Center,AVAILABLE
