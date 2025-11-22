@@ -1,10 +1,7 @@
 package scenario2.controller;
 
 import scenario2.builder.BookingBuilder;
-import shared.model.Booking;
-import shared.model.BookingRepository;
-import shared.model.Room;
-import shared.model.RoomRepository;
+import shared.model.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -159,7 +156,10 @@ public class BookingManager {
         List<Room> matches = new ArrayList<>();
 
         for (Room room : roomRepo.getAllRoomsList()) {
-
+            RoomStatus st = room.getStatusEnum();
+            if (st == RoomStatus.DISABLED || st == RoomStatus.MAINTENANCE) {
+                continue; // room should not be bookable
+            }
             // Capacity
             if (room.getCapacity() < capacityNeeded) continue;
 

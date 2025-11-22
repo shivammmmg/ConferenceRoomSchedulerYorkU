@@ -192,8 +192,16 @@ public class AdminFX extends Application {
         );
 
         Label title = new Label("Admin Control Panel");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
-        title.setTextFill(Color.WHITE);
+        title.setStyle("""
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-padding: 8 0 12 0;   /* increased vertical spacing */
+""");
+
+// make the text slightly wider horizontally
+        title.setScaleX(1.10);   // try 1.05–1.10 depending on how wide you want it
+
 
         Label subtitle = new Label("Room & User Management");
         subtitle.setFont(Font.font("Segoe UI", 12));
@@ -212,7 +220,7 @@ public class AdminFX extends Application {
                         "-fx-font-size: 10;"
         );
 
-        VBox header = new VBox(4, title, subtitle, roleBadge);
+        VBox header = new VBox(6, title, subtitle, roleBadge);
 
         dashboardBtn    = createNavButton("🏠  Dashboard");
         addRoomBtn      = createNavButton("➕  Add Room");
@@ -668,8 +676,14 @@ public class AdminFX extends Application {
     private VBox glassCard(String title, String desc, Node content) {
 
         Label t = new Label(title);
-        t.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
-        t.setTextFill(Color.web("#111827"));
+        t.setStyle("""
+        -fx-font-size: 15px;
+        -fx-font-weight: bold;
+        -fx-text-fill: #111827;
+    """);
+
+        // make card titles (incl. "System Health Overview") a bit wider
+        t.setScaleX(1.10);   // you can tweak: 1.03–1.10 depending how wide you like
 
         Label d = new Label(desc);
         d.setStyle("-fx-text-fill:#6b7280; -fx-font-size:11;");
@@ -1469,27 +1483,33 @@ public class AdminFX extends Application {
 
     private Label labelH1(String text) {
         Label l = new Label(text);
+        l.setWrapText(true);
+        l.setMaxWidth(Double.MAX_VALUE);
         l.setStyle("""
-        -fx-font-size: 22px;
+        -fx-font-size: 24px;
         -fx-font-weight: bold;
-        -fx-padding: 0 0 6 0;    /* bottom spacing */
-        -fx-line-spacing: 2px;
-          -fx-letter-spacing: 0.6px; /* fixes sinking */
+        -fx-padding: 4 0 8 0;
+        -fx-letter-spacing: 1.5px;    /* ADD THIS for horizontal spacing */
     """);
         return l;
     }
 
     private Label labelSub(String text) {
         Label l = new Label(text);
+        l.setWrapText(true);
+        l.setMaxWidth(Double.MAX_VALUE);
         l.setStyle("""
         -fx-font-size: 13px;
         -fx-text-fill: #6b7280;
-        -fx-padding: 0 0 16 0;   /* bottom spacing fixes the cards */
-        -fx-line-spacing: 2px;
-        -fx-letter-spacing: 0.6px;
+        -fx-padding: 0 0 24 0;
+        -fx-letter-spacing: 0.8px;    /* ADD THIS for horizontal spacing */
     """);
         return l;
     }
+
+
+
+
 
     // MAIN and ONLY formCard method — handles all cases cleanly
     private VBox formCard(Node... children) {
