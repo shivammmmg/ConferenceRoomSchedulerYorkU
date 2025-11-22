@@ -138,12 +138,14 @@ public class BookingFX extends Application {
         // ==========================================================
 
         // YorkU-style vertical gradient
+        // YorkU-style vertical gradient (matching AdminFX palette)
         Stop[] stops = {
-                new Stop(0, Color.web("#AD001D")),
-                new Stop(1, Color.web("#7A0019"))
+                new Stop(0, Color.web("#BA0C2F")), // main York red
+                new Stop(1, Color.web("#8B001A"))  // deeper shade for bottom
         };
         LinearGradient yorkGradient = new LinearGradient(
                 0, 0, 0, 1, true, CycleMethod.NO_CYCLE, stops);
+
 
         VBox leftPanel = new VBox();
         leftPanel.setAlignment(Pos.TOP_CENTER);
@@ -525,17 +527,20 @@ public class BookingFX extends Application {
         endLbl.setStyle(labelStyle);
         ComboBox<String> endBox = new ComboBox<>();
 
-        for (int hour = 8; hour <= 19; hour++) {
+        // Start time: 7am to 9:45pm
+        for (int hour = 7; hour <= 22; hour++) {
             for (int min = 0; min < 60; min += 15) {
                 startBox.getItems().add(String.format("%02d:%02d", hour, min));
             }
         }
 
-        for (int hour = 8; hour <= 20; hour++) {
+// End time: 7:15am to 10pm
+        for (int hour = 7; hour <= 22; hour++) {
             for (int min = 0; min < 60; min += 15) {
                 endBox.getItems().add(String.format("%02d:%02d", hour, min));
             }
         }
+
         applyModernFieldStyle(startBox);
         applyModernFieldStyle(endBox);
 
@@ -790,28 +795,35 @@ public class BookingFX extends Application {
     }
 
     private VBox createCancelModal() {
-        VBox modal = new VBox(18);
-        modal.setPadding(new Insets(24));
-        modal.setAlignment(Pos.CENTER);
-        modal.setMaxWidth(420);
+        VBox modal = new VBox(12);
+        modal.setPadding(new Insets(16));
+        modal.setAlignment(Pos.TOP_LEFT);
+
+        // keep it compact
+        modal.setPrefWidth(320);
+        modal.setMaxWidth(320);
+        modal.setMinWidth(280);
+
+        // IMPORTANT: height should follow content, not stretch
+        modal.setPrefHeight(Region.USE_COMPUTED_SIZE);
+        modal.setMaxHeight(Region.USE_PREF_SIZE);
 
         modal.setStyle(
                 "-fx-background-color: white;" +
-                        "-fx-background-radius: 20;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.18), 26, 0, 0, 8);"
+                        "-fx-background-radius: 16;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.18), 20, 0, 0, 6);"
         );
 
         Label title = new Label("Cancel Booking?");
-        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
         title.setTextFill(Color.web("#AD001D"));
 
         Label message = new Label();
         message.setWrapText(true);
-        message.setStyle("-fx-text-fill: #374151; -fx-font-size: 12;");
-        message.setMaxWidth(360);
+        message.setStyle("-fx-text-fill: #374151; -fx-font-size: 11;");
+        message.setMaxWidth(280);
 
-        // Buttons
-        HBox btnRow = new HBox(10);
+        HBox btnRow = new HBox(8);
         btnRow.setAlignment(Pos.CENTER_RIGHT);
 
         Button noBtn = new Button("No");
@@ -819,7 +831,7 @@ public class BookingFX extends Application {
                 "-fx-background-color: #e5e7eb;" +
                         "-fx-text-fill: #374151;" +
                         "-fx-background-radius: 999;" +
-                        "-fx-padding: 6 16;"
+                        "-fx-padding: 4 12;"
         );
 
         Button yesBtn = new Button("Yes, Cancel");
@@ -828,7 +840,7 @@ public class BookingFX extends Application {
                         "-fx-text-fill: white;" +
                         "-fx-font-weight: bold;" +
                         "-fx-background-radius: 999;" +
-                        "-fx-padding: 6 18;"
+                        "-fx-padding: 4 14;"
         );
 
         btnRow.getChildren().addAll(noBtn, yesBtn);
@@ -838,8 +850,12 @@ public class BookingFX extends Application {
         modal.setUserData(new Object[]{message, yesBtn, noBtn});
         modal.setVisible(false);
 
+        // center this compact card in the overlay
+        StackPane.setAlignment(modal, Pos.CENTER);
+
         return modal;
     }
+
 
     private VBox createConfirmationModal() {
         VBox modal = new VBox(20);
@@ -1036,8 +1052,17 @@ public class BookingFX extends Application {
 
         doneBtn.setOnAction(event -> {
             hideOverlay();
+
             if ("APPROVED".equals(booking.getPaymentStatus())) {
+                // highlight the correct tab in the sidebar
+                setActiveNav(myBookingsBtn);
+
+                // show My Bookings content
                 showMyBookingsView();
+            } else {
+                // optional: if not approved, keep them on Book Room
+                setActiveNav(bookRoomBtn);
+                showBookingView();
             }
         });
 
@@ -1149,7 +1174,7 @@ public class BookingFX extends Application {
         Label startTimeLbl = new Label("Start Time *");
         startTimeLbl.setStyle(labelStyle);
         ComboBox<String> startTimeBox = new ComboBox<>();
-        for (int hour = 8; hour <= 19; hour++) {
+        for (int hour = 7; hour <= 21; hour++) {
             for (int min = 0; min < 60; min += 15) {
                 startTimeBox.getItems().add(String.format("%02d:%02d", hour, min));
             }
@@ -1160,11 +1185,16 @@ public class BookingFX extends Application {
         Label endTimeLbl = new Label("End Time *");
         endTimeLbl.setStyle(labelStyle);
         ComboBox<String> endTimeBox = new ComboBox<>();
-        for (int hour = 8; hour <= 20; hour++) {
+        for (int hour = 7; hour <= 22; hour++) {
             for (int min = 0; min < 60; min += 15) {
+
+                // prevent anything after 22:00
+                if (hour == 22 && min > 0) continue;
+
                 endTimeBox.getItems().add(String.format("%02d:%02d", hour, min));
             }
         }
+
         endTimeBox.setValue("10:00");
         applyModernFieldStyle(endTimeBox);
 
@@ -1249,12 +1279,7 @@ public class BookingFX extends Application {
         HBox quickBox = new HBox(8);
         quickBox.setAlignment(Pos.CENTER_LEFT);
 
-        Button oneHourBtn = createPresetChip("1-hour slot",
-                () -> applyQuickDuration(startTimeBox, endTimeBox, 1));
-        Button morningBtn = createPresetChip("Morning (9–11)", () -> {
-            startTimeBox.setValue("09:00");
-            endTimeBox.setValue("11:00");
-        });
+
         Button smallGroupBtn = createPresetChip("Study group", () -> {
             capacitySpinner.getValueFactory().setValue(6);
             if (purposeArea.getText() == null || purposeArea.getText().isBlank()) {
@@ -1268,8 +1293,27 @@ public class BookingFX extends Application {
                 purposeArea.setText("Presentation / talk with slides");
             }
         });
+        Button afternoonBtn = createPresetChip("Afternoon session", () -> {
+            capacitySpinner.getValueFactory().setValue(
+                    Math.max(capacitySpinner.getValue(), 4)
+            );
 
-        quickBox.getChildren().addAll(oneHourBtn, morningBtn, smallGroupBtn, presentationBtn);
+            if (purposeArea.getText() == null || purposeArea.getText().isBlank()) {
+                purposeArea.setText("Afternoon work session");
+            }
+        });
+
+
+        Button teamMeetingBtn = createPresetChip("Team Meeting", () -> {
+            capacitySpinner.getValueFactory().setValue(
+                    Math.max(capacitySpinner.getValue(), 4));
+            if (purposeArea.getText() == null || purposeArea.getText().isBlank()) {
+                purposeArea.setText("Team meeting / discussion");
+            }
+        });
+
+
+        quickBox.getChildren().addAll(smallGroupBtn, presentationBtn,afternoonBtn, teamMeetingBtn);
         VBox quickPresetsRow = new VBox(4, quickLbl, quickBox);
 
         Label requiredNote = new Label("* Required fields");
