@@ -3,6 +3,9 @@ package scenario4.controller;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 import shared.model.Room;
 import shared.model.RoomRepository;
 
@@ -54,6 +57,29 @@ public class AddRoomController {
         // SAVE to repository + CSV
         repo.addRoom(room);
         repo.saveToCSV();
+
+        // ========== ROOM CREATED LOG =========
+
+// After repo.saveToCSV();
+
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        System.out.println();
+        System.out.println("┌──────────────────────────────────────── ROOM CREATED ─────────────────────────────────────────┐");
+
+        String line = "│ %-12s : %-77s │";
+        System.out.println(String.format(line, "RoomID", id));
+        System.out.println(String.format(line, "Name", name));
+        System.out.println(String.format(line, "Capacity", capText));
+        System.out.println(String.format(line, "Location", location));
+        System.out.println(String.format(line, "Amenities", amenities));
+        System.out.println(String.format(line, "Building", building));
+        System.out.println(String.format(line, "Timestamp", now.format(fmt)));
+
+        System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println();
+
 
         showAlert("Room added successfully!");
 

@@ -8,6 +8,10 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+
 import shared.model.SystemUser;
 import scenario1.controller.UserManager;
 
@@ -94,9 +98,28 @@ public class ManageAdminsController {
         boolean removed = userManager.deleteAdminByEmail(selected.getEmail());
 
         if (removed) {
+
+            // =============== ADMIN DELETED LOG ====================
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+            System.out.println();
+            System.out.println("┌──────────────────────────────────────── ADMIN DELETED ─────────────────────────────────────────┐");
+
+            String borderLine = "│ %-12s : %-77s │";
+
+            System.out.println(String.format(borderLine, "Email", selected.getEmail()));
+            System.out.println(String.format(borderLine, "Status", "DELETED"));
+            System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+            System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────┘");
+            System.out.println();
+            // ======================================================
+
             adminTable.getItems().remove(selected);
         }
     }
+
 
     // -------------------------------------------------------------
     // ENABLE/DISABLE ADMIN (updates user.csv)
@@ -110,19 +133,38 @@ public class ManageAdminsController {
             return;
         }
 
-        // Flip active flag
-        selected.setActive(!selected.isActive());
+        boolean oldState = selected.isActive();
+        selected.setActive(!oldState);
 
         try {
-            // Save to CSV (reusing updateProfile to persist list)
             userManager.updateProfile(selected, selected.getName(), selected.getPasswordHash());
         } catch (Exception e) {
             e.printStackTrace();
             showWarning("Failed to update admin status.");
+            return;
         }
 
         adminTable.refresh();
+
+        // =============== ADMIN STATUS TOGGLE LOG ====================
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        System.out.println();
+        System.out.println("┌──────────────────────────────────────── ADMIN STATUS ──────────────────────────────────────────┐");
+
+        String borderLine = "│ %-12s : %-77s │";
+
+        System.out.println(String.format(borderLine, "Email", selected.getEmail()));
+        System.out.println(String.format(borderLine, "Change",
+                (oldState ? "ACTIVE → DISABLED" : "DISABLED → ACTIVE")));
+        System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+        System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println();
+        // ============================================================
     }
+
 
     // -------------------------------------------------------------
     // UTIL

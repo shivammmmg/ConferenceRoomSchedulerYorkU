@@ -225,37 +225,64 @@ public class ForgotPasswordController implements Initializable {
             LocalDateTime now = LocalDateTime.now();
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+
+            // EMPTY EMAIL
             if (email.isEmpty()) {
-                System.out.println("----- Forgot Password Log -----");
-                System.out.println("[RESET] Email: (empty)");
-                System.out.println("[RESET] Status: FAILED");
-                System.out.println("[RESET] Reason: No email entered");
-                System.out.println("[RESET] Time: " + now.format(fmt));
-                System.out.println("--------------------------------");
+
+                System.out.println("");
+                System.out.println("┌──────────────────────────────────── FORGOT PASSWORD ─────────────────────────────────────────┐");
+
+                String border = "│ %-12s : %-77s │";
+
+                System.out.println(String.format(border, "Email", "(empty)"));
+                System.out.println(String.format(border, "Status", "FAILED"));
+                System.out.println(String.format(border, "Reason", "No email entered"));
+                System.out.println(String.format(border, "Timestamp", now.format(fmt)));
+
+                System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────┘");
+                System.out.println("");
+
                 showError("Please enter your email.");
                 return;
             }
 
+            // EMAIL NOT REGISTERED
             if (!UserManager.getInstance().checkIfEmailRegistered(email)) {
-                System.out.println("----- Forgot Password Log -----");
-                System.out.println("[RESET] Email: " + email);
-                System.out.println("[RESET] Status: FAILED");
-                System.out.println("[RESET] Reason: Email not registered");
-                System.out.println("[RESET] Time: " + now.format(fmt));
-                System.out.println("--------------------------------");
+
+                System.out.println("");
+                System.out.println("┌──────────────────────────────────── FORGOT PASSWORD ─────────────────────────────────────────┐");
+
+                String border = "│ %-12s : %-77s │";
+
+                System.out.println(String.format(border, "Email", email));
+                System.out.println(String.format(border, "Status", "FAILED"));
+                System.out.println(String.format(border, "Reason", "Email not registered"));
+                System.out.println(String.format(border, "Timestamp", now.format(fmt)));
+
+                System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────┘");
+                System.out.println("");
+
                 showError("No account found with this email.");
                 return;
             }
 
-            System.out.println("----- Forgot Password Log -----");
-            System.out.println("[RESET] Email: " + email);
-            System.out.println("[RESET] Status: SUCCESS");
-            System.out.println("[RESET] Message: Reset instructions sent");
-            System.out.println("[RESET] Time: " + now.format(fmt));
-            System.out.println("--------------------------------");
+            // SUCCESS
+            System.out.println("");
+            System.out.println("┌──────────────────────────────────── FORGOT PASSWORD ─────────────────────────────────────────┐");
+
+            String border = "│ %-12s : %-77s │";
+
+            System.out.println(String.format(border, "Email", email));
+            System.out.println(String.format(border, "Status", "SUCCESS"));
+            System.out.println(String.format(border, "Message", "Reset instructions sent"));
+            System.out.println(String.format(border, "Timestamp", now.format(fmt)));
+
+            System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────┘");
+            System.out.println("");
 
             showInfo("Password reset instructions sent (simulated).");
             emailField.clear();
+
         });
     }
 

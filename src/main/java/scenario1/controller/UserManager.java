@@ -262,14 +262,27 @@ public class UserManager {
         CSVHelper.saveUsers(CSV_PATH, users);
 
         // === Version 1 Registration Log ===
-        System.out.println("----- User Registration Log -----");
-        System.out.println("[UserAdd] Name: \"" + name + "\"");
-        System.out.println("[UserAdd] Email: \"" + email + "\"");
-        System.out.println("[UserAdd] Type: " + userType);
-        if (userType == UserType.STUDENT)
-            System.out.println("[UserAdd] StudentID: " + studentId);
-        System.out.println("[UserAdd] Saved to: " + CSV_PATH);
-        System.out.println("---------------------------------");
+        System.out.println("");
+        System.out.println("┌──────────────────────────────────── USER REGISTRATION ───────────────────────────────────────┐");
+
+        String borderLine = "│ %-12s : %-77s │";
+
+        System.out.println(String.format(borderLine, "Name", name));
+        System.out.println(String.format(borderLine, "Email", email));
+        System.out.println(String.format(borderLine, "Type", userType.name()));
+
+        if (userType == UserType.STUDENT) {
+            System.out.println(String.format(borderLine, "StudentID", studentId));
+        }
+
+        System.out.println(String.format(borderLine, "Status", "CREATED"));
+        System.out.println(String.format(borderLine, "Saved To", CSV_PATH));
+        System.out.println(String.format(borderLine, "Timestamp",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+
+        System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println("");
+
 
         return true;
     }
@@ -287,37 +300,73 @@ public class UserManager {
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+        // ---------------------------------------------
+        // ✘ Case 1: Email does NOT exist
+        // ---------------------------------------------
         if (match.isEmpty()) {
-            System.out.println("----- Login Log -----");
-            System.out.println("[LOGIN] Email: " + email);
-            System.out.println("[LOGIN] Status: FAILED");
-            System.out.println("[LOGIN] Reason: Email not registered");
-            System.out.println("[LOGIN] Time: " + now.format(fmt));
-            System.out.println("-----------------------");
+
+            System.out.println("");
+            System.out.println("┌──────────────────────────────────────── LOGIN EVENT ─────────────────────────────────────────┐");
+
+            String borderLine = "│ %-12s : %-77s │";
+
+            System.out.println(String.format(borderLine, "Email", email));
+            System.out.println(String.format(borderLine, "Status", "FAILED"));
+            System.out.println(String.format(borderLine, "Reason", "Email not registered"));
+            System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+            System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────┘");
+            System.out.println("");
+
+
             return null;
         }
 
         User u = match.get();
 
+        // ---------------------------------------------
+        // ✘ Case 2: Incorrect password
+        // ---------------------------------------------
         if (!u.getPasswordHash().equals(password)) {
-            System.out.println("----- Login Log -----");
-            System.out.println("[LOGIN] Email: " + email);
-            System.out.println("[LOGIN] Status: FAILED");
-            System.out.println("[LOGIN] Reason: Incorrect password");
-            System.out.println("[LOGIN] Time: " + now.format(fmt));
-            System.out.println("-----------------------");
+
+            System.out.println("");
+            System.out.println("┌──────────────────────────────────────── LOGIN EVENT ─────────────────────────────────────────┐");
+
+            String borderLine = "│ %-12s : %-77s │";
+
+            System.out.println(String.format(borderLine, "Email", email));
+            System.out.println(String.format(borderLine, "Status", "FAILED"));
+            System.out.println(String.format(borderLine, "Reason", "Incorrect password"));
+            System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+            System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────┘");
+            System.out.println("");
+
+
             return null;
         }
 
-        System.out.println("----- Login Log -----");
-        System.out.println("[LOGIN] Email: " + email);
-        System.out.println("[LOGIN] Status: SUCCESS");
-        System.out.println("[LOGIN] User Type: " + ((SystemUser) u).getType());
-        System.out.println("[LOGIN] Time: " + now.format(fmt));
-        System.out.println("-----------------------");
+        // ---------------------------------------------
+        // ✔ Case 3: SUCCESSFUL LOGIN
+        // ---------------------------------------------
+        System.out.println("");
+        System.out.println("┌──────────────────────────────────────── LOGIN EVENT ─────────────────────────────────────────┐");
+
+        String borderLine = "│ %-12s : %-77s │";
+
+        System.out.println(String.format(borderLine, "Email", email));
+        System.out.println(String.format(borderLine, "Role", ((SystemUser) u).getType().name()));
+        System.out.println(String.format(borderLine, "Status", "SUCCESS"));
+        System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+        System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println("");
+
+
 
         return u;
     }
+
 
 
     // ============================================================================
@@ -325,19 +374,62 @@ public class UserManager {
     // ============================================================================
     public boolean updateProfile(User user, String newName, String newPassword) throws Exception {
 
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        boolean changed = false;
+
+        // --- PASSWORD UPDATE ---
         if (newPassword != null && !newPassword.isBlank()) {
+
             if (!isStrongPassword(newPassword))
                 throw new Exception("Password is too weak.");
+
             user.setPasswordHash(newPassword);
+            CSVHelper.saveUsers(CSV_PATH, users);
+
+
+            System.out.println();
+            System.out.println("┌──────────────────────────────────────── PROFILE EVENT ─────────────────────────────────────────┐");
+
+            String borderLine = "│ %-12s : %-77s │";
+            System.out.println(String.format(borderLine, "Action", "PASSWORD_UPDATE"));
+            System.out.println(String.format(borderLine, "Change", "(hidden)"));
+            System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+            System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────┘");
+            System.out.println();
         }
 
-        if (newName != null && !newName.isBlank()) {
+
+        // --- NAME UPDATE ---
+        if (newName != null && !newName.isBlank() && !newName.equals(user.getName())) {
+
+            String oldName = user.getName();
             user.setName(newName);
+            CSVHelper.saveUsers(CSV_PATH, users);
+
+
+            System.out.println();
+            System.out.println("┌──────────────────────────────────────── PROFILE EVENT ─────────────────────────────────────────┐");
+
+            String borderLine = "│ %-12s : %-77s │";
+            System.out.println(String.format(borderLine, "Action", "NAME_UPDATE"));
+            System.out.println(String.format(borderLine, "Change", oldName + " → " + newName));
+            System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+            System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────┘");
+            System.out.println();
         }
 
-        CSVHelper.saveUsers(CSV_PATH, users);
+
+        if (changed) {
+            CSVHelper.saveUsers(CSV_PATH, users);
+        }
+
         return true;
     }
+
 
 
     // ============================================================================
@@ -374,9 +466,40 @@ public class UserManager {
                 break;
         }
 
+        // Store old email before changing
+        String oldEmail = user.getEmail();
+
+        // Update email
         user.setEmail(newEmail);
         CSVHelper.saveUsers(CSV_PATH, users);
 
+        // ===================== EMAIL UPDATE LOG (BOX FORMAT) =====================
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        System.out.println();
+        System.out.println("┌──────────────────────────────────────── PROFILE EVENT ─────────────────────────────────────────┐");
+
+        String borderLine = "│ %-12s : %-77s │";
+        System.out.println(String.format(borderLine, "Action", "EMAIL_UPDATE"));
+        System.out.println(String.format(borderLine, "Change", oldEmail + " → " + newEmail));
+        System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+        System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println();
+        // ==========================================================================
+
         return true;
     }
+
+
+    // Utility method to pad text for box formatting
+    private String pad(String text, int totalLength) {
+        if (text == null) text = "";
+        int len = text.length();
+        if (len >= totalLength) return "";
+
+        return " ".repeat(totalLength - len);
+    }
+
 }

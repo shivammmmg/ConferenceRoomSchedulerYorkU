@@ -14,6 +14,8 @@ import javafx.stage.StageStyle;
 import shared.model.Room;
 import shared.model.RoomRepository;
 import scenario4.components.RoomDetailsPopup;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class ManageRoomsController {
 
@@ -139,7 +141,21 @@ public class ManageRoomsController {
         selected.setStatus("ENABLED");
         repo.updateRoom(selected);      // persist to CSV
         roomsTable.refresh();
-        System.out.println("[ManageRooms] Enabled: " + selected.getRoomId());
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        System.out.println();
+        System.out.println("┌──────────────────────────────────────── ROOM STATUS ───────────────────────────────────────────┐");
+
+        String line = "│ %-12s : %-77s │";
+        System.out.println(String.format(line, "Action", "ENABLE"));
+        System.out.println(String.format(line, "RoomID", selected.getRoomId()));
+        System.out.println(String.format(line, "Status", "ENABLED"));
+        System.out.println(String.format(line, "Timestamp", now.format(fmt)));
+
+        System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println();
+
     }
 
     private void disableRoom() {
@@ -152,7 +168,21 @@ public class ManageRoomsController {
         selected.setStatus("DISABLED");
         repo.updateRoom(selected);      // persist to CSV
         roomsTable.refresh();
-        System.out.println("[ManageRooms] Disabled: " + selected.getRoomId());
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        System.out.println();
+        System.out.println("┌──────────────────────────────────────── ROOM STATUS ───────────────────────────────────────────┐");
+
+        String line = "│ %-12s : %-77s │";
+        System.out.println(String.format(line, "Action", "DISABLE"));
+        System.out.println(String.format(line, "RoomID", selected.getRoomId()));
+        System.out.println(String.format(line, "Status", "DISABLED"));
+        System.out.println(String.format(line, "Timestamp", now.format(fmt)));
+
+        System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println();
+
     }
 
     private void markMaintenance() {
@@ -165,7 +195,21 @@ public class ManageRoomsController {
         selected.setStatus("MAINTENANCE");
         repo.updateRoom(selected);      // persist to CSV
         roomsTable.refresh();
-        System.out.println("[ManageRooms] Maintenance: " + selected.getRoomId());
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        System.out.println();
+        System.out.println("┌──────────────────────────────────────── ROOM STATUS ───────────────────────────────────────────┐");
+
+        String line = "│ %-12s : %-77s │";
+        System.out.println(String.format(line, "Action", "MAINTENANCE"));
+        System.out.println(String.format(line, "RoomID", selected.getRoomId()));
+        System.out.println(String.format(line, "Status", "MAINTENANCE"));
+        System.out.println(String.format(line, "Timestamp", now.format(fmt)));
+
+        System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println();
+
     }
 
     // -------------------------------------------------------------
@@ -205,6 +249,22 @@ public class ManageRoomsController {
 
                 repo.updateRoom(selected);
                 roomsTable.refresh();
+
+                LocalDateTime now = LocalDateTime.now();
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+                System.out.println();
+                System.out.println("┌──────────────────────────────────────── ROOM UPDATED ───────────────────────────────────────────┐");
+
+                String line = "│ %-12s : %-77s │";
+                System.out.println(String.format(line, "RoomID", selected.getRoomId()));
+                System.out.println(String.format(line, "Capacity", String.valueOf(newCap)));
+                System.out.println(String.format(line, "Location", newLoc));
+                System.out.println(String.format(line, "Timestamp", now.format(fmt)));
+
+                System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────────┘");
+                System.out.println();
+
                 stage.close();
 
             } catch (Exception ex) {

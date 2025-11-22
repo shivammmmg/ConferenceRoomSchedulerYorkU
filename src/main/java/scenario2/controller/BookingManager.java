@@ -5,6 +5,7 @@ import shared.model.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -277,6 +278,31 @@ public class BookingManager {
 
         // Use internal add + save, compatible with BookingRepository
         addBookingInternal(booking);
+
+        // ===================== BOOKING LOG (SUCCESS) ============================
+        LocalDateTime logNow = LocalDateTime.now();
+        DateTimeFormatter logFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        System.out.println("");
+        System.out.println("┌──────────────────────────────────────── BOOKING CREATED ─────────────────────────────────────────┐");
+
+        String logLine = "│ %-12s : %-77s │";
+
+        System.out.println(String.format(logLine, "BookingID", bookingId));
+        System.out.println(String.format(logLine, "RoomID", roomId));
+        System.out.println(String.format(logLine, "User", userId));
+        System.out.println(String.format(logLine, "Start", start.toString()));
+        System.out.println(String.format(logLine, "End", end.toString()));
+        System.out.println(String.format(logLine, "Purpose", purpose));
+        System.out.println(String.format(logLine, "Deposit", String.format("$%.2f", deposit)));
+        System.out.println(String.format(logLine, "Status", "CONFIRMED"));
+        System.out.println(String.format(logLine, "Timestamp", logNow.format(logFmt)));
+
+        System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println("");
+        // =======================================================================
+
+
         return booking;
     }
 
@@ -324,6 +350,26 @@ public class BookingManager {
         booking.setPaymentStatus("REFUNDED");
 
         saveBookings();
+        // ===================== BOOKING CANCELLED LOG ============================
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        System.out.println();
+        System.out.println("┌──────────────────────────────────────── BOOKING CANCELLED ─────────────────────────────────────────┐");
+
+        String borderLine = "│ %-12s : %-77s │";
+
+        System.out.println(String.format(borderLine, "BookingID", bookingId));
+        System.out.println(String.format(borderLine, "RoomID", booking.getRoomId()));
+        System.out.println(String.format(borderLine, "User", booking.getUserId()));
+        System.out.println(String.format(borderLine, "Status", "CANCELLED"));
+        System.out.println(String.format(borderLine, "Refund", "Deposit REFUNDED"));
+        System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+        System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println();
+// =======================================================================
+
         return true;
     }
 
@@ -338,6 +384,13 @@ public class BookingManager {
         if (booking == null) {
             throw new Exception("Booking not found.");
         }
+
+        // Capture old values BEFORE editing
+        String oldRoom    = booking.getRoomId();
+        LocalDateTime oldStart = booking.getStartTime();
+        LocalDateTime oldEnd   = booking.getEndTime();
+        String oldPurpose      = booking.getPurpose();
+
 
         if (userEmail != null && !userEmail.equalsIgnoreCase(booking.getUserId())) {
             throw new Exception("You can edit only your own bookings.");
@@ -380,6 +433,27 @@ public class BookingManager {
         booking.setPurpose(newPurpose);
 
         saveBookings();
+
+        // ===================== BOOKING EDITED LOG ============================
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        System.out.println();
+        System.out.println("┌──────────────────────────────────────── BOOKING EDITED ─────────────────────────────────────────┐");
+
+        String borderLine = "│ %-12s : %-77s │";
+
+        System.out.println(String.format(borderLine, "BookingID", bookingId));
+        System.out.println(String.format(borderLine, "Room", oldRoom + " → " + newRoomId));
+        System.out.println(String.format(borderLine, "Start", oldStart + " → " + newStart));
+        System.out.println(String.format(borderLine, "End", oldEnd + " → " + newEnd));
+        System.out.println(String.format(borderLine, "Purpose", oldPurpose + " → " + newPurpose));
+        System.out.println(String.format(borderLine, "Timestamp", now.format(fmt)));
+
+        System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────────┘");
+        System.out.println();
+// =======================================================================
+
     }
 
     // =========================================================
