@@ -6,6 +6,7 @@ import shared.util.CSVHelper;
 import scenario2.builder.BookingBuilder;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.io.File;
@@ -346,10 +347,33 @@ public class BookingManager {
         if (hours > 4)    throw new Exception("Max booking duration is 4 hours.");
 
         // 4. Business hours rule
-        if (startTime.getHour() < 8 || endTime.getHour() > 20 ||
-                (endTime.getHour() == 20 && endTime.getMinute() > 0)) {
-            throw new Exception("Bookings allowed only between 8:00 AM – 8:00 PM.");
+        // 4. Business hours rule (UPDATED)
+// Allowed start: 7:00 AM → 9:45 PM
+// Allowed end:   up to 10:00 PM (hard cutoff)
+// Minimum duration: 15 minutes (already enforced elsewhere)
+
+        LocalTime earliestStart = LocalTime.of(7, 0);    // 7:00 AM
+        LocalTime latestStart   = LocalTime.of(21, 45);  // 9:45 PM (last valid start)
+        LocalTime latestEnd     = LocalTime.of(22, 0);   // 10:00 PM max
+
+        LocalTime s = startTime.toLocalTime();
+        LocalTime e = endTime.toLocalTime();
+
+// Start must be within 7:00 AM → 9:45 PM
+        if (s.isBefore(earliestStart) || s.isAfter(latestStart)) {
+            throw new Exception("Bookings must start between 7:00 AM and 9:45 PM.");
         }
+
+// End must be on same day
+        if (!startTime.toLocalDate().equals(endTime.toLocalDate())) {
+            throw new Exception("Bookings must start and end on the same day.");
+        }
+
+// End cannot exceed 10:00 PM
+        if (e.isAfter(latestEnd)) {
+            throw new Exception("Bookings must end no later than 10:00 PM.");
+        }
+
 
         // 5. Deposit = 1 hour rate (Req4)
         double depositAmount = paymentService.calculateDeposit(userType);
