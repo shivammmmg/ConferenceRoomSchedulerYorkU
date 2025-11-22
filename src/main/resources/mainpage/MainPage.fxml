@@ -8,46 +8,79 @@
 <BorderPane fx:id="rootPane"
             prefWidth="1200"
             prefHeight="720"
+            styleClass="app-root"
             stylesheets="@mainpage.css"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="mainpage.MainPageController">
 
-    <!-- ========================= LEFT PANEL ========================= -->
+    <!-- ========================= LEFT PANEL (BRAND SIDEBAR) ========================= -->
     <left>
-        <VBox prefWidth="260" styleClass="left-panel" spacing="20">
+        <VBox prefWidth="260"
+              spacing="20"
+              styleClass="left-panel">
 
-            <!-- PURE LOGO -->
-            <ImageView fx:id="yorkLogo"
-                       preserveRatio="true"
-                       fitWidth="230"
-                       smooth="true"
-                       styleClass="logo-top">
-                <image>
-                    <Image url="/mainpage/images/yorku_logo.png"/>
-                </image>
-            </ImageView>
+            <!-- LOGO + MINI TAGLINE -->
+            <VBox spacing="10" alignment="TOP_LEFT" styleClass="sidebar-header">
 
-            <!-- TITLE -->
-            <Label text="YorkU Conference Room Scheduler"
-                   wrapText="true"
-                   styleClass="sidebar-title"/>
+                <ImageView fx:id="yorkLogo"
+                           preserveRatio="true"
+                           fitWidth="210"
+                           smooth="true"
+                           styleClass="logo-top">
+                    <image>
+                        <Image url="/mainpage/images/yorku_logo.png"/>
+                    </image>
+                </ImageView>
 
-            <!-- WELCOME SECTION -->
-            <VBox spacing="6" styleClass="welcome-block">
+                <Label text="Conference Room Scheduler"
+                       wrapText="true"
+                       styleClass="sidebar-title"/>
+
+                <!-- Tiny pill "Beta • Sensor-Powered" -->
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Label text="BETA"
+                           styleClass="tag-pill tag-pill-accent"/>
+                    <Label text="Sensor-powered booking"
+                           styleClass="sidebar-tagline"/>
+                </HBox>
+            </VBox>
+
+            <!-- WELCOME / USER CONTEXT -->
+            <VBox spacing="8" styleClass="welcome-block">
                 <Label text="Welcome, Guest" styleClass="welcome-title"/>
-                <Label text="Book rooms, manage meetings, and explore YorkU spaces."
+                <Label text="Reserve study spaces, meeting rooms, and event halls across YorkU — all from one place."
                        wrapText="true"
                        styleClass="welcome-desc"/>
+                <HBox spacing="8">
+                    <Label text="✨"
+                           styleClass="welcome-emoji"/>
+                    <Label text="Log in to see your upcoming bookings and personalized suggestions."
+                           wrapText="true"
+                           styleClass="welcome-mini"/>
+                </HBox>
+            </VBox>
+
+            <!-- QUICK GLANCE STATS (STATIC TEXT – CSS can style like chips) -->
+            <VBox spacing="8" styleClass="sidebar-glance">
+                <Label text="Today at a glance" styleClass="glance-title"/>
+                <Label text="• 18 rooms in use"
+                       styleClass="glance-item"/>
+                <Label text="• 4 under maintenance"
+                       styleClass="glance-item"/>
+                <Label text="• Check-ins auto-verified"
+                       styleClass="glance-item"/>
             </VBox>
 
             <Pane VBox.vgrow="ALWAYS"/>
 
             <!-- FOOTER -->
-            <VBox spacing="3" styleClass="sidebar-footer">
-                <Label text="YorkU Conference Room Scheduler" styleClass="footer-text"/>
-                <Label text="© 2025 — For educational use only." styleClass="footer-text"/>
-                <Label text="This is not an official York University system." styleClass="footer-text"/>
-
+            <VBox spacing="4" styleClass="sidebar-footer">
+                <Label text="YorkU Conference Room Scheduler"
+                       styleClass="footer-text"/>
+                <Label text="© 2025 — For educational use only."
+                       styleClass="footer-text"/>
+                <Label text="Not an official York University system."
+                       styleClass="footer-text footer-disclaimer"/>
             </VBox>
 
         </VBox>
@@ -61,64 +94,110 @@
                     hbarPolicy="NEVER"
                     styleClass="scroll-pane">
 
-            <VBox spacing="40" alignment="TOP_CENTER">
-                <padding><Insets top="30" right="30" bottom="30" left="30"/></padding>
+            <VBox spacing="40"
+                  alignment="TOP_CENTER"
+                  styleClass="main-content">
+                <padding>
+                    <Insets top="30" right="30" bottom="40" left="30"/>
+                </padding>
 
                 <!-- ========================= HERO SECTION ========================= -->
-                <HBox spacing="40" alignment="CENTER" styleClass="hero-card">
+                <HBox spacing="40"
+                      alignment="CENTER"
+                      styleClass="hero-card">
 
                     <!-- LEFT TEXT -->
-                    <VBox spacing="18" prefWidth="600" alignment="TOP_LEFT">
+                    <VBox spacing="18"
+                          prefWidth="600"
+                          alignment="TOP_LEFT">
+
+                        <!-- Badge row above hero title -->
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label text="Live on Campus"
+                                   styleClass="hero-pill hero-pill-primary"/>
+                            <Label text="Sensor-powered check-ins"
+                                   styleClass="hero-pill hero-pill-muted"/>
+                        </HBox>
 
                         <Label text="Your Campus. Your Space.&#10;Just One Click Away."
                                styleClass="hero-title"
                                wrapText="true"
                                maxWidth="420"/>
 
-                        <Label text="Find and reserve study rooms, meeting spaces, and conference halls across York University — fast, simple, and secure."
+                        <Label text="Instantly find and reserve study rooms, meeting spaces, and conference halls across York University — with live sensor data and secure payments."
                                styleClass="hero-subtitle"
                                wrapText="true"
-                               maxWidth="480"/>
+                               maxWidth="520"/>
 
-                        <Button text="Get Started"
-                                fx:id="getStartedBtn"
-                                styleClass="primary-btn"
-                                onAction="#onGetStarted"/>
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <Button text="Get Started →"
+                                    fx:id="getStartedBtn"
+                                    styleClass="primary-btn"
+                                    onAction="#onGetStarted"/>
+                        </HBox>
+
+                        <!-- Secondary hero blurb -->
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label text="⚡"
+                                   styleClass="hero-mini-emoji"/>
+                            <Label text="No more wandering for empty rooms — see availability before you leave your seat."
+                                   wrapText="true"
+                                   styleClass="hero-mini-text"/>
+                        </HBox>
                     </VBox>
 
                     <!-- HERO IMAGE -->
-                    <ImageView fitWidth="520"
-                               preserveRatio="true"
-                               smooth="true"
-                               styleClass="hero-img">
-                        <image>
-                            <Image url="/mainpage/images/hero-illustration.png"/>
-                        </image>
-                    </ImageView>
+                    <VBox spacing="12" alignment="CENTER">
+                        <ImageView fitWidth="520"
+                                   preserveRatio="true"
+                                   smooth="true"
+                                   styleClass="hero-img">
+                            <image>
+                                <Image url="/mainpage/images/hero-illustration.png"/>
+                            </image>
+                        </ImageView>
+
+                        <!-- Small legend under image -->
+                        <Label text="Illustration: live room occupancy and smart scheduling for YorkU spaces."
+                               wrapText="true"
+                               textAlignment="CENTER"
+                               styleClass="hero-caption"/>
+                    </VBox>
 
                 </HBox>
 
 
                 <!-- ========================= FEATURE STRIP ========================= -->
-                <HBox spacing="24" alignment="CENTER">
+                <HBox spacing="24"
+                      alignment="CENTER"
+                      styleClass="feature-strip">
 
-                    <VBox styleClass="feature-card" spacing="10" prefWidth="260">
-                        <Label text="📅 Smart Booking" styleClass="feature-title"/>
-                        <Label text="Search by building, capacity, or equipment — instantly find the right room."
+                    <VBox styleClass="feature-card"
+                          spacing="10"
+                          prefWidth="260">
+                        <Label text="📅 Smart Booking"
+                               styleClass="feature-title"/>
+                        <Label text="Search by building, capacity, or equipment. Apply filters in seconds and lock in the perfect space."
                                wrapText="true"
                                styleClass="feature-desc"/>
                     </VBox>
 
-                    <VBox styleClass="feature-card" spacing="10" prefWidth="260">
-                        <Label text="🎯 Real-Time Monitoring" styleClass="feature-title"/>
-                        <Label text="Sensors verify occupancy, automate check-ins, and update room status."
+                    <VBox styleClass="feature-card"
+                          spacing="10"
+                          prefWidth="260">
+                        <Label text="🎯 Real-Time Monitoring"
+                               styleClass="feature-title"/>
+                        <Label text="Sensors verify occupancy, automate check-ins, and keep room statuses always accurate."
                                wrapText="true"
                                styleClass="feature-desc"/>
                     </VBox>
 
-                    <VBox styleClass="feature-card" spacing="10" prefWidth="260">
-                        <Label text="💳 Secure Payments" styleClass="feature-title"/>
-                        <Label text="Pay easily using credit card, debit, or institutional billing."
+                    <VBox styleClass="feature-card"
+                          spacing="10"
+                          prefWidth="260">
+                        <Label text="💳 Secure Payments"
+                               styleClass="feature-title"/>
+                        <Label text="Pay deposits using credit, debit, or institutional billing — with clear, upfront hourly rates."
                                wrapText="true"
                                styleClass="feature-desc"/>
                     </VBox>
@@ -127,76 +206,103 @@
 
 
                 <!-- ========================= WHO CAN BOOK ========================= -->
-                <VBox spacing="16" alignment="CENTER" prefWidth="900">
+                <VBox spacing="16"
+                      alignment="CENTER"
+                      prefWidth="900"
+                      styleClass="section-block">
 
-                    <Label text="Who Can Book?" styleClass="section-title"/>
+                    <Label text="Who Can Book?"
+                           styleClass="section-title"/>
 
-                    <VBox styleClass="user-info-card" spacing="20" alignment="CENTER">
+                    <VBox styleClass="user-info-card"
+                          spacing="20"
+                          alignment="CENTER">
 
-                        <HBox spacing="40" alignment="CENTER">
+                        <HBox spacing="40"
+                              alignment="CENTER">
 
                             <VBox styleClass="user-type-box">
-                                <Label text="🎓" styleClass="user-type-emoji"/>
-                                <Label text="Students" styleClass="user-type-label"/>
+                                <Label text="🎓"
+                                       styleClass="user-type-emoji"/>
+                                <Label text="Students"
+                                       styleClass="user-type-label"/>
                             </VBox>
 
                             <VBox styleClass="user-type-box">
-                                <Label text="👨‍🏫" styleClass="user-type-emoji"/>
-                                <Label text="Faculty" styleClass="user-type-label"/>
+                                <Label text="👨‍🏫"
+                                       styleClass="user-type-emoji"/>
+                                <Label text="Faculty"
+                                       styleClass="user-type-label"/>
                             </VBox>
 
                             <VBox styleClass="user-type-box">
-                                <Label text="🏢" styleClass="user-type-emoji"/>
-                                <Label text="Staff" styleClass="user-type-label"/>
+                                <Label text="🏢"
+                                       styleClass="user-type-emoji"/>
+                                <Label text="Staff"
+                                       styleClass="user-type-label"/>
                             </VBox>
 
-                            <!-- FIXED EMOJI -->
                             <VBox styleClass="user-type-box">
                                 <Label>
                                     <text><![CDATA[🤝]]></text>
                                 </Label>
-                                <Label text="Partners" styleClass="user-type-label"/>
+                                <Label text="Partners"
+                                       styleClass="user-type-label"/>
                             </VBox>
 
                         </HBox>
 
-                        <Label text="Booking is open to all York University members and affiliated partners. Choose a space designed for your needs."
+                        <Label text="Booking is open to all York University members and affiliated partners. Just choose your role, verify your ID, and start reserving spaces that fit your workflow."
                                wrapText="true"
-                               maxWidth="700"
+                               maxWidth="720"
                                textAlignment="CENTER"
                                alignment="CENTER"
                                styleClass="user-desc-center"/>
-
-
                     </VBox>
 
                 </VBox>
 
 
-                <!-- ========================= WEEKLY OVERVIEW (Moved Up) ========================= -->
-                <VBox spacing="20" alignment="CENTER">
-                    <Label text="Weekly Overview" styleClass="section-title"/>
+                <!-- ========================= WEEKLY OVERVIEW ========================= -->
+                <VBox spacing="20"
+                      alignment="CENTER"
+                      styleClass="section-block">
+                    <Label text="Weekly Overview"
+                           styleClass="section-title"/>
 
-                    <HBox spacing="24" alignment="CENTER">
+                    <HBox spacing="24"
+                          alignment="CENTER">
 
-                        <VBox styleClass="stats-card" alignment="CENTER">
-                            <Label text="412" styleClass="stats-number"/>
-                            <Label text="Total Bookings" styleClass="stats-label"/>
+                        <VBox styleClass="stats-card"
+                              alignment="CENTER">
+                            <Label text="412"
+                                   styleClass="stats-number"/>
+                            <Label text="Total Bookings"
+                                   styleClass="stats-label"/>
                         </VBox>
 
-                        <VBox styleClass="stats-card" alignment="CENTER">
-                            <Label text="68" styleClass="stats-number"/>
-                            <Label text="Check-Ins" styleClass="stats-label"/>
+                        <VBox styleClass="stats-card"
+                              alignment="CENTER">
+                            <Label text="68"
+                                   styleClass="stats-number"/>
+                            <Label text="Check-Ins"
+                                   styleClass="stats-label"/>
                         </VBox>
 
-                        <VBox styleClass="stats-card" alignment="CENTER">
-                            <Label text="17" styleClass="stats-number"/>
-                            <Label text="No-Shows" styleClass="stats-label"/>
+                        <VBox styleClass="stats-card"
+                              alignment="CENTER">
+                            <Label text="17"
+                                   styleClass="stats-number"/>
+                            <Label text="No-Shows"
+                                   styleClass="stats-label"/>
                         </VBox>
 
-                        <VBox styleClass="stats-card" alignment="CENTER">
-                            <Label text="9" styleClass="stats-number"/>
-                            <Label text="Maintenance Cases" styleClass="stats-label"/>
+                        <VBox styleClass="stats-card"
+                              alignment="CENTER">
+                            <Label text="9"
+                                   styleClass="stats-number"/>
+                            <Label text="Maintenance Cases"
+                                   styleClass="stats-label"/>
                         </VBox>
 
                     </HBox>
@@ -204,63 +310,98 @@
 
 
                 <!-- ========================= LIVE ROOM STATUS ========================= -->
-                <VBox spacing="20" alignment="CENTER" prefWidth="900">
+                <VBox spacing="20"
+                      alignment="CENTER"
+                      prefWidth="900"
+                      styleClass="section-block">
 
-                    <Label text="Live Room Status (Sensor Powered)" styleClass="section-title"/>
+                    <Label text="Live Room Status (Sensor Powered)"
+                           styleClass="section-title"/>
 
-                    <HBox spacing="20" alignment="CENTER">
+                    <HBox spacing="20"
+                          alignment="CENTER">
 
                         <!-- ROOM R202 -->
                         <VBox styleClass="room-card">
-                            <Label text="Room R202" styleClass="room-title"/>
-                            <Label fx:id="cap202" text="Capacity: ?" styleClass="room-sub"/>
-                            <Label fx:id="status202" text="Loading..." styleClass="room-status-available"/>
+                            <Label text="Room R202"
+                                   styleClass="room-title"/>
+                            <Label fx:id="cap202"
+                                   text="Capacity: ?"
+                                   styleClass="room-sub"/>
+                            <Label fx:id="status202"
+                                   text="Loading..."
+                                   styleClass="room-status-available"/>
                         </VBox>
 
                         <!-- ROOM R301 -->
                         <VBox styleClass="room-card">
-                            <Label text="Room R301" styleClass="room-title"/>
-                            <Label fx:id="cap301" text="Capacity: ?" styleClass="room-sub"/>
-                            <Label fx:id="status301" text="Loading..." styleClass="room-status-busy"/>
+                            <Label text="Room R301"
+                                   styleClass="room-title"/>
+                            <Label fx:id="cap301"
+                                   text="Capacity: ?"
+                                   styleClass="room-sub"/>
+                            <Label fx:id="status301"
+                                   text="Loading..."
+                                   styleClass="room-status-busy"/>
                         </VBox>
 
                         <!-- ROOM R302 -->
                         <VBox styleClass="room-card">
-                            <Label text="Room R302" styleClass="room-title"/>
-                            <Label fx:id="cap302" text="Capacity: ?" styleClass="room-sub"/>
-                            <Label fx:id="status302" text="Loading..." styleClass="room-status-maint"/>
+                            <Label text="Room R302"
+                                   styleClass="room-title"/>
+                            <Label fx:id="cap302"
+                                   text="Capacity: ?"
+                                   styleClass="room-sub"/>
+                            <Label fx:id="status302"
+                                   text="Loading..."
+                                   styleClass="room-status-maint"/>
                         </VBox>
-
-
 
                     </HBox>
                 </VBox>
 
 
                 <!-- ========================= PRICING ========================= -->
-                <VBox spacing="20" alignment="CENTER">
-                    <Label text="Hourly Rates" styleClass="section-title"/>
+                <VBox spacing="20"
+                      alignment="CENTER"
+                      styleClass="section-block">
+                    <Label text="Hourly Rates"
+                           styleClass="section-title"/>
 
-                    <HBox spacing="20" alignment="CENTER">
+                    <HBox spacing="20"
+                          alignment="CENTER">
 
                         <VBox styleClass="price-card">
-                            <Label text="🎓 Students"/>
-                            <Label><text><![CDATA[$20 / hr]]></text></Label>
+                            <Label text="🎓 Students"
+                                   styleClass="price-label"/>
+                            <Label>
+                                <text><![CDATA[$20 / hr]]></text>
+                            </Label>
                         </VBox>
 
                         <VBox styleClass="price-card">
-                            <Label text="🏫 Faculty"/>
-                            <Label><text><![CDATA[$30 / hr]]></text></Label>
+                            <Label text="🏫 Faculty"
+                                   styleClass="price-label"/>
+                            <Label>
+                                <text><![CDATA[$30 / hr]]></text>
+                            </Label>
                         </VBox>
 
                         <VBox styleClass="price-card">
-                            <Label text="🏢 Staff"/>
-                            <Label><text><![CDATA[$40 / hr]]></text></Label>
+                            <Label text="🏢 Staff"
+                                   styleClass="price-label"/>
+                            <Label>
+                                <text><![CDATA[$40 / hr]]></text>
+                            </Label>
                         </VBox>
 
                         <VBox styleClass="price-card">
-                            <Label><text><![CDATA[🤝 Partners]]></text></Label>
-                            <Label><text><![CDATA[$50 / hr]]></text></Label>
+                            <Label>
+                                <text><![CDATA[🤝 Partners]]></text>
+                            </Label>
+                            <Label>
+                                <text><![CDATA[$50 / hr]]></text>
+                            </Label>
                         </VBox>
 
                     </HBox>
@@ -268,35 +409,55 @@
 
 
                 <!-- ========================= HOW IT WORKS ========================= -->
-                <VBox spacing="20" alignment="CENTER">
-                    <Label text="How It Works" styleClass="section-title"/>
+                <VBox spacing="20"
+                      alignment="CENTER"
+                      styleClass="section-block">
+                    <Label text="How It Works"
+                           styleClass="section-title"/>
 
-                    <HBox spacing="14" alignment="CENTER">
+                    <HBox spacing="10"
+                          alignment="CENTER"
+                          styleClass="steps-row">
 
-                        <Label><text><![CDATA[① Create Account]]></text></Label>
-                        <Label><text><![CDATA[→]]></text></Label>
-                        <Label><text><![CDATA[② Find Room]]></text></Label>
-                        <Label><text><![CDATA[→]]></text></Label>
-                        <Label><text><![CDATA[③ Pay Deposit]]></text></Label>
-                        <Label><text><![CDATA[→]]></text></Label>
-                        <Label><text><![CDATA[④ Check-In]]></text></Label>
-                        <Label><text><![CDATA[→]]></text></Label>
-                        <Label><text><![CDATA[⑤ Use Room]]></text></Label>
-                        <Label><text><![CDATA[→]]></text></Label>
-                        <Label><text><![CDATA[⑥ Extend or Finish]]></text></Label>
-
+                        <Label text="① Create Account"
+                               styleClass="step-chip"/>
+                        <Label text="→"
+                               styleClass="step-arrow"/>
+                        <Label text="② Find Room"
+                               styleClass="step-chip"/>
+                        <Label text="→"
+                               styleClass="step-arrow"/>
+                        <Label text="③ Pay Deposit"
+                               styleClass="step-chip"/>
+                        <Label text="→"
+                               styleClass="step-arrow"/>
+                        <Label text="④ Check-In"
+                               styleClass="step-chip"/>
+                        <Label text="→"
+                               styleClass="step-arrow"/>
+                        <Label text="⑤ Use Room"
+                               styleClass="step-chip"/>
+                        <Label text="→"
+                               styleClass="step-arrow"/>
+                        <Label text="⑥ Extend or Finish"
+                               styleClass="step-chip"/>
                     </HBox>
                 </VBox>
 
 
                 <!-- ========================= TESTIMONIALS ========================= -->
-                <VBox spacing="20" alignment="CENTER">
-                    <Label text="What Students Say" styleClass="section-title"/>
+                <VBox spacing="20"
+                      alignment="CENTER"
+                      styleClass="section-block">
+                    <Label text="What Students Say"
+                           styleClass="section-title"/>
 
-                    <HBox spacing="24" alignment="CENTER">
+                    <HBox spacing="24"
+                          alignment="CENTER">
 
                         <VBox styleClass="testimonial-card">
                             <Label text="“Super easy to book rooms now.”"
+                                   wrapText="true"
                                    styleClass="testimonial-text"/>
                             <Label text="- Sarah Thompson"
                                    styleClass="testimonial-author"/>
@@ -304,6 +465,7 @@
 
                         <VBox styleClass="testimonial-card">
                             <Label text="“Clean interface and fast check-ins.”"
+                                   wrapText="true"
                                    styleClass="testimonial-text"/>
                             <Label text="- David Chen"
                                    styleClass="testimonial-author"/>
@@ -311,6 +473,7 @@
 
                         <VBox styleClass="testimonial-card">
                             <Label text="“Love the live room availability!”"
+                                   wrapText="true"
                                    styleClass="testimonial-text"/>
                             <Label text="- Priya Sharma"
                                    styleClass="testimonial-author"/>
@@ -321,17 +484,19 @@
 
 
                 <!-- ========================= FOOTER ========================= -->
-                <VBox spacing="4" alignment="CENTER" styleClass="footer">
-                    <Label text="YorkU Conference Room Scheduler" styleClass="footer-text"/>
-                    <Label text="© 2025 — For educational use only. This is not an official York University system." styleClass="footer-text"/>
-                    <Label text="Help Desk | Terms &amp; Conditions | Privacy Policy" styleClass="footer-links"/>
+                <VBox spacing="4"
+                      alignment="CENTER"
+                      styleClass="footer">
+                    <Label text="YorkU Conference Room Scheduler"
+                           styleClass="footer-text"/>
+                    <Label text="© 2025 — For educational use only. This is not an official York University system."
+                           styleClass="footer-text"/>
+                    <Label text="Help Desk  •  Terms &amp; Conditions  •  Privacy Policy"
+                           styleClass="footer-links"/>
                 </VBox>
-
-
 
             </VBox>
         </ScrollPane>
     </center>
-
 
 </BorderPane>
