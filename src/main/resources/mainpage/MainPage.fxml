@@ -44,8 +44,10 @@
 
             <!-- FOOTER -->
             <VBox spacing="3" styleClass="sidebar-footer">
-                <Label text="© 2025 York University" styleClass="footer-text"/>
-                <Label text="Event Services Department" styleClass="footer-text"/>
+                <Label text="YorkU Conference Room Scheduler" styleClass="footer-text"/>
+                <Label text="© 2025 — For educational use only." styleClass="footer-text"/>
+                <Label text="This is not an official York University system." styleClass="footer-text"/>
+
             </VBox>
 
         </VBox>
@@ -208,26 +210,30 @@
 
                     <HBox spacing="20" alignment="CENTER">
 
+                        <!-- ROOM R202 -->
                         <VBox styleClass="room-card">
-                            <Label text="Room 321" styleClass="room-title"/>
-                            <Label text="Capacity: 8" styleClass="room-sub"/>
-                            <Label text="Available" styleClass="room-status-available"/>
+                            <Label text="Room R202" styleClass="room-title"/>
+                            <Label fx:id="cap202" text="Capacity: ?" styleClass="room-sub"/>
+                            <Label fx:id="status202" text="Loading..." styleClass="room-status-available"/>
                         </VBox>
 
+                        <!-- ROOM R301 -->
                         <VBox styleClass="room-card">
-                            <Label text="Room 142" styleClass="room-title"/>
-                            <Label text="Capacity: 12" styleClass="room-sub"/>
-                            <Label text="In Use" styleClass="room-status-busy"/>
+                            <Label text="Room R301" styleClass="room-title"/>
+                            <Label fx:id="cap301" text="Capacity: ?" styleClass="room-sub"/>
+                            <Label fx:id="status301" text="Loading..." styleClass="room-status-busy"/>
                         </VBox>
 
+                        <!-- ROOM R302 -->
                         <VBox styleClass="room-card">
-                            <Label text="Room 205" styleClass="room-title"/>
-                            <Label text="Capacity: 6" styleClass="room-sub"/>
-                            <Label text="Maintenance" styleClass="room-status-maint"/>
+                            <Label text="Room R302" styleClass="room-title"/>
+                            <Label fx:id="cap302" text="Capacity: ?" styleClass="room-sub"/>
+                            <Label fx:id="status302" text="Loading..." styleClass="room-status-maint"/>
                         </VBox>
+
+
 
                     </HBox>
-
                 </VBox>
 
 
@@ -316,10 +322,12 @@
 
                 <!-- ========================= FOOTER ========================= -->
                 <VBox spacing="4" alignment="CENTER" styleClass="footer">
-                    <Label text="York University — Event Services Department" styleClass="footer-text"/>
-                    <Label text="© 2025 York University. All rights reserved." styleClass="footer-text"/>
+                    <Label text="YorkU Conference Room Scheduler" styleClass="footer-text"/>
+                    <Label text="© 2025 — For educational use only. This is not an official York University system." styleClass="footer-text"/>
                     <Label text="Help Desk | Terms &amp; Conditions | Privacy Policy" styleClass="footer-links"/>
                 </VBox>
+
+
 
             </VBox>
         </ScrollPane>

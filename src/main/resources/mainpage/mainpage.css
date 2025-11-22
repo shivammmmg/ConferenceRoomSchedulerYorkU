@@ -55,8 +55,18 @@
     -fx-text-fill: rgba(255,255,255,0.85);
 }
 
-.sidebar-footer { -fx-padding: 0 20 20 20; }
-.footer-text { -fx-font-size: 11px; -fx-text-fill: rgba(255,255,255,0.75); }
+/* ------------------------------
+   Sidebar Footer (LEFT RED BAR)
+   ------------------------------ */
+.sidebar-footer {
+    -fx-padding: 0 20 20 20;
+}
+
+.sidebar-footer .footer-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(255,255,255,0.75);   /* WHITE text */
+}
+
 
 
 /* ===================================================================
@@ -209,9 +219,10 @@
 .room-title { -fx-font-size: 16px; -fx-font-weight: 700; }
 .room-sub { -fx-font-size: 12px; -fx-text-fill: #6c757d; }
 
-.room-status-available { -fx-text-fill: #0f9d58; -fx-font-weight: 600; }
-.room-status-busy { -fx-text-fill: #d93025; -fx-font-weight: 600; }
-.room-status-maint { -fx-text-fill: #f9a825; -fx-font-weight: 600; }
+.room-status-available { -fx-text-fill: #2ecc71; -fx-font-weight: bold; }
+.room-status-busy { -fx-text-fill: #e74c3c; -fx-font-weight: bold; }
+.room-status-maint { -fx-text-fill: #f1c40f; -fx-font-weight: bold; }
+
 
 
 /* ===================================================================

@@ -371,41 +371,41 @@ public class AdminFX extends Application {
     private void alertWarning(String msg) { showToast(msg, ToastType.WARNING); }
     private void alertError(String msg)   { showToast(msg, ToastType.ERROR); }
 
-// ============================================================
+    // ============================================================
 // PART 1 END
 // (Next: Dashboard View, Charts, Badges, Add/Manage Rooms…)
 // ============================================================
     // ============================================================
     //  DASHBOARD VIEW (with chart hover effects)
     // ============================================================
-private VBox statCard(String title, String value, String description) {
-    Label t = new Label(title);
-    t.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
-    t.setTextFill(Color.web("#6b7280"));
+    private VBox statCard(String title, String value, String description) {
+        Label t = new Label(title);
+        t.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
+        t.setTextFill(Color.web("#6b7280"));
 
-    Label v = new Label(value);
-    v.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
-    v.setTextFill(Color.web("#111827"));
+        Label v = new Label(value);
+        v.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
+        v.setTextFill(Color.web("#111827"));
 
-    Label d = new Label(description);
-    d.setWrapText(true);
-    d.setStyle("-fx-text-fill: #4b5563; -fx-font-size: 11;");
+        Label d = new Label(description);
+        d.setWrapText(true);
+        d.setStyle("-fx-text-fill: #4b5563; -fx-font-size: 11;");
 
-    VBox box = new VBox(4, t, v, d);
-    box.setPadding(new Insets(18));
-    box.setPrefWidth(220);
+        VBox box = new VBox(4, t, v, d);
+        box.setPadding(new Insets(18));
+        box.setPrefWidth(220);
 
-    box.setStyle(
-            "-fx-background-color: linear-gradient(to bottom,#ffffff,#f9fafb);" +
-                    "-fx-background-radius: 18;" +
-                    "-fx-border-radius: 18;" +
-                    "-fx-border-color: rgba(148,163,184,0.45);" +
-                    "-fx-border-width: 0.6;" +
-                    "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.10), 18, 0, 0, 4);"
-    );
+        box.setStyle(
+                "-fx-background-color: linear-gradient(to bottom,#ffffff,#f9fafb);" +
+                        "-fx-background-radius: 18;" +
+                        "-fx-border-radius: 18;" +
+                        "-fx-border-color: rgba(148,163,184,0.45);" +
+                        "-fx-border-width: 0.6;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.10), 18, 0, 0, 4);"
+        );
 
-    return box;
-}
+        return box;
+    }
 
     // ============================================================
 //  DASHBOARD VIEW v2.0 — Glassmorphism Edition
