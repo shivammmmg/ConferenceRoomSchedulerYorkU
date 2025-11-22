@@ -58,7 +58,7 @@
                    styleClass="card-title"/>
 
             <!-- Account Type -->
-            <Label text="Account Type" styleClass="field-label"/>
+            <Label text="User Type" styleClass="field-label"/>
             <ComboBox fx:id="typeBox" promptText="Select Type" />
 
             <!-- Full Name -->
