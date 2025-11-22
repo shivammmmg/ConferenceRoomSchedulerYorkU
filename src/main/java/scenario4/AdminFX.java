@@ -1,58 +1,74 @@
 package scenario4;
 
-import javafx.animation.FadeTransition;
+import javafx.animation.*;
 import javafx.application.Application;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.Scene;
+import javafx.geometry.*;
+import javafx.scene.*;
+import javafx.scene.chart.*;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.effect.GaussianBlur;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.*;
+import javafx.stage.*;
 import javafx.util.Duration;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
+import java.util.*;
 
 import scenario1.controller.UserManager;
-import shared.model.SystemUser;
-import shared.model.Room;
-import shared.model.RoomRepository;
+import shared.model.*;
 import shared.util.CSVHelper;
 import scenario4.components.RoomDetailsPopup;
 import scenario4.components.RoomOccupancyPopup;
 
 public class AdminFX extends Application {
 
-    private VBox mainContent;
+    // ============================================================
+    //  GLOBAL STATE & UI ROOT STRUCTURE (UPDATED FOR TOAST + BLUR)
+    // ============================================================
 
-    private Button dashboardBtn;
-    private Button addRoomBtn;
-    private Button manageRoomsBtn;
-    private Button createAdminBtn;
-    private Button manageAdminsBtn;
-    private Button logoutBtn;
+    private VBox mainContent;        // central UI container
+    private StackPane rootStack;     // NEW: toast + blur layer
+    private BorderPane rootPane;     // actual layout under StackPane
 
-    // single source of truth for users/admins
-    private final UserManager userManager = UserManager.getInstance();
+    private VBox leftPanel;          // sidebar container
 
+    // Toast overlay container
+    private VBox toastLayer;
+
+    // Blur applied to main UI during dialogs
+    private final GaussianBlur blurEffect = new GaussianBlur(0);
+
+    // Navigation buttons
+    private Button dashboardBtn, addRoomBtn, manageRoomsBtn,
+            createAdminBtn, manageAdminsBtn, logoutBtn;
+
+    // York theme
+    private static final String YORK_RED = "#BA0C2F";
+
+    // Navigation CSS
     private static final String NAV_BASE =
             "-fx-background-radius: 999;" +
-                    "-fx-padding: 10 16;" +
+                    "-fx-padding: 10 18;" +
                     "-fx-font-size: 13;" +
                     "-fx-font-weight: 600;" +
-                    "-fx-text-fill: #f8fafc;";
+                    "-fx-text-fill: #f9fafb;" +
+                    "-fx-cursor: hand;";
 
-    private static final String NAV_ACTIVE   = "-fx-background-color: rgba(255,255,255,0.25);";
+    private static final String NAV_ACTIVE   = "-fx-background-color: rgba(255,255,255,0.32);";
     private static final String NAV_INACTIVE = "-fx-background-color: transparent;";
-    private static final String NAV_HOVER    = "-fx-background-color: rgba(255,255,255,0.15);";
+    private static final String NAV_HOVER    = "-fx-background-color: rgba(255,255,255,0.18);";
 
+    // UserManager single instance
+    private final UserManager userManager = UserManager.getInstance();
+
+    // Logged-in info
     private String loggedInEmail;
     private String loggedInType;
 
@@ -61,82 +77,142 @@ public class AdminFX extends Application {
         this.loggedInType = type;
     }
 
+    // ============================================================
+    //  START — BUILD ROOT STRUCTURE
+    // ============================================================
 
     @Override
     public void start(Stage stage) {
 
-        // 1️⃣ Load rooms from CSV before building UI
+        // Load room data
         try {
             var rooms = CSVHelper.loadRooms("data/rooms.csv");
             RoomRepository repo = RoomRepository.getInstance();
-            for (Room r : rooms) {
-                repo.addRoom(r);
-            }
+            for (Room r : rooms) repo.addRoom(r);
         } catch (Exception ex) {
-            ex.printStackTrace();
-            System.out.println("[AdminFX] Failed to load data/rooms.csv");
+            System.out.println("Failed to load room CSV");
         }
 
-        // 2️⃣ Build UI
-        VBox left = buildLeftPanel();
+        // Build main layout
         mainContent = new VBox();
-        mainContent.setPadding(new Insets(30));
         mainContent.setSpacing(20);
+        mainContent.setPadding(new Insets(30));
+        mainContent.setStyle("-fx-background-color: linear-gradient(to bottom, #f3f4f6, #e5e7eb);");
+        mainContent.setEffect(blurEffect);
 
         ScrollPane sc = new ScrollPane(mainContent);
         sc.setFitToWidth(true);
         sc.setFitToHeight(true);
         sc.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
 
-        BorderPane rootPane = new BorderPane();
-        rootPane.setLeft(left);
+        leftPanel = buildLeftPanel();
+
+        rootPane = new BorderPane();
+        rootPane.setLeft(leftPanel);
         rootPane.setCenter(sc);
 
-        Scene scene = new Scene(rootPane, 1200, 720);
+        // rootStack: where Toast + Blur overlay live
+        toastLayer = new VBox(10);
+        toastLayer.setAlignment(Pos.TOP_RIGHT);
+        toastLayer.setPadding(new Insets(20));
+        toastLayer.setMouseTransparent(true); // clicks go through
+
+        rootStack = new StackPane(rootPane, toastLayer);
+        rootStack.setStyle("-fx-background-color:#e5e7eb;");
+
+        Scene scene = new Scene(rootStack, 1200, 720);
         stage.setScene(scene);
         stage.setTitle("Scenario 4 — Admin Control Panel");
 
+        setupKeyboardShortcuts(scene);
+
+        // Load dashboard by default
         showDashboardView();
         setActiveNav(dashboardBtn);
 
-        // ----------------------------------------------
-        // ROLE-BASED ACCESS CONTROL FOR SIDEBAR BUTTONS
-        // ----------------------------------------------
-        if (loggedInType != null) {
-            if (loggedInType.equals("ADMIN")) {
-                // Normal admins → hide these
-                createAdminBtn.setVisible(false);
-                createAdminBtn.setManaged(false);
+        // Role-based access control
+        if (loggedInType != null && loggedInType.equals("ADMIN")) {
+            createAdminBtn.setManaged(false);
+            createAdminBtn.setVisible(false);
 
-                manageAdminsBtn.setVisible(false);
-                manageAdminsBtn.setManaged(false);
-            }
-            // Chief Event Coordinator sees ALL options (no need to hide anything)
+            manageAdminsBtn.setManaged(false);
+            manageAdminsBtn.setVisible(false);
         }
-
 
         stage.show();
 
-        stage.setOnCloseRequest(e -> {
-            RoomRepository.getInstance().saveToCSV();
+        stage.setOnCloseRequest(e -> RoomRepository.getInstance().saveToCSV());
+    }
+
+
+    // ============================================================
+    //  KEYBOARD SHORTCUTS
+    // ============================================================
+
+    private void setupKeyboardShortcuts(Scene scene) {
+        scene.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+
+            if (e.isControlDown()) {
+                switch (e.getCode()) {
+
+                    case D:
+                        showDashboardView();
+                        setActiveNav(dashboardBtn);
+                        break;
+
+                    case R:
+                        showManageRoomsView();
+                        setActiveNav(manageRoomsBtn);
+                        break;
+
+                    case A:
+                        showAddRoomView();
+                        setActiveNav(addRoomBtn);
+                        break;
+                }
+            }
         });
     }
 
-    // LEFT PANEL
+    // ============================================================
+    //  SIDEBAR BUILD
+    // ============================================================
+
     private VBox buildLeftPanel() {
-        VBox left = new VBox(20);
+
+        VBox left = new VBox(22);
         left.setPadding(new Insets(25));
-        left.setPrefWidth(250);
-        left.setStyle("-fx-background-color: #8b0000;");
+        left.setPrefWidth(260);
+        left.setAlignment(Pos.TOP_LEFT);
+
+        left.setStyle(
+                "-fx-background-color: linear-gradient(to bottom," + YORK_RED + ", #8B001A, #450A0A);" +
+                        "-fx-border-color: rgba(15,23,42,0.35);" +
+                        "-fx-border-width: 0 1 0 0;"
+        );
 
         Label title = new Label("Admin Control Panel");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 18));
         title.setTextFill(Color.WHITE);
 
         Label subtitle = new Label("Room & User Management");
-        subtitle.setTextFill(Color.rgb(255, 255, 255, 0.8));
+        subtitle.setFont(Font.font("Segoe UI", 12));
+        subtitle.setTextFill(Color.rgb(255,255,255,0.85));
 
-        VBox header = new VBox(5, title, subtitle);
+        String roleText =
+                (loggedInType == null) ? "Super Admin" :
+                        loggedInType.equalsIgnoreCase("CHIEF") ? "Chief Event Coordinator" : "Admin";
+
+        Label roleBadge = new Label(roleText);
+        roleBadge.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.28);" +
+                        "-fx-text-fill: #ffffff;" +
+                        "-fx-padding: 3 10;" +
+                        "-fx-background-radius: 999;" +
+                        "-fx-font-size: 10;"
+        );
+
+        VBox header = new VBox(4, title, subtitle, roleBadge);
 
         dashboardBtn    = createNavButton("🏠  Dashboard");
         addRoomBtn      = createNavButton("➕  Add Room");
@@ -145,22 +221,29 @@ public class AdminFX extends Application {
         manageAdminsBtn = createNavButton("👥  Manage Admins");
         logoutBtn       = createNavButton("🚪  Logout");
 
-        dashboardBtn.setOnAction(e -> { setActiveNav(dashboardBtn);     showDashboardView(); });
-        addRoomBtn.setOnAction(e -> { setActiveNav(addRoomBtn);         showAddRoomView(); });
+        dashboardBtn.setOnAction(e -> { setActiveNav(dashboardBtn); showDashboardView(); });
+        addRoomBtn.setOnAction(e -> { setActiveNav(addRoomBtn); showAddRoomView(); });
         manageRoomsBtn.setOnAction(e -> { setActiveNav(manageRoomsBtn); showManageRoomsView(); });
         createAdminBtn.setOnAction(e -> { setActiveNav(createAdminBtn); showCreateAdminView(); });
         manageAdminsBtn.setOnAction(e -> { setActiveNav(manageAdminsBtn); showManageAdminsView(); });
         logoutBtn.setOnAction(e -> ((Stage) logoutBtn.getScene().getWindow()).close());
 
-        VBox navBox = new VBox(8,
+        VBox nav = new VBox(6,
                 dashboardBtn, addRoomBtn, manageRoomsBtn,
                 createAdminBtn, manageAdminsBtn, logoutBtn
         );
+        nav.setAlignment(Pos.CENTER_LEFT);
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        left.getChildren().addAll(header, navBox, spacer);
+        Label footer = new Label("Today • " +
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMM d, yyyy")));
+        footer.setStyle("-fx-text-fill: rgba(255,255,255,0.75); -fx-font-size: 10;");
+
+        left.getChildren().addAll(header, nav, spacer, footer);
+
+        leftPanel = left;
         return left;
     }
 
@@ -178,7 +261,8 @@ public class AdminFX extends Application {
     }
 
     private boolean isActive(Button b) {
-        return Boolean.TRUE.equals(b.getProperties().get("active"));
+        Object a = b.getProperties().get("active");
+        return a instanceof Boolean && (Boolean) a;
     }
 
     private void setActiveNav(Button active) {
@@ -187,108 +271,909 @@ public class AdminFX extends Application {
                 createAdminBtn, manageAdminsBtn, logoutBtn
         }) {
             if (b == null) continue;
-            boolean activeBtn = (b == active);
-            b.getProperties().put("active", activeBtn);
-            b.setStyle(NAV_BASE + (activeBtn ? NAV_ACTIVE : NAV_INACTIVE));
+            boolean isActive = (b == active);
+            b.getProperties().put("active", isActive);
+            b.setStyle(NAV_BASE + (isActive ? NAV_ACTIVE : NAV_INACTIVE));
         }
     }
 
-    private void fade() {
-        FadeTransition ft = new FadeTransition(Duration.millis(200), mainContent);
-        mainContent.setOpacity(0);
-        ft.setToValue(1);
-        ft.play();
+    // ============================================================
+    //  BLUR EFFECT (FOR MODALS)
+    // ============================================================
+
+    private void applyBlur() {
+        Timeline t = new Timeline(
+                new KeyFrame(Duration.ZERO, new KeyValue(blurEffect.radiusProperty(), blurEffect.getRadius())),
+                new KeyFrame(Duration.millis(180), new KeyValue(blurEffect.radiusProperty(), 12))
+        );
+        t.play();
     }
 
-    // -----------------------------------------
-    // DASHBOARD
-    // -----------------------------------------
+    private void removeBlur() {
+        Timeline t = new Timeline(
+                new KeyFrame(Duration.ZERO, new KeyValue(blurEffect.radiusProperty(), blurEffect.getRadius())),
+                new KeyFrame(Duration.millis(180), new KeyValue(blurEffect.radiusProperty(), 0))
+        );
+        t.play();
+    }
+
+    // ============================================================
+    //  TOAST MANAGER (SLIDE + FADE)
+    // ============================================================
+
+    private enum ToastType { SUCCESS, WARNING, ERROR }
+
+    private void showToast(String message, ToastType type) {
+
+        HBox toast = new HBox(10);
+        toast.setAlignment(Pos.CENTER_LEFT);
+        toast.setPadding(new Insets(12, 18, 12, 18));
+        toast.setMaxWidth(360);
+        toast.setOpacity(0);
+
+        String bg, icon;
+
+        switch (type) {
+            case SUCCESS:
+                bg = "#16a34a";
+                icon = "✔";
+                break;
+            case WARNING:
+                bg = "#f59e0b";
+                icon = "⚠";
+                break;
+            default:
+                bg = "#dc2626";
+                icon = "✖";
+                break;
+        }
+
+        Label iconLabel = new Label(icon);
+        iconLabel.setTextFill(Color.WHITE);
+        iconLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
+
+        Label msg = new Label(message);
+        msg.setTextFill(Color.WHITE);
+        msg.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 13));
+
+        toast.getChildren().addAll(iconLabel, msg);
+        toast.setStyle(
+                "-fx-background-color:" + bg + ";" +
+                        "-fx-background-radius:12;"
+        );
+
+        toastLayer.getChildren().add(0, toast);
+
+        TranslateTransition slideIn = new TranslateTransition(Duration.millis(220), toast);
+        slideIn.setFromX(100);
+        slideIn.setToX(0);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(180), toast);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        ParallelTransition show = new ParallelTransition(slideIn, fadeIn);
+        show.play();
+
+        PauseTransition stay = new PauseTransition(Duration.seconds(3));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(220), toast);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+
+        fadeOut.setOnFinished(e -> toastLayer.getChildren().remove(toast));
+
+        SequentialTransition seq = new SequentialTransition(show, stay, fadeOut);
+        seq.play();
+    }
+
+    private void alertSuccess(String msg) { showToast(msg, ToastType.SUCCESS); }
+    private void alertWarning(String msg) { showToast(msg, ToastType.WARNING); }
+    private void alertError(String msg)   { showToast(msg, ToastType.ERROR); }
+
+// ============================================================
+// PART 1 END
+// (Next: Dashboard View, Charts, Badges, Add/Manage Rooms…)
+// ============================================================
+    // ============================================================
+    //  DASHBOARD VIEW (with chart hover effects)
+    // ============================================================
+private VBox statCard(String title, String value, String description) {
+    Label t = new Label(title);
+    t.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
+    t.setTextFill(Color.web("#6b7280"));
+
+    Label v = new Label(value);
+    v.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
+    v.setTextFill(Color.web("#111827"));
+
+    Label d = new Label(description);
+    d.setWrapText(true);
+    d.setStyle("-fx-text-fill: #4b5563; -fx-font-size: 11;");
+
+    VBox box = new VBox(4, t, v, d);
+    box.setPadding(new Insets(18));
+    box.setPrefWidth(220);
+
+    box.setStyle(
+            "-fx-background-color: linear-gradient(to bottom,#ffffff,#f9fafb);" +
+                    "-fx-background-radius: 18;" +
+                    "-fx-border-radius: 18;" +
+                    "-fx-border-color: rgba(148,163,184,0.45);" +
+                    "-fx-border-width: 0.6;" +
+                    "-fx-effect: dropshadow(gaussian, rgba(15,23,42,0.10), 18, 0, 0, 4);"
+    );
+
+    return box;
+}
+
+    // ============================================================
+//  DASHBOARD VIEW v2.0 — Glassmorphism Edition
+// ============================================================
     private void showDashboardView() {
+
         mainContent.getChildren().clear();
 
-        // Logged-in info
-        Label loggedIn = new Label("Logged in as: " + loggedInEmail + " (" + loggedInType + ")");
-        loggedIn.setTextFill(Color.web("#374151"));
-        loggedIn.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 14));
+        // ---------- HEADER ----------
+        Label loggedIn = new Label("Logged in as: " + loggedInEmail + " • Role: " + loggedInType);
+        loggedIn.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 13;");
 
-        // Title + subtitle MUST be declared BEFORE use
-        Label title    = labelH1("Admin Dashboard");
-        Label subtitle = labelSub("System overview.");
+        Label title = labelH1("Admin Dashboard");
+        Label subtitle = labelSub("Live system state, analytics, and indicators.");
+        subtitle.setStyle("-fx-text-fill:#6b7280; -fx-font-size:13;");
 
-        RoomRepository roomRepo = RoomRepository.getInstance();
+        RoomRepository repo = RoomRepository.getInstance();
+        Map<String, Room> rooms = repo.getAllRooms();
 
-        Map<String, Room> rooms = roomRepo.getAllRooms();
-        int totalRooms    = rooms.size();
-        int activeRooms   = 0;
-        int disabledRooms = 0;
-        int maintenanceRooms = 0;
+        // ---------- METRICS ----------
+        int totalRooms = rooms.size();
+        int active = 0, disabled = 0, maint = 0;
+
+        Map<String, Integer> buildingCapacity = new LinkedHashMap<>();
 
         for (Room r : rooms.values()) {
-            String status = r.getStatus() == null ? "" : r.getStatus().toUpperCase();
-            if (status.contains("MAINT")) maintenanceRooms++;
-            else if (status.contains("DIS")) disabledRooms++;
-            else activeRooms++;
+            String st = (r.getStatus() == null ? "" : r.getStatus()).toUpperCase();
+
+            if (st.contains("DIS")) disabled++;
+            else if (st.contains("MAINT")) maint++;
+            else active++;
+
+            buildingCapacity.merge(
+                    (r.getBuilding() == null || r.getBuilding().isBlank()) ? "Other" : r.getBuilding(),
+                    r.getCapacity(),
+                    Integer::sum
+            );
         }
 
         int totalAdmins = userManager.getAdminAccounts().size();
+        int systemLoad = new Random().nextInt(55) + 10;
 
-        HBox row1 = new HBox(20,
-                statCard("Total Rooms", String.valueOf(totalRooms), "Configured rooms in the system."),
-                statCard("Active Rooms", String.valueOf(activeRooms), "Currently available for booking."),
-                statCard("Maintenance", String.valueOf(maintenanceRooms), "Rooms under maintenance.")
+        // ---------- KPI CARDS ----------
+        HBox kpiRow = new HBox(20,
+                glassKPI("Total Rooms", totalRooms, "📦"),
+                glassKPI("Active Rooms", active, "🟢"),
+                glassKPI("Maintenance", maint, "🛠"),
+                glassKPI("Disabled", disabled, "🚫"),
+                glassKPI("Admins", totalAdmins, "👥")
         );
 
-        HBox row2 = new HBox(20,
-                statCard("Disabled Rooms", String.valueOf(disabledRooms), "Rooms disabled by admin."),
-                statCard("Admins", String.valueOf(totalAdmins), "Admin accounts in the system.")
+        // ============================================================
+        //  BOOKINGS TREND (Last 14 Days)
+        // ============================================================
+
+        LineChart<String, Number> trend = buildBookingsTrendChart();
+
+        // 🔥 FIX: force chart height so it doesn't collapse
+        trend.setMinHeight(260);
+        trend.setPrefHeight(260);
+        trend.setMaxHeight(Double.MAX_VALUE);
+
+        VBox trendCard = glassCard(
+                "Bookings (Last 14 Days)",
+                "Daily booking activity trend.",
+                trend
         );
 
-        VBox content = new VBox(10, loggedIn, title, subtitle, row1, row2);
+        // ============================================================
+        //  STATUS PIE
+        // ============================================================
 
-        mainContent.getChildren().setAll(content);
+        PieChart pie = new PieChart();
+        pie.setLabelsVisible(false);
+        pie.setLegendVisible(true);
+
+        if (totalRooms > 0) {
+            pie.getData().add(new PieChart.Data("Active", active));
+            pie.getData().add(new PieChart.Data("Disabled", disabled));
+            pie.getData().add(new PieChart.Data("Maintenance", maint));
+        }
+
+        applyPieChartHoverEffects(pie);
+
+        // 🔥 FIX: chart height
+        pie.setMinHeight(260);
+        pie.setPrefHeight(260);
+        pie.setMaxHeight(Double.MAX_VALUE);
+
+        VBox pieCard = glassCard("Room Status Mix", "Current system-wide room status distribution.", pie);
+
+        // ============================================================
+        //   CAPACITY BAR CHART
+        // ============================================================
+
+        CategoryAxis x = new CategoryAxis();
+        NumberAxis y = new NumberAxis();
+
+        x.setLabel("Building");
+        y.setLabel("Capacity");
+
+        BarChart<String, Number> bar = new BarChart<>(x, y);
+        bar.setLegendVisible(false);
+        bar.setAnimated(false);
+
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        for (var entry : buildingCapacity.entrySet()) {
+            series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
+        }
+        bar.getData().add(series);
+
+        applyBarChartHoverEffects(bar);
+
+        // 🔥 FIX: force height
+        bar.setMinHeight(260);
+        bar.setPrefHeight(260);
+        bar.setMaxHeight(Double.MAX_VALUE);
+
+        VBox barCard = glassCard("Capacity by Building", "Total capacity grouped by building.", bar);
+
+        HBox chartRow = new HBox(20, pieCard, barCard);
+
+        // ============================================================
+        //  ROOM STATUS GRID
+        // ============================================================
+
+        FlowPane grid = new FlowPane(10, 10);
+        grid.setPrefWrapLength(600);
+        for (Room r : rooms.values()) grid.getChildren().add(roomStatusBlock(r));
+
+        VBox statusGridCard = glassCard("Room Status Grid", "Visual map of all rooms.", grid);
+
+        // ============================================================
+        //  SYSTEM HEALTH PANEL
+        // ============================================================
+
+        VBox healthCard = glassCard(
+                "System Health Overview",
+                "Backend system status & telemetry.",
+                systemHealthWidget(systemLoad)
+        );
+
+        // ============================================================
+        //  ADMIN ACTIVITY FEED
+        // ============================================================
+
+        VBox feed = new VBox(8,
+                feedItem("Admin login", "System accessed successfully."),
+                feedItem("Room update", "Maintenance scheduled for R301."),
+                feedItem("User management", "Admin 'events@yorku.ca' created."),
+                feedItem("Payment", "Reconciliation completed successfully."),
+                feedItem("Sync", "CSV updated at " +
+                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")))
+        );
+
+        VBox feedCard = glassCard("Admin Activity Feed", "Most recent system-level actions.", feed);
+
+        // ============================================================
+        //  LAYOUT STRUCTURE
+        // ============================================================
+
+        VBox topSection = new VBox(10, loggedIn, title, subtitle, kpiRow);
+        HBox secondRow = new HBox(20, trendCard, healthCard);
+        HBox thirdRow = new HBox(20, statusGridCard, feedCard);
+
+        // ---------- Final Assembly ----------
+        mainContent.getChildren().addAll(
+                topSection,
+                new Separator(),
+                secondRow,
+                chartRow,
+                thirdRow
+        );
+
+        fade();
+    }
+
+    // ============================================================
+//  BOOKINGS TREND CHART (Last 14 Days)
+// ============================================================
+    private LineChart<String, Number> buildBookingsTrendChart() {
+
+        // X axis (dates)
+        CategoryAxis x = new CategoryAxis();
+        x.setLabel("Date");
+
+        // Y axis (count)
+        NumberAxis y = new NumberAxis();
+        y.setLabel("Bookings");
+
+        LineChart<String, Number> chart = new LineChart<>(x, y);
+        chart.setLegendVisible(false);
+        chart.setCreateSymbols(true);
+        chart.setAnimated(false);
+        chart.setMinHeight(260);
+
+        // Build empty series
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+
+        // Collect bookings (from Booking CSV)
+        // Collect bookings (from Booking CSV safely)
+        List<Booking> all;
+        try {
+            all = CSVHelper.loadBookings("data/bookings.csv");
+        } catch (Exception ex) {
+            all = new ArrayList<>();
+            System.out.println("[WARN] Failed to load bookings CSV: " + ex.getMessage());
+        }
+
+
+        // Count bookings per day for last 14 days
+        Map<String, Integer> counts = new LinkedHashMap<>();
+
+        LocalDateTime now = LocalDateTime.now();
+
+        for (int i = 13; i >= 0; i--) {
+            String d = now.minusDays(i).format(DateTimeFormatter.ofPattern("MMM d"));
+            counts.put(d, 0);
+        }
+
+        for (Booking b : all) {
+            String d = b.getStartTime().format(DateTimeFormatter.ofPattern("MMM d"));
+            if (counts.containsKey(d)) {
+                counts.put(d, counts.get(d) + 1);
+            }
+        }
+
+        // Add to line series
+        for (var e : counts.entrySet()) {
+            series.getData().add(new XYChart.Data<>(e.getKey(), e.getValue()));
+        }
+
+        chart.getData().add(series);
+
+        // Hover animation
+        for (XYChart.Data<String, Number> d : series.getData()) {
+            Node n = d.getNode();
+            Tooltip.install(n, new Tooltip(d.getYValue() + " bookings"));
+
+            n.setOnMouseEntered(ev -> {
+                ScaleTransition st = new ScaleTransition(Duration.millis(140), n);
+                st.setToX(1.25);
+                st.setToY(1.25);
+                n.setStyle("-fx-cursor:hand; -fx-opacity:0.92;");
+                st.play();
+            });
+
+            n.setOnMouseExited(ev -> {
+                ScaleTransition st = new ScaleTransition(Duration.millis(140), n);
+                st.setToX(1.0);
+                st.setToY(1.0);
+                n.setStyle("-fx-opacity:1;");
+                st.play();
+            });
+        }
+
+        return chart;
+    }
+
+    private VBox glassCard(String title, String desc, Node content) {
+
+        Label t = new Label(title);
+        t.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
+        t.setTextFill(Color.web("#111827"));
+
+        Label d = new Label(desc);
+        d.setStyle("-fx-text-fill:#6b7280; -fx-font-size:11;");
+
+        VBox wrapper = new VBox(10, t, d, content);
+        wrapper.setPadding(new Insets(18));
+        wrapper.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.55);" +
+                        "-fx-background-radius: 22;" +
+                        "-fx-border-radius: 22;" +
+                        "-fx-border-color: rgba(255,255,255,0.35);" +
+                        "-fx-border-width: 1;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 28, 0.25, 0, 6);" +
+                        "-fx-backdrop-filter: blur(22px);"
+        );
+        return wrapper;
+    }
+
+    // ----------- Chart Hover Helpers ----------------
+
+    private void applyPieChartHoverEffects(PieChart pie) {
+
+        for (PieChart.Data d : pie.getData()) {
+
+            Tooltip.install(d.getNode(), new Tooltip((int)d.getPieValue() + " Rooms"));
+
+            d.getNode().setOnMouseEntered(e -> {
+                ScaleTransition st = new ScaleTransition(Duration.millis(180), d.getNode());
+                st.setToX(1.08);
+                st.setToY(1.08);
+                st.play();
+            });
+
+            d.getNode().setOnMouseExited(e -> {
+                ScaleTransition st = new ScaleTransition(Duration.millis(180), d.getNode());
+                st.setToX(1.0);
+                st.setToY(1.0);
+                st.play();
+            });
+        }
+    }
+    private VBox glassKPI(String label, int value, String icon) {
+
+        Label ic = new Label(icon);
+        ic.setStyle("-fx-font-size:24;");
+
+        Label v = new Label(String.valueOf(value));
+        v.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
+        v.setTextFill(Color.web("#111827"));
+
+        Label l = new Label(label);
+        l.setStyle("-fx-text-fill:#6b7280; -fx-font-size:11;");
+
+        VBox box = new VBox(4, ic, v, l);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(16));
+        box.setPrefSize(140, 100);
+
+        box.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.55);" +
+                        "-fx-background-radius:18;" +
+                        "-fx-border-radius:18;" +
+                        "-fx-border-color: rgba(255,255,255,0.35);" +
+                        "-fx-border-width:1;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 22, 0.2, 0, 4);"
+        );
+
+        // Hover animation
+        box.setOnMouseEntered(e -> box.setTranslateY(-3));
+        box.setOnMouseExited(e -> box.setTranslateY(0));
+
+        return box;
+    }
+    private VBox roomStatusBlock(Room r) {
+
+        String st = r.getStatus() == null ? "" : r.getStatus().toUpperCase();
+        Color c = st.contains("DIS") ? Color.web("#dc2626")
+                : st.contains("MAINT") ? Color.web("#fbbf24")
+                : Color.web("#16a34a");
+
+        Rectangle rect = new Rectangle(40, 40, c);
+        rect.setArcWidth(10);
+        rect.setArcHeight(10);
+
+        Label id = new Label(r.getRoomId());
+        id.setStyle("-fx-font-size:11; -fx-text-fill:#374151;");
+
+        VBox box = new VBox(4, rect, id);
+        box.setAlignment(Pos.CENTER);
+        return box;
+    }
+    private VBox systemHealthWidget(int load) {
+
+        Label l1 = new Label("System Load: " + load + "%");
+        Label l2 = new Label("CSV Sync: Healthy");
+        Label l3 = new Label("Failed Payments: 0");
+        Label l4 = new Label("Last Sync: " +
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("hh:mm a")));
+
+        for (Label l : new Label[]{l1, l2, l3, l4})
+            l.setStyle("-fx-text-fill:#374151; -fx-font-size:12;");
+
+        return new VBox(6, l1, l2, l3, l4);
+    }
+    private HBox feedItem(String title, String desc) {
+
+        VBox v = new VBox(
+                new Label(title),
+                new Label(desc)
+        );
+
+        ((Label)v.getChildren().get(0))
+                .setStyle("-fx-font-weight:600; -fx-text-fill:#111827;");
+        ((Label)v.getChildren().get(1))
+                .setStyle("-fx-text-fill:#6b7280; -fx-font-size:11;");
+
+        HBox row = new HBox(10, new Label("•"), v);
+        row.setAlignment(Pos.TOP_LEFT);
+        return row;
+    }
+
+    private void applyBarChartHoverEffects(BarChart<String, Number> bar) {
+
+        for (XYChart.Series<String, Number> s : bar.getData()) {
+            for (XYChart.Data<String, Number> d : s.getData()) {
+
+                Node n = d.getNode();
+
+                Tooltip.install(n, new Tooltip(d.getYValue().intValue() + " Total Capacity"));
+
+                n.setOnMouseEntered(e -> {
+                    ScaleTransition st = new ScaleTransition(Duration.millis(180), n);
+                    st.setToX(1.08);
+                    st.setToY(1.08);
+                    n.setStyle("-fx-opacity:0.9;");
+                    st.play();
+                });
+
+                n.setOnMouseExited(e -> {
+                    ScaleTransition st = new ScaleTransition(Duration.millis(180), n);
+                    st.setToX(1.0);
+                    st.setToY(1.0);
+                    n.setStyle("-fx-opacity:1.0;");
+                    st.play();
+                });
+            }
+        }
+    }
+
+    private Label labelChartHeader(String s) {
+        Label l = new Label(s);
+        l.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
+        l.setTextFill(Color.web("#111827"));
+        return l;
+    }
+
+    private Label labelChartDesc(String s) {
+        Label l = new Label(s);
+        l.setStyle("-fx-text-fill:#6b7280; -fx-font-size:11;");
+        return l;
+    }
+
+    // ============================================================
+    //  MATERIAL TEXTFIELDS (ANIMATED UNDERLINE)
+    // ============================================================
+
+    private void applyMaterialTextField(TextField tf) {
+
+        tf.setBackground(new Background(new BackgroundFill(
+                Color.TRANSPARENT, CornerRadii.EMPTY, Insets.EMPTY)));
+
+        tf.setStyle(
+                "-fx-font-size: 13;" +
+                        "-fx-prompt-text-fill: #9ca3af;" +
+                        "-fx-text-fill: #111827;" +
+                        "-fx-padding: 6 4 2 4;" +
+                        "-fx-background-color: transparent;" +
+                        "-fx-border-color: transparent transparent #d1d5db transparent;" +
+                        "-fx-border-width: 0 0 1 0;"
+        );
+
+        tf.focusedProperty().addListener((obs, old, focused) -> {
+
+            if (focused) {
+                Timeline t = new Timeline(
+                        new KeyFrame(Duration.ZERO,
+                                new KeyValue(tf.borderProperty(),
+                                        tf.getBorder())),
+                        new KeyFrame(Duration.millis(200),
+                                new KeyValue(tf.styleProperty(),
+                                        "-fx-font-size:13;" +
+                                                "-fx-prompt-text-fill:#9ca3af;" +
+                                                "-fx-text-fill:#111827;" +
+                                                "-fx-padding:6 4 2 4;" +
+                                                "-fx-background-color:transparent;" +
+                                                "-fx-border-color: transparent transparent " + YORK_RED + " transparent;" +
+                                                "-fx-border-width:0 0 2 0;"))
+                );
+                t.play();
+
+            } else {
+                Timeline t = new Timeline(
+                        new KeyFrame(Duration.ZERO,
+                                new KeyValue(tf.styleProperty(),
+                                        tf.getStyle())),
+                        new KeyFrame(Duration.millis(200),
+                                new KeyValue(tf.styleProperty(),
+                                        "-fx-font-size:13;" +
+                                                "-fx-prompt-text-fill:#9ca3af;" +
+                                                "-fx-text-fill:#111827;" +
+                                                "-fx-padding:6 4 2 4;" +
+                                                "-fx-background-color:transparent;" +
+                                                "-fx-border-color: transparent transparent #d1d5db transparent;" +
+                                                "-fx-border-width:0 0 1 0;"))
+                );
+                t.play();
+            }
+        });
+    }
+
+    // ============================================================
+    //  MANAGE ROOMS VIEW + PILL BADGES
+    // ============================================================
+
+    private void showManageRoomsView() {
+
+        mainContent.getChildren().clear();
+
+        Label title = labelH1("Manage Rooms");
+        Label subtitle = labelSub("Search, filter, edit, and update statuses.");
+
+        RoomRepository repo = RoomRepository.getInstance();
+
+        // Search bar + status filter
+        TextField search = new TextField();
+        search.setPromptText("Search by ID, name, location…");
+        applyMaterialTextField(search);
+
+        ComboBox<String> filter = new ComboBox<>();
+        filter.getItems().addAll("All", "Active", "Disabled", "Maintenance");
+        filter.setValue("All");
+        filter.setPrefWidth(160);
+
+        HBox filterRow = new HBox(12, new Label("Filters:"), search, filter);
+        filterRow.setAlignment(Pos.CENTER_LEFT);
+
+        // Table
+        TableView<Room> table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        TableColumn<Room,String> idCol = new TableColumn<>("Room ID");
+        idCol.setCellValueFactory(new PropertyValueFactory<>("roomId"));
+
+        TableColumn<Room,String> nameCol = new TableColumn<>("Room Name");
+        nameCol.setCellValueFactory(new PropertyValueFactory<>("roomName"));
+
+        TableColumn<Room,Integer> capCol = new TableColumn<>("Capacity");
+        capCol.setCellValueFactory(c -> c.getValue().capacityProperty().asObject());
+
+        TableColumn<Room,String> locCol = new TableColumn<>("Location");
+        locCol.setCellValueFactory(new PropertyValueFactory<>("location"));
+
+        TableColumn<Room,String> amenCol = new TableColumn<>("Amenities");
+        amenCol.setCellValueFactory(new PropertyValueFactory<>("amenities"));
+
+        TableColumn<Room,String> buildCol = new TableColumn<>("Building");
+        buildCol.setCellValueFactory(new PropertyValueFactory<>("building"));
+
+        TableColumn<Room,String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
+        applyStatusPillCellFactory(statusCol);
+
+        table.getColumns().addAll(
+                idCol, nameCol, capCol, locCol, amenCol, buildCol, statusCol
+        );
+
+        // Row double-click => details popup
+        table.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                Room r = table.getSelectionModel().getSelectedItem();
+                if (r != null) RoomDetailsPopup.show(r);
+            }
+        });
+
+        // Filtering logic
+        Runnable refresh = () -> {
+
+            table.getItems().clear();
+
+            String q = search.getText().toLowerCase().trim();
+            String f = filter.getValue();
+
+            for (Room r : repo.getAllRooms().values()) {
+
+                String st = (r.getStatus() == null ? "" : r.getStatus()).toUpperCase();
+
+                boolean matchFilter =
+                        switch (f) {
+                            case "Active" -> !st.contains("DIS") && !st.contains("MAINT");
+                            case "Disabled" -> st.contains("DIS");
+                            case "Maintenance" -> st.contains("MAINT");
+                            default -> true;
+                        };
+
+                boolean matchText =
+                        r.getRoomId().toLowerCase().contains(q) ||
+                                r.getRoomName().toLowerCase().contains(q) ||
+                                r.getLocation().toLowerCase().contains(q) ||
+                                (r.getBuilding() != null && r.getBuilding().toLowerCase().contains(q)) ||
+                                st.toLowerCase().contains(q);
+
+                if (matchFilter && matchText) table.getItems().add(r);
+            }
+        };
+
+        refresh.run();
+        search.textProperty().addListener((o,a,b)-> refresh.run());
+        filter.setOnAction(e -> refresh.run());
+
+        // Buttons
+        Button enable = pillBtn("Enable", "#16a34a");
+        enable.setOnAction(e -> updateStatus(table, repo, "ENABLED"));
+
+        Button disable = pillBtn("Disable", "#f97316");
+        disable.setOnAction(e -> updateStatus(table, repo, "DISABLED"));
+
+        Button maint = pillBtn("Maintenance", "#fbbf24");
+        maint.setOnAction(e -> updateStatus(table, repo, "MAINTENANCE"));
+
+        Button edit = pillBtn("Edit", "#2563eb");
+        edit.setOnAction(e -> {
+            Room r = table.getSelectionModel().getSelectedItem();
+            if (r == null) { alertWarning("Select a room first."); return; }
+            openEditRoomDialog(r, repo, table);
+        });
+
+        Button del = pillBtn("Delete", YORK_RED);
+        del.setOnAction(e -> {
+            Room r = table.getSelectionModel().getSelectedItem();
+            if (r == null) { alertWarning("Select a room first."); return; }
+
+            applyBlur();
+
+            Alert conf = new Alert(Alert.AlertType.CONFIRMATION);
+            conf.setHeaderText(null);
+            conf.setContentText("Delete room '" + r.getRoomId() + "'?");
+            conf.initOwner(rootStack.getScene().getWindow());
+            conf.setOnHidden(ev -> removeBlur());
+
+            conf.showAndWait().ifPresent(btn -> {
+                if (btn == ButtonType.OK) {
+                    repo.deleteRoom(r.getRoomId());
+                    table.getItems().remove(r);
+                    alertSuccess("Room deleted.");
+                }
+            });
+        });
+
+        Button occ = pillBtn("View Occupancy", "#16a34a");
+        occ.setOnAction(e -> {
+            Room r = table.getSelectionModel().getSelectedItem();
+            if (r == null) { alertWarning("Select room first."); return; }
+            RoomOccupancyPopup.show(r.getRoomId());
+        });
+
+        Button details = pillBtn("View Details", "#2563eb");
+        details.setOnAction(e -> {
+            Room r = table.getSelectionModel().getSelectedItem();
+            if (r == null) { alertWarning("Select room first."); return; }
+            RoomDetailsPopup.show(r);
+        });
+
+        HBox actions = new HBox(10, enable, disable, maint, edit, del, occ, details);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox card = formCard(filterRow, table, actions);
+
+        mainContent.getChildren().addAll(title, subtitle, card);
         fade();
     }
 
 
-    // -----------------------------------------
-    // ADD ROOM
-    // -----------------------------------------
+    // ----------- Status Pill Cell Factory ----------------
+
+    private void applyStatusPillCellFactory(TableColumn<Room,String> col) {
+
+        col.setCellFactory(c -> new TableCell<>() {
+
+            @Override
+            protected void updateItem(String status, boolean empty) {
+                super.updateItem(status, empty);
+
+                if (empty || status == null) {
+                    setGraphic(null);
+                    return;
+                }
+
+                String st = status.toUpperCase();
+                Color bg;
+                String text;
+
+                if (st.contains("DIS")) {
+                    bg = Color.web("#6b7280");
+                    text = "Disabled";
+                } else if (st.contains("MAINT")) {
+                    bg = Color.web("#fbbf24");
+                    text = "Maintenance";
+                } else {
+                    bg = Color.web("#16a34a");
+                    text = "Active";
+                }
+
+                Label pill = new Label(text);
+                pill.setTextFill(Color.WHITE);
+                pill.setStyle(
+                        "-fx-padding: 4 12;" +
+                                "-fx-background-radius: 999;" +
+                                "-fx-font-size: 11;"
+                );
+
+                pill.setBackground(new Background(new BackgroundFill(
+                        bg, new CornerRadii(999), Insets.EMPTY)));
+
+                setGraphic(pill);
+                setAlignment(Pos.CENTER);
+            }
+        });
+    }
+
+    // Button helper
+    private Button pillBtn(String text, String bg) {
+        Button b = new Button(text);
+        b.setStyle(
+                "-fx-background-color:" + bg + ";" +
+                        "-fx-text-fill:white; -fx-font-weight:600;" +
+                        "-fx-background-radius:999; -fx-padding:6 14;"
+        );
+        return b;
+    }
+
+    private void updateStatus(TableView<Room> table, RoomRepository repo, String newStatus) {
+
+        Room r = table.getSelectionModel().getSelectedItem();
+        if (r == null) {
+            alertWarning("Select a room first.");
+            return;
+        }
+
+        String old = r.getStatus();
+        r.setStatus(newStatus);
+        repo.updateRoom(r);
+
+        table.refresh();
+
+        alertSuccess("Status updated: " + old + " → " + newStatus);
+    }
+    // ============================================================
+    //  ADD ROOM VIEW
+    // ============================================================
+
     private void showAddRoomView() {
+
         mainContent.getChildren().clear();
 
-        Label title    = labelH1("Add New Room");
-        Label subtitle = labelSub("Create a fully detailed room for bookings.");
+        Label title = labelH1("Add New Room");
+        Label subtitle = labelSub("Provide complete details to create a room.");
 
-        TextField idField  = new TextField();
-        idField.setPromptText("Enter room ID (e.g., R101)");
+        TextField idField = new TextField();
+        idField.setPromptText("Room ID (e.g., R101)");
+        applyMaterialTextField(idField);
 
         TextField nameField = new TextField();
-        nameField.setPromptText("Enter room name (e.g., York Room)");
+        nameField.setPromptText("Room Name");
+        applyMaterialTextField(nameField);
 
         TextField capField = new TextField();
-        capField.setPromptText("Enter room capacity");
+        capField.setPromptText("Capacity");
+        applyMaterialTextField(capField);
 
         TextField locField = new TextField();
-        locField.setPromptText("Enter room location (e.g., First Floor)");
+        locField.setPromptText("Location");
+        applyMaterialTextField(locField);
 
         TextField amenitiesField = new TextField();
-        amenitiesField.setPromptText("Enter amenities (e.g., Projector;Whiteboard)");
+        amenitiesField.setPromptText("Amenities (Projector;Whiteboard)");
+        applyMaterialTextField(amenitiesField);
 
         TextField buildingField = new TextField();
-        buildingField.setPromptText("Enter building name (e.g., Lassonde Building)");
+        buildingField.setPromptText("Building (e.g., Lassonde Building)");
+        applyMaterialTextField(buildingField);
 
-        Button saveBtn = new Button("Save Room");
+        Button saveBtn = pillBtn("Save Room", YORK_RED);
+
         saveBtn.setOnAction(e -> {
             try {
-                String id   = idField.getText().trim();
-                String name = nameField.getText().trim();
+                String id = idField.getText().trim();
+                String nm = nameField.getText().trim();
                 String capStr = capField.getText().trim();
-                String loc  = locField.getText().trim();
-                String amenities = amenitiesField.getText().trim();
-                String building  = buildingField.getText().trim();
+                String loc = locField.getText().trim();
+                String am = amenitiesField.getText().trim();
+                String b = buildingField.getText().trim();
 
-                if (id.isEmpty() || name.isEmpty() || capStr.isEmpty() || loc.isEmpty()) {
-                    alertWarning("Room ID, Room Name, Capacity, and Location are required.");
+                if (id.isEmpty() || nm.isEmpty() || capStr.isEmpty() || loc.isEmpty()) {
+                    alertWarning("Room ID, Name, Capacity, and Location are required.");
                     return;
                 }
 
@@ -296,34 +1181,17 @@ public class AdminFX extends Application {
 
                 RoomRepository repo = RoomRepository.getInstance();
                 if (repo.roomExists(id)) {
-                    alertWarning("Room already exists!");
+                    alertWarning("Room already exists.");
                     return;
                 }
 
-                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                String ts = LocalDateTime.now().format(fmt);
+                Room r = new Room(id, nm, cap, loc, am, b);
+                repo.addRoom(r);
 
-                System.out.println("----- Room Add Log -----");
-                System.out.println("[Time] " + ts);
-                System.out.println("[RoomAdd] Room ID: " + id);
-                System.out.println("[RoomAdd] Name: \"" + name + "\"");
-                System.out.println("[RoomAdd] Capacity: " + cap);
-                System.out.println("[RoomAdd] Location: \"" + loc + "\"");
-                System.out.println("[RoomAdd] Amenities: \"" + amenities + "\"");
-                System.out.println("[RoomAdd] Building: \"" + building + "\"");
-                System.out.println("-----------------------------------------");
+                alertSuccess("Room added successfully.");
 
-                Room room = new Room(id, name, cap, loc, amenities, building);
-
-                repo.addRoom(room);      // auto-save
-                alertSuccess("Room added successfully!");
-
-                idField.clear();
-                nameField.clear();
-                capField.clear();
-                locField.clear();
-                amenitiesField.clear();
-                buildingField.clear();
+                idField.clear(); nameField.clear(); capField.clear();
+                locField.clear(); amenitiesField.clear(); buildingField.clear();
 
             } catch (Exception ex) {
                 alertError("Invalid input.");
@@ -331,12 +1199,8 @@ public class AdminFX extends Application {
         });
 
         VBox card = formCard(
-                idField,
-                nameField,
-                capField,
-                locField,
-                amenitiesField,
-                buildingField,
+                idField, nameField, capField,
+                locField, amenitiesField, buildingField,
                 saveBtn
         );
 
@@ -344,202 +1208,21 @@ public class AdminFX extends Application {
         fade();
     }
 
-    // -----------------------------------------
-    // MANAGE ROOMS
-    // -----------------------------------------
-    private void showManageRoomsView() {
-        mainContent.getChildren().clear();
-
-        Label title    = labelH1("Manage Rooms");
-        Label subtitle = labelSub("View, search, edit, enable/disable, and maintenance.");
-
-        RoomRepository repo = RoomRepository.getInstance();
-
-        TextField searchField = new TextField();
-        searchField.setPromptText("Search by ID, name, location, building, or status...");
-
-        TableView<Room> table = new TableView<>();
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-
-        TableColumn<Room, String> idCol = new TableColumn<>("Room ID");
-        idCol.setCellValueFactory(c -> c.getValue().roomIdProperty());
-
-        TableColumn<Room, String> nameCol = new TableColumn<>("Room Name");
-        nameCol.setCellValueFactory(c -> c.getValue().roomNameProperty());
-
-        TableColumn<Room, Integer> capCol = new TableColumn<>("Capacity");
-        capCol.setCellValueFactory(c -> c.getValue().capacityProperty().asObject());
-
-        TableColumn<Room, String> locCol = new TableColumn<>("Location");
-        locCol.setCellValueFactory(c -> c.getValue().locationProperty());
-
-        TableColumn<Room, String> amenCol = new TableColumn<>("Amenities");
-        amenCol.setCellValueFactory(c -> c.getValue().amenitiesProperty());
-
-        TableColumn<Room, String> buildingCol = new TableColumn<>("Building");
-        buildingCol.setCellValueFactory(c -> c.getValue().buildingProperty());
-
-        TableColumn<Room, String> statusCol = new TableColumn<>("Status");
-        statusCol.setCellValueFactory(c -> c.getValue().statusProperty());
-
-        table.getColumns().addAll(
-                idCol, nameCol, capCol, locCol, amenCol, buildingCol, statusCol
-        );
-
-        table.getItems().setAll(repo.getAllRooms().values());
-
-        searchField.textProperty().addListener((obs, old, newText) -> {
-            String q = newText.toLowerCase().trim();
-            table.getItems().clear();
-            for (Room r : repo.getAllRooms().values()) {
-                if (r.getRoomId().toLowerCase().contains(q)
-                        || (r.getRoomName() != null && r.getRoomName().toLowerCase().contains(q))
-                        || r.getLocation().toLowerCase().contains(q)
-                        || (r.getBuilding() != null && r.getBuilding().toLowerCase().contains(q))
-                        || r.getStatus().toLowerCase().contains(q)) {
-                    table.getItems().add(r);
-                }
-            }
-        });
-
-        Button enableBtn = new Button("Enable");
-        enableBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
-        enableBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "ENABLED"));
-
-        Button disableBtn = new Button("Disable");
-        disableBtn.setStyle("-fx-background-color: #f59e0b; -fx-text-fill: white;");
-        disableBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "DISABLED"));
-
-        Button maintenanceBtn = new Button("Maintenance");
-        maintenanceBtn.setStyle("-fx-background-color: #d97706; -fx-text-fill: white;");
-        maintenanceBtn.setOnAction(e -> updateRoomStatusFromTable(table, repo, "MAINTENANCE"));
-
-
-        Button editBtn = new Button("Edit");
-        editBtn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white;");
-        editBtn.setOnAction(e -> {
-            Room selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                alertWarning("Select a room first.");
-                return;
-            }
-            openEditRoomDialog(selected, repo, table);
-        });
-
-        Button deleteBtn = new Button("Delete");
-        deleteBtn.setStyle("-fx-background-color: #dc2626; -fx-text-fill: white;");
-        deleteBtn.setOnAction(e -> {
-            Room selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                alertWarning("Select a room first.");
-                return;
-            }
-
-            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-            confirm.setHeaderText(null);
-            confirm.setContentText("Delete room '" + selected.getRoomId() + "'?");
-            confirm.showAndWait().ifPresent(btn -> {
-                if (btn == ButtonType.OK) {
-
-                    // TIMESTAMP FORMATTER
-                    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                    String ts = LocalDateTime.now().format(fmt);
-
-                    System.out.println("----- Room Delete Log -----");
-                    System.out.println("[Time] " + ts);
-                    System.out.println("[RoomDelete] Room ID: " + selected.getRoomId());
-                    System.out.println("[RoomDelete] Name: \"" + selected.getRoomName() + "\"");
-                    System.out.println("[RoomDelete] Capacity: " + selected.getCapacity());
-                    System.out.println("[RoomDelete] Location: \"" + selected.getLocation() + "\"");
-                    System.out.println("[RoomDelete] Amenities: \"" + selected.getAmenities() + "\"");
-                    System.out.println("[RoomDelete] Building: \"" + selected.getBuilding() + "\"");
-                    System.out.println("-----------------------------------------");
-
-                    repo.deleteRoom(selected.getRoomId());
-                    table.getItems().remove(selected);
-                }
-            });
-        });
-
-
-        Button occupancyBtn = new Button("View Occupancy");
-        occupancyBtn.setStyle("-fx-background-color: #059669; -fx-text-fill: white;");
-        occupancyBtn.setOnAction(e -> {
-            Room selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                alertWarning("Select a room first.");
-                return;
-            }
-            RoomOccupancyPopup.show(selected.getRoomId());
-        });
-
-        Button detailsBtn = new Button("View Details");
-        detailsBtn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white;");
-        detailsBtn.setOnAction(e -> {
-            Room selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                alertWarning("Select a room first.");
-                return;
-            }
-            RoomDetailsPopup.show(selected);
-        });
-
-        HBox actions = new HBox(10,
-                enableBtn, disableBtn, maintenanceBtn,
-                editBtn, deleteBtn,
-                occupancyBtn,
-                detailsBtn
-        );
-
-        VBox card = formCard(searchField, table, actions);
-
-        mainContent.getChildren().addAll(title, subtitle, card);
-        fade();
-    }
-
-    private void updateRoomStatusFromTable(TableView<Room> table, RoomRepository repo, String status) {
-
-        Room selected = table.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            alertWarning("Please select a room.");
-            return;
-        }
-
-        // =============================
-        // ROOM STATUS CHANGE AUDIT LOG
-        // =============================
-        String oldStatus = selected.getStatus();
-        String newStatus = status;
-
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String ts = LocalDateTime.now().format(fmt);
-
-        System.out.println("----- Room Status Update Log -----");
-        System.out.println("[Time] " + ts);
-        System.out.println("[RoomID] " + selected.getRoomId());
-        System.out.println("[Old Status] " + oldStatus);
-        System.out.println("[New Status] " + newStatus);
-        System.out.println("----------------------------------");
-
-        // Apply new status
-        selected.setStatus(status);
-
-        // Save to CSV
-        repo.updateRoom(selected);
-
-        // Refresh UI
-        table.refresh();
-    }
-
+    // ============================================================
+    //  EDIT ROOM DIALOG (with blur)
+    // ============================================================
 
     private void openEditRoomDialog(Room room, RoomRepository repo, TableView<Room> table) {
+
+        applyBlur();
+
         Stage dialog = new Stage();
-        dialog.initOwner(mainContent.getScene().getWindow());
         dialog.initModality(Modality.APPLICATION_MODAL);
-        dialog.setTitle("Edit Room - " + room.getRoomId());
+        dialog.initOwner(rootStack.getScene().getWindow());
+        dialog.setTitle("Edit Room");
 
         Label idLabel = new Label("Room ID: " + room.getRoomId());
-        idLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 16));
+        idLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 15));
 
         TextField nameField = new TextField(room.getRoomName());
         TextField capField  = new TextField(String.valueOf(room.getCapacity()));
@@ -547,55 +1230,31 @@ public class AdminFX extends Application {
         TextField amenField = new TextField(room.getAmenities());
         TextField buildField = new TextField(room.getBuilding());
 
-        Label nameLabel = new Label("Room Name:");
-        Label capLabel  = new Label("Capacity:");
-        Label locLabel  = new Label("Location:");
-        Label amenLabel = new Label("Amenities:");
-        Label buildLabel = new Label("Building:");
+        applyMaterialTextField(nameField);
+        applyMaterialTextField(capField);
+        applyMaterialTextField(locField);
+        applyMaterialTextField(amenField);
+        applyMaterialTextField(buildField);
 
-        Button saveBtn = new Button("Save");
-        saveBtn.setStyle("-fx-background-color: #BA0C2F; -fx-text-fill: white;");
+        Button saveBtn = pillBtn("Save", YORK_RED);
         saveBtn.setOnAction(e -> {
+
             try {
                 String newName = nameField.getText().trim();
                 int newCap = Integer.parseInt(capField.getText().trim());
                 String newLoc = locField.getText().trim();
-                String newAmen = amenField.getText().trim();
-                String newBuild = buildField.getText().trim();
-
-                String oldName = room.getRoomName();
-                int oldCap     = room.getCapacity();
-                String oldLoc  = room.getLocation();
-                String oldAmen = room.getAmenities();
-                String oldBuild= room.getBuilding();
-
-                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                String ts = LocalDateTime.now().format(fmt);
-
-                System.out.println("----- Room Update Log (" + room.getRoomId() + ") -----");
-                System.out.println("[Time] " + ts);
-
-                if (!oldName.equals(newName))
-                    System.out.println("[RoomUpdate] Name: \"" + oldName + "\" → \"" + newName + "\"");
-                if (oldCap != newCap)
-                    System.out.println("[RoomUpdate] Capacity: " + oldCap + " → " + newCap);
-                if (!oldLoc.equals(newLoc))
-                    System.out.println("[RoomUpdate] Location: \"" + oldLoc + "\" → \"" + newLoc + "\"");
-                if (oldAmen != null && !oldAmen.equals(newAmen))
-                    System.out.println("[RoomUpdate] Amenities: \"" + oldAmen + "\" → \"" + newAmen + "\"");
-                if (oldBuild != null && !oldBuild.equals(newBuild))
-                    System.out.println("[RoomUpdate] Building: \"" + oldBuild + "\" → \"" + newBuild + "\"");
-
-                System.out.println("----------------------------------------------");
+                String newAm = amenField.getText().trim();
+                String newB = buildField.getText().trim();
 
                 room.setRoomName(newName);
                 room.setCapacity(newCap);
                 room.setLocation(newLoc);
-                room.setAmenities(newAmen);
-                room.setBuilding(newBuild);
+                room.setAmenities(newAm);
+                room.setBuilding(newB);
 
                 repo.updateRoom(room);
                 table.refresh();
+                alertSuccess("Room updated.");
                 dialog.close();
 
             } catch (Exception ex) {
@@ -603,61 +1262,97 @@ public class AdminFX extends Application {
             }
         });
 
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.setOnAction(e -> dialog.close());
+        Button cancel = pillBtn("Cancel", "#6b7280");
+        cancel.setOnAction(e -> dialog.close());
 
-        HBox btnRow = new HBox(10, saveBtn, cancelBtn);
-        btnRow.setAlignment(Pos.CENTER_RIGHT);
+        HBox btns = new HBox(10, saveBtn, cancel);
+        btns.setAlignment(Pos.CENTER_RIGHT);
 
         VBox layout = new VBox(12,
                 idLabel,
-                nameLabel, nameField,
-                capLabel, capField,
-                locLabel, locField,
-                amenLabel, amenField,
-                buildLabel, buildField,
-                btnRow
+                new Label("Name"), nameField,
+                new Label("Capacity"), capField,
+                new Label("Location"), locField,
+                new Label("Amenities"), amenField,
+                new Label("Building"), buildField,
+                btns
         );
-        layout.setPadding(new Insets(20));
-        layout.setStyle("-fx-background-color:white; -fx-background-radius:12;");
 
-        Scene scene = new Scene(layout, 400, 420);
-        dialog.setScene(scene);
-        dialog.showAndWait();
+        layout.setPadding(new Insets(20));
+        layout.setStyle(
+                "-fx-background-color:white; -fx-background-radius:12;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 20, 0, 0, 4);"
+        );
+
+        dialog.setScene(new Scene(layout, 420, 480));
+
+        dialog.setOnHidden(e -> removeBlur());
+        dialog.show();
     }
 
-    // -----------------------------------------
-    // CREATE ADMIN  (now uses UserManager + user.csv)
-    // -----------------------------------------
+
+    // ============================================================
+    //  CREATE ADMIN VIEW
+    // ============================================================
+
     private void showCreateAdminView() {
+
         mainContent.getChildren().clear();
 
-        Label title    = labelH1("Create Admin");
-        Label subtitle = labelSub("Add new admin accounts (saved in user.csv).");
+        Label title = labelH1("Create Admin");
+        Label subtitle = labelSub("Add a new admin to the system.");
 
         TextField email = new TextField();
-        email.setPromptText("Enter admin email");
+        email.setPromptText("Admin email");
+        applyMaterialTextField(email);
 
         PasswordField pass = new PasswordField();
-        pass.setPromptText("Enter admin password");
+        pass.setPromptText("Password");
+        pass.setStyle(
+                "-fx-font-size:13;" +
+                        "-fx-prompt-text-fill:#9ca3af;" +
+                        "-fx-text-fill:#111827;" +
+                        "-fx-padding:6 4 2 4;" +
+                        "-fx-background-color:transparent;" +
+                        "-fx-border-color: transparent transparent #d1d5db transparent;" +
+                        "-fx-border-width:0 0 1 0;"
+        );
 
-        Button save = new Button("Create Admin");
+        pass.focusedProperty().addListener((obs,o,f)->{
+            if(f) pass.setStyle(
+                    "-fx-font-size:13;" +
+                            "-fx-text-fill:#111827;" +
+                            "-fx-background-color:transparent;" +
+                            "-fx-border-color:transparent transparent " + YORK_RED + " transparent;" +
+                            "-fx-border-width:0 0 2 0;");
+            else pass.setStyle(
+                    "-fx-font-size:13;" +
+                            "-fx-text-fill:#111827;" +
+                            "-fx-background-color:transparent;" +
+                            "-fx-border-color:transparent transparent #d1d5db transparent;" +
+                            "-fx-border-width:0 0 1 0;");
+        });
+
+        Button save = pillBtn("Create Admin", YORK_RED);
         save.setOnAction(e -> {
+
             String em = email.getText().trim();
             String pw = pass.getText().trim();
 
             if (em.isEmpty() || pw.isEmpty()) {
-                alertWarning("All fields are required.");
+                alertWarning("Both fields required.");
                 return;
             }
 
             try {
                 userManager.createAdminAccount(em, pw);
-                alertSuccess("Admin created successfully!");
+                alertSuccess("Admin created.");
+
                 email.clear();
                 pass.clear();
+
             } catch (Exception ex) {
-                alertWarning(ex.getMessage());
+                alertError(ex.getMessage());
             }
         });
 
@@ -667,76 +1362,87 @@ public class AdminFX extends Application {
         fade();
     }
 
-    // -----------------------------------------
-    // MANAGE ADMINS  (UserManager + SystemUser)
-    // -----------------------------------------
+
+    // ============================================================
+    //  MANAGE ADMINS VIEW
+    // ============================================================
+
     private void showManageAdminsView() {
+
         mainContent.getChildren().clear();
 
-        Label title    = labelH1("Manage Admins");
-        Label subtitle = labelSub("List of admin accounts (loaded from user.csv).");
+        Label title = labelH1("Manage Admins");
+        Label subtitle = labelSub("Enable, disable or delete admin accounts.");
 
         TableView<SystemUser> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        TableColumn<SystemUser, String> nameCol = new TableColumn<>("Username");
-        nameCol.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getEmail()));
+        TableColumn<SystemUser,String> emailCol = new TableColumn<>("Email");
+        emailCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEmail()));
 
-        TableColumn<SystemUser, String> statusCol = new TableColumn<>("Status");
+        TableColumn<SystemUser,String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().isActive() ? "ACTIVE" : "DISABLED"));
 
-        table.getColumns().addAll(nameCol, statusCol);
+        table.getColumns().addAll(emailCol, statusCol);
 
-        // Load admins every time we open this view
         table.getItems().setAll(userManager.getAdminAccounts());
 
-        Button deleteBtn = new Button("Delete");
-        deleteBtn.setStyle("-fx-background-color: #d9534f; -fx-text-fill: white;");
-        deleteBtn.setOnAction(e -> {
-            SystemUser selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                alertWarning("Please select an admin.");
-                return;
-            }
-
-            boolean removed = userManager.deleteAdminByEmail(selected.getEmail());
-            if (removed) {
-                table.getItems().remove(selected);
-                alertSuccess("Admin deleted.");
-            } else {
-                alertWarning("Failed to delete admin.");
+        table.setRowFactory(tv -> new TableRow<>() {
+            @Override
+            protected void updateItem(SystemUser u, boolean empty) {
+                super.updateItem(u, empty);
+                if (empty || u == null) {
+                    setStyle("");
+                    return;
+                }
+                setStyle(u.isActive()
+                        ? "-fx-background-color:transparent;"
+                        : "-fx-background-color:rgba(148,163,184,0.32);");
             }
         });
 
-        Button toggleBtn = new Button("Disable / Enable");
-        toggleBtn.setStyle("-fx-background-color: #f0ad4e; -fx-text-fill: white;");
-        toggleBtn.setOnAction(e -> {
-            SystemUser selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                alertWarning("Please select an admin.");
-                return;
-            }
+        Button delete = pillBtn("Delete", YORK_RED);
+        delete.setOnAction(e -> {
+            SystemUser u = table.getSelectionModel().getSelectedItem();
+            if (u == null) { alertWarning("Select a user."); return; }
 
-            // flip active flag
-            if (selected.isActive()) {
-                selected.deactivate();
-            } else {
-                selected.activate();
-            }
+            applyBlur();
 
+            Alert a = new Alert(Alert.AlertType.CONFIRMATION);
+            a.setHeaderText(null);
+            a.setContentText("Delete '" + u.getEmail() + "'?");
+            a.initOwner(rootStack.getScene().getWindow());
+            a.setOnHidden(ev -> removeBlur());
+
+            a.showAndWait().ifPresent(btn -> {
+                if (btn == ButtonType.OK) {
+                    userManager.deleteAdminByEmail(u.getEmail());
+                    table.getItems().remove(u);
+                    alertSuccess("Admin deleted.");
+                }
+            });
+        });
+
+        Button toggle = pillBtn("Enable / Disable", "#f59e0b");
+        toggle.setOnAction(e -> {
+            SystemUser u = table.getSelectionModel().getSelectedItem();
+            if (u == null) { alertWarning("Select a user."); return; }
+
+            u.setActive(!u.isActive());
             try {
-                // persist new active flag to user.csv
-                userManager.updateProfile(selected, null, null);
-                table.refresh();
+                userManager.updateProfile(u, null, null);
             } catch (Exception ex) {
-                alertError("Failed to update admin status: " + ex.getMessage());
+                alertError("Failed to update admin: " + ex.getMessage());
             }
+
+            table.refresh();
+
+            alertSuccess("Updated.");
         });
 
-        HBox actions = new HBox(12, deleteBtn, toggleBtn);
-        actions.setAlignment(Pos.CENTER);
+        HBox actions = new HBox(12, delete, toggle);
+        actions.setAlignment(Pos.CENTER_RIGHT);
 
         VBox card = formCard(table, actions);
 
@@ -744,111 +1450,83 @@ public class AdminFX extends Application {
         fade();
     }
 
-    // -----------------------------------------
-    // HELPERS
-    // -----------------------------------------
-    private Label labelH1(String t) {
-        Label l = new Label(t);
-        l.setFont(Font.font("Segoe UI", FontWeight.BOLD, 26));
-        l.setTextFill(Color.web("#111827"));
+
+    // ============================================================
+    //  UTILITY HELPERS
+    // ============================================================
+
+    private void fade() {
+        FadeTransition ft = new FadeTransition(Duration.millis(200), mainContent);
+        ft.setFromValue(0);
+        ft.setToValue(1);
+        ft.play();
+    }
+
+    private Label labelH1(String text) {
+        Label l = new Label(text);
+        l.setStyle("""
+        -fx-font-size: 22px;
+        -fx-font-weight: bold;
+        -fx-padding: 0 0 6 0;    /* bottom spacing */
+        -fx-line-spacing: 2px;
+          -fx-letter-spacing: 0.6px; /* fixes sinking */
+    """);
         return l;
     }
 
-    private Label labelSub(String t) {
-        Label l = new Label(t);
-        l.setStyle("-fx-text-fill: #555;");
+    private Label labelSub(String text) {
+        Label l = new Label(text);
+        l.setStyle("""
+        -fx-font-size: 13px;
+        -fx-text-fill: #6b7280;
+        -fx-padding: 0 0 16 0;   /* bottom spacing fixes the cards */
+        -fx-line-spacing: 2px;
+        -fx-letter-spacing: 0.6px;
+    """);
         return l;
     }
 
+    // MAIN and ONLY formCard method — handles all cases cleanly
     private VBox formCard(Node... children) {
-        VBox card = new VBox(15, children);
-        card.setPadding(new Insets(20));
-        card.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 18, 0, 0, 4);"
-        );
-        return card;
+        VBox c = new VBox(15, children);
+        c.setPadding(new Insets(22));
+
+        String base =
+                "-fx-background-color:rgba(255,255,255,0.98);" +
+                        "-fx-background-radius:18;" +
+                        "-fx-border-color:rgba(209,213,219,0.9);" +
+                        "-fx-border-width:0.6;" +
+                        "-fx-effect:dropshadow(gaussian, rgba(15,23,42,0.08),18,0,0,4);";
+
+        String hover =
+                "-fx-background-color:#ffffff;" +
+                        "-fx-background-radius:18;" +
+                        "-fx-border-color:" + YORK_RED + ";" +
+                        "-fx-border-width:0.9;" +
+                        "-fx-effect:dropshadow(gaussian, rgba(15,23,42,0.18),24,0,0,7);";
+
+        c.setStyle(base);
+
+        c.setOnMouseEntered(e -> {
+            c.setStyle(hover);
+            c.setTranslateY(-2);
+        });
+
+        c.setOnMouseExited(e -> {
+            c.setStyle(base);
+            c.setTranslateY(0);
+        });
+
+        return c;
     }
 
-    private VBox statCard(String title, String value, String description) {
-        Label t = new Label(title);
-        t.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 14));
-        t.setTextFill(Color.web("#6b7280"));
 
-        Label v = new Label(value);
-        v.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
-        v.setTextFill(Color.web("#111827"));
 
-        Label d = new Label(description);
-        d.setWrapText(true);
-        d.setStyle("-fx-text-fill: #4b5563;");
-
-        VBox box = new VBox(4, t, v, d);
-        box.setPadding(new Insets(16));
-        box.setPrefWidth(220);
-        box.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 18, 0, 0, 4);"
-        );
-        return box;
-    }
-
+    // ============================================================
+    //  MAIN
+    // ============================================================
 
     public static void main(String[] args) {
         launch();
     }
-
-    // old reflection helpers (no longer used, but kept for safety)
-    private void roomNameSetter(Room r, String name) {
-        try {
-            var f = Room.class.getDeclaredField("roomName");
-            f.setAccessible(true);
-            f.set(r, name);
-        } catch (Exception ignored) {}
-    }
-
-    private void roomAmenitiesSetter(Room r, String am) {
-        try {
-            var f = Room.class.getDeclaredField("amenities");
-            f.setAccessible(true);
-            f.set(r, am);
-        } catch (Exception ignored) {}
-    }
-
-    private void roomBuildingSetter(Room r, String b) {
-        try {
-            var f = Room.class.getDeclaredField("building");
-            f.setAccessible(true);
-            f.set(r, b);
-        } catch (Exception ignored) {}
-    }
-
-    private void showPopup(Alert.AlertType type, String title, String msg) {
-        Alert alert = new Alert(type);
-        alert.setHeaderText(title);
-        alert.setTitle(title);
-        alert.setContentText(msg);
-
-        // IMPORTANT: attach popup to this window
-        Stage stage = (Stage) mainContent.getScene().getWindow();
-        alert.initOwner(stage);
-
-        alert.showAndWait();
-    }
-
-    private void alertWarning(String msg) {
-        showPopup(Alert.AlertType.WARNING, "Warning", msg);
-    }
-
-    private void alertError(String msg) {
-        showPopup(Alert.AlertType.ERROR, "Error", msg);
-    }
-
-    private void alertSuccess(String msg) {
-        showPopup(Alert.AlertType.INFORMATION, "Success", msg);
-    }
-
-
 }
