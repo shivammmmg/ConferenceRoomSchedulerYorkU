@@ -2,3 +2,4 @@ bookingId,roomId,userId,startTime,endTime,purpose,status,paymentStatus,depositAm
 B1000000000001,R301,test@my.yorku.ca,2025-11-15T10:00,2025-11-15T10:30,Team Meeting,IN_USE,APPROVED,20.0
 B1000000000002,R102,test@my.yorku.ca,2025-11-16T14:00,2025-11-16T14:30,Study Session,NO_SHOW,FORFEITED,20.0
 B1000000000003,R202,test@my.yorku.ca,2025-11-17T09:00,2025-11-17T09:45,Project Discussion,CANCELLED,APPROVED,20.0
+B1763842180511,R202,test@my.yorku.ca,2025-11-23T09:00,2025-11-23T10:00,Team meeting / discussion,CANCELLED,REFUNDED,20.0

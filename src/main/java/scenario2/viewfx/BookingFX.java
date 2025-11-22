@@ -231,7 +231,7 @@ public class BookingFX extends Application {
         // --------------------- NAV BUTTONS --------------------------
         bookRoomBtn      = createNavButton("📅  Book Room", true);
         myBookingsBtn    = createNavButton("📋  My Bookings", false);
-        updateProfileBtn = createNavButton("⚙  Update Profile", false);
+        updateProfileBtn = createNavButton("👤  Update Profile", false);
         backToLoginBtn   = createNavButton("🚪  Logout", false);
 
         VBox navButtons = new VBox(6, bookRoomBtn, myBookingsBtn, updateProfileBtn, backToLoginBtn);
@@ -1282,34 +1282,28 @@ public class BookingFX extends Application {
 
         Button smallGroupBtn = createPresetChip("Study group", () -> {
             capacitySpinner.getValueFactory().setValue(6);
-            if (purposeArea.getText() == null || purposeArea.getText().isBlank()) {
-                purposeArea.setText("Study group / project work session");
-            }
+            purposeArea.setText("Study group / project work session");
         });
+
         Button presentationBtn = createPresetChip("Presentation", () -> {
             capacitySpinner.getValueFactory().setValue(
-                    Math.max(capacitySpinner.getValue(), 10));
-            if (purposeArea.getText() == null || purposeArea.getText().isBlank()) {
-                purposeArea.setText("Presentation / talk with slides");
-            }
+                    Math.max(capacitySpinner.getValue(), 10)
+            );
+            purposeArea.setText("Presentation / talk with slides");
         });
+
         Button afternoonBtn = createPresetChip("Afternoon session", () -> {
             capacitySpinner.getValueFactory().setValue(
                     Math.max(capacitySpinner.getValue(), 4)
             );
-
-            if (purposeArea.getText() == null || purposeArea.getText().isBlank()) {
-                purposeArea.setText("Afternoon work session");
-            }
+            purposeArea.setText("Afternoon work session");
         });
-
 
         Button teamMeetingBtn = createPresetChip("Team Meeting", () -> {
             capacitySpinner.getValueFactory().setValue(
-                    Math.max(capacitySpinner.getValue(), 4));
-            if (purposeArea.getText() == null || purposeArea.getText().isBlank()) {
-                purposeArea.setText("Team meeting / discussion");
-            }
+                    Math.max(capacitySpinner.getValue(), 4)
+            );
+            purposeArea.setText("Team meeting / discussion");
         });
 
 
@@ -1693,11 +1687,6 @@ public class BookingFX extends Application {
 
         card.getChildren().addAll(headerRow, building, capacity, vibe, tagRow);
 
-        // Scenario 3 — Live room status badge
-        String status = RoomStatusManager.getInstance().getRoomStatus(room.getRoomId());
-        Label liveStatus = new Label(status);
-        liveStatus.setStyle(getStatusBadgeStyle(status));
-        card.getChildren().add(liveStatus);
 
         return card;
     }
@@ -2357,8 +2346,8 @@ public class BookingFX extends Application {
             return "Card number must be exactly 16 digits.";
         }
 
-        if (expiry == null || !expiry.matches("(0[1-9]|1[0-2])/\\d{2}")) {
-            return "Expiry must be in MM/YY format.";
+        if (!isValidExpiry(expiry)) {
+            return "Card expiry date is invalid or expired.";
         }
 
         if (cvv == null || !cvv.matches("\\d{3}")) {
