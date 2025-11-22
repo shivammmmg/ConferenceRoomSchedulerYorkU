@@ -27,7 +27,8 @@ public class RoomRepository {
     // -------------------------------------------------------
     public void addRoom(Room room) {
         rooms.put(room.getRoomId(), room);
-        saveToCSV();        // auto-save
+        saveToCSV();
+        System.out.println("[ROOM ADDED] " + room.getRoomId() + " - " + room.getRoomName());// auto-save
     }
 
     // -------------------------------------------------------

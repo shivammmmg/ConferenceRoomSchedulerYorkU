@@ -1,85 +1,29 @@
 package scenario2.controller;
 
-import shared.model.Booking;
-import shared.model.Room;
-import shared.util.CSVHelper;
 import scenario2.builder.BookingBuilder;
+import shared.model.Booking;
+import shared.model.BookingRepository;
+import shared.model.Room;
+import shared.model.RoomRepository;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.io.File;
 
 /**
- * BookingManager (Singleton)
- * ------------------------------------------------------------
- * Core controller for Scenario 2 – Room Booking & Payment.
+ * Central business logic for Scenario 2 (Room Booking & Payment).
  *
- * <p>This class implements the <b>Singleton Design Pattern</b> to ensure
- * there is only one global booking controller managing:
- * <ul>
- *   <li>Room availability</li>
- *   <li>Booking creation & editing</li>
- *   <li>Deposit calculation (Req4)</li>
- *   <li>Payment verification</li>
- *   <li>CSV-based persistence simulating a database</li>
- * </ul>
- *
- * <p>Collaborating patterns:
- * <ul>
- *   <li><b>Builder Pattern</b> → Construct Booking objects cleanly</li>
- *   <li><b>Strategy Pattern-ready</b> → Payment behavior is encapsulated inside PaymentService</li>
- *   <li><b>Singleton</b> → One shared BookingManager instance</li>
- * </ul>
- *
- * <p>This manager is called by the JavaFX UI layer (BookingViewFX)
- * and by the Scenario2 payment workflow.
- *
- * <p><b>Requirements Supported:</b>
- * <ul>
- *   <li>Req 3 – Hourly rates per user type</li>
- *   <li>Req 4 – One-hour deposit collected at booking time</li>
- *   <li>Req 7 – View room details</li>
- *   <li>Req 8 – Edit booking</li>
- *   <li>Req 9 – Extend booking</li>
- *   <li>Req 10 – Payment service integration</li>
- * </ul>
+ * - Talks to RoomRepository (rooms.csv)
+ * - Talks to BookingRepository (bookings.csv)
+ * - Provides methods used by BookingFX + Scenario 3 (sensor/observer code)
  */
 public class BookingManager {
 
-    /** Singleton instance */
+    // =========================================================
+    //                    SINGLETON
+    // =========================================================
     private static BookingManager instance;
 
-    /** CSV files simulate the database as per Deliverable-2 instructions. */
-    private final String BOOKING_CSV = getProjectRootPath() + "/data/bookings.csv";
-    private final String ROOM_CSV    = getProjectRootPath() + "/data/rooms.csv";
-
-    /** In-memory collections loaded from CSV. */
-    private ArrayList<Booking> bookings = new ArrayList<>();
-    private ArrayList<Room> rooms       = new ArrayList<>();
-
-    /** Internal payment component (Strategy-ready). */
-    private PaymentService paymentService;
-
-    // Timestamp formatter for logs → "Nov 20 2025, 8:32:11 PM"
-    private static final DateTimeFormatter LOG_TS_FORMAT =
-            DateTimeFormatter.ofPattern("MMM dd yyyy, h:mm:ss a");
-
-    private void logAction(String msg) {
-        String ts = LocalDateTime.now().format(LOG_TS_FORMAT);
-        System.out.println("[BOOKING LOG | " + ts + "] " + msg);
-    }
-
-    // ============================================================
-    //                SINGLETON ENTRY POINT
-    // ============================================================
-
-    /**
-     * Returns the global BookingManager instance.
-     *
-     * @return single instance of BookingManager
-     */
     public static synchronized BookingManager getInstance() {
         if (instance == null) {
             instance = new BookingManager();
@@ -87,720 +31,396 @@ public class BookingManager {
         return instance;
     }
 
-    /**
-     * Private constructor for the Singleton Pattern.
-     * Loads rooms + bookings from CSV (simulated database).
-     */
-    private BookingManager() {
-        this.paymentService = new PaymentService();
-        loadInitialData();
-    }
+    private final RoomRepository roomRepo = RoomRepository.getInstance();
+    private final BookingRepository bookingRepo = BookingRepository.getInstance();
 
-    // =====================================================================
-    // FIX: ALWAYS RESOLVE REAL PROJECT ROOT (NOT target/classes)
-    // =====================================================================
-    private String getProjectRootPath() {
-        String base = System.getProperty("user.dir");
+    private BookingManager() { }
 
-        // If we are inside target/classes, go back to project root
-        if (base.endsWith("target/classes")) {
-            File f = new File(base);
-            return f.getParentFile().getParent();   // go up 2 levels
-        }
+    // =========================================================
+    //                    PRICING LOGIC
+    // =========================================================
 
-        return base; // already project root
-    }
+    // You can tweak these numbers freely – UI will just display them.
+    private static final double STUDENT_RATE = 15.0;
+    private static final double FACULTY_RATE = 22.0;
+    private static final double STAFF_RATE   = 20.0;
+    private static final double PARTNER_RATE = 30.0;
+    private static final double DEFAULT_RATE = 18.0;
 
-    // ============================================================
-    //                     DATA INITIALIZATION
-    // ============================================================
+    /** Returns the hourly rate based on user type. */
+    public double getHourlyRateForUserType(String userType) {
+        if (userType == null) return DEFAULT_RATE;
 
-    /**
-     * Loads room and booking data from CSV files.
-     * If empty, generates sample rooms.
-     */
-    private void loadInitialData() {
-        try {
-            bookings = CSVHelper.loadBookings(BOOKING_CSV);
-            rooms    = CSVHelper.loadRooms(ROOM_CSV);
-
-            if (rooms.isEmpty()) {
-                createSampleRooms();
-            }
-        } catch (Exception e) {
-            System.out.println("[INFO] Starting with empty CSV data.");
-            createSampleRooms();
+        switch (userType.toUpperCase()) {
+            case "STUDENT": return STUDENT_RATE;
+            case "FACULTY": return FACULTY_RATE;
+            case "STAFF":   return STAFF_RATE;
+            case "PARTNER": return PARTNER_RATE;
+            default:        return DEFAULT_RATE;
         }
     }
 
     /**
-     * Creates a default set of rooms when no CSV data exists.
-     * Helps the UI function immediately.
-     */
-    private void createSampleRooms() {
-        rooms.add(new Room("R101", "York Room", 10, "First Floor",
-                "Projector,Whiteboard", "Main Building"));
-        rooms.add(new Room("R102", "Lassonde Room", 20, "Second Floor",
-                "Projector,VideoConference", "Lassonde Building"));
-        rooms.add(new Room("R201", "Bergeron Room", 15, "Third Floor",
-                "Whiteboard", "Bergeron Center"));
-        rooms.add(new Room("R202", "Scott Library Room", 30, "Library Wing",
-                "Projector,VideoConference,Whiteboard", "Scott Library"));
-        rooms.add(new Room("R301", "Accolade Room", 25, "East Wing",
-                "Projector,VideoConference", "Accolade Building"));
-        rooms.add(new Room("R302", "Student Center Room", 8, "Student Center",
-                "Whiteboard", "Student Center"));
-
-        saveRooms();
-    }
-
-    // ============================================================
-    //                       PAYMENT SERVICE
-    // ============================================================
-
-    /**
-     * Inner service encapsulating payment behavior.
-     *
-     * <p>This class is intentionally isolated so it can later be replaced
-     * with a full <b>Strategy Pattern</b>:
-     * <ul>
-     *   <li>CreditCardPaymentStrategy</li>
-     *   <li>InstitutionBillingStrategy</li>
-     *   <li>DigitalWalletStrategy</li>
-     * </ul>
-     */
-    private class PaymentService {
-
-        /** Payment outcome enum. */
-        public enum PaymentStatus { PENDING, APPROVED, FAILED }
-
-        /**
-         * Returns hourly rate per user type (Req3).
-         *
-         * @param userType Student/Faculty/Staff/Partner
-         * @return hourly rate
-         */
-        public double getHourlyRate(String userType) {
-            String t = userType == null ? "" : userType.trim().toLowerCase();
-            return switch (t) {
-                case "student" -> 20.0;
-                case "faculty" -> 30.0;
-                case "staff"   -> 40.0;
-                case "partner" -> 50.0;
-                default        -> 50.0;
-            };
-        }
-
-        /**
-         * Processes deposit payments.
-         * Only performs simple validation for this course project.
-         *
-         * @param userType type of user
-         * @param amount one-hour deposit
-         * @param userId user email
-         * @return APPROVED / FAILED / PENDING
-         */
-        public PaymentStatus processDeposit(String userType, double amount, String userId) {
-            if (amount <= 0) return PaymentStatus.FAILED;
-
-            if ("partner".equalsIgnoreCase(userType) && amount >= 50.0) {
-                return PaymentStatus.PENDING; // requires manual review
-            }
-
-            return PaymentStatus.APPROVED;
-        }
-
-        /**
-         * Req4: Deposit = 1 × hourly rate, independent of duration.
-         */
-        public double calculateDeposit(String userType) {
-            return getHourlyRate(userType);
-        }
-
-        /**
-         * Optional: display total cost estimate in UI.
-         */
-        public double calculateEstimatedTotal(String userType, long durationHours) {
-            if (durationHours <= 0) durationHours = 1;
-            return getHourlyRate(userType) * durationHours;
-        }
-    }
-
-    // ============================================================
-    //                PUBLIC API FOR UI (JavaFX)
-    // ============================================================
-
-    /**
-     * Req4 – Returns the one-hour deposit for a given user type.
-     * Independent of booking duration.
-     *
-     * @param userType Student, Faculty, Staff, Partner, etc.
-     * @return fixed 1-hour deposit based on rate table
-     */
-    public double getDepositForUserType(String userType) {
-        return paymentService.calculateDeposit(userType);
-    }
-
-    /**
-     * Same as getDepositForUserType(), but accepts durationHours
-     * to match the assignment requirement signature.
-     *
-     * <p><b>Important:</b> Duration does NOT change the deposit,
-     * deposit is always 1 hour (Req4).
-     *
-     * @param userType user category
-     * @param durationHours any duration (ignored as per Req4)
-     * @return fixed 1-hour deposit
+     * Deposit rule used in the UI:
+     * - Deposit = 1 hour of the hourly rate (regardless of duration).
      */
     public double getDepositForUserTypeAndDuration(String userType, long durationHours) {
-        return paymentService.calculateDeposit(userType);
+        return getHourlyRateForUserType(userType);
     }
 
-    /**
-     * Returns hourly rate (Req3).
-     *
-     * @param userType Student/Faculty/Staff/Partner
-     * @return hourly rate
-     */
-    public double getHourlyRateForUserType(String userType) {
-        return paymentService.getHourlyRate(userType);
-    }
-
-    /**
-     * Optional helper:
-     * Calculates full estimated cost for the entire duration.
-     * Useful if the UI wants to display total price.
-     *
-     * @param userType type of user
-     * @param durationHours total hours
-     * @return estimated total cost
-     */
+    /** Simple estimated total = hours × hourlyRate. */
     public double getEstimatedTotalForUser(String userType, long durationHours) {
-        return paymentService.calculateEstimatedTotal(userType, durationHours);
+        if (durationHours <= 0) durationHours = 1;
+        return getHourlyRateForUserType(userType) * durationHours;
     }
 
-    /**
-     * Wrapper for full room search, mostly used by UI filters.
-     * Supports:
-     * <ul>
-     *   <li>capacity filter</li>
-     *   <li>building filter</li>
-     *   <li>equipment filter</li>
-     *   <li>availability check</li>
-     * </ul>
-     *
-     * @param startTime booking start
-     * @param endTime booking end
-     * @param capacity minimum required capacity
-     * @param building building name filter (optional)
-     * @param equipment keyword for equipment (e.g., "projector")
-     * @return list of available rooms matching all filters
-     */
-    public List<Room> searchAvailableRooms(
-            LocalDateTime startTime,
-            LocalDateTime endTime,
-            int capacity,
-            String building,
-            String equipment
-    ) {
-        return getAvailableRooms(startTime, endTime, capacity, building, equipment);
+    // =========================================================
+    //                    ROOM HELPERS
+    // =========================================================
+
+    /** All rooms as a List (used by BookingFX previews). */
+    public List<Room> getAllRooms() {
+        return roomRepo.getAllRoomsList(); // defensive copy from repo
     }
 
-    // ============================================================
-    //                 BOOKING CREATION (REQ 3, 4, 10)
-    // ============================================================
+    /** Lookup a room by ID (used by BookingFX cards). */
+    public Room getRoomById(String roomId) {
+        if (roomId == null) return null;
+        return roomRepo.getById(roomId);
+    }
+
+    /** Distinct buildings from all rooms (for building filter ComboBox). */
+    public List<String> getAvailableBuildings() {
+        Set<String> set = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (Room r : roomRepo.getAllRoomsList()) {
+            String b = r.getBuilding();
+            if (b != null) {
+                b = b.trim();
+                if (!b.isEmpty()) set.add(b);
+            }
+        }
+        return new ArrayList<>(set);
+    }
+
+    /** Distinct equipment/amenity tokens from all rooms (for equipment filter ComboBox). */
+    public List<String> getAvailableEquipment() {
+        Set<String> set = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (Room r : roomRepo.getAllRoomsList()) {
+            String amenities = r.getAmenities();
+            if (amenities == null) continue;
+
+            String[] parts = amenities.split(",");
+            for (String raw : parts) {
+                String s = raw.trim();
+                if (!s.isEmpty()) set.add(s);
+            }
+        }
+        return new ArrayList<>(set);
+    }
+
+    // =========================================================
+    //             SEARCH AVAILABLE ROOMS FOR A SLOT
+    // =========================================================
+
+    public List<Room> searchAvailableRooms(LocalDateTime start,
+                                           LocalDateTime end,
+                                           int capacityNeeded,
+                                           String buildingFilter,
+                                           String equipmentFilter) {
+
+        if (start == null || end == null)
+            throw new IllegalArgumentException("Start and end time are required.");
+        if (!end.isAfter(start))
+            throw new IllegalArgumentException("End time must be after start time.");
+
+        String buildingF = (buildingFilter != null && !buildingFilter.isBlank())
+                ? buildingFilter.trim().toLowerCase(Locale.ROOT)
+                : null;
+
+        String equipmentF = (equipmentFilter != null && !equipmentFilter.isBlank())
+                ? equipmentFilter.trim().toLowerCase(Locale.ROOT)
+                : null;
+
+        List<Room> matches = new ArrayList<>();
+
+        for (Room room : roomRepo.getAllRoomsList()) {
+
+            // Capacity
+            if (room.getCapacity() < capacityNeeded) continue;
+
+            // Building filter
+            if (buildingF != null) {
+                String b = room.getBuilding();
+                if (b == null || !b.trim().toLowerCase(Locale.ROOT).equals(buildingF)) {
+                    continue;
+                }
+            }
+
+            // Equipment filter
+            if (equipmentF != null) {
+                String amenities = room.getAmenities();
+                if (amenities == null ||
+                        !amenities.toLowerCase(Locale.ROOT).contains(equipmentF)) {
+                    continue;
+                }
+            }
+
+            // Time conflict check
+            if (isRoomFree(room.getRoomId(), start, end)) {
+                matches.add(room);
+            }
+        }
+
+        return matches;
+    }
+
+    /** Returns true if the room has no non-cancelled bookings overlapping [start, end]. */
+    private boolean isRoomFree(String roomId, LocalDateTime start, LocalDateTime end) {
+        List<Booking> forRoom = bookingRepo.getBookingsForRoom(roomId);
+
+        for (Booking b : forRoom) {
+            String status = b.getStatus();
+            if ("CANCELLED".equals(status) || "NO_SHOW".equals(status)) {
+                continue; // ignore dead bookings
+            }
+
+            boolean overlap =
+                    !b.getEndTime().isBefore(start) && !b.getStartTime().isAfter(end);
+            if (overlap) return false;
+        }
+        return true;
+    }
+
+    // =========================================================
+    //     INTERNAL HELPERS – ADD / SAVE USING CURRENT REPO
+    // =========================================================
+
+    /** Adds a booking to the in-memory list + persists via saveAll(). */
+    private void addBookingInternal(Booking booking) {
+        bookingRepo.getAllBookings().add(booking);
+        bookingRepo.saveAll();
+    }
+
+    /** Saves current in-memory bookings list to CSV. */
+    private void saveBookings() {
+        bookingRepo.saveAll();
+    }
+
+    // =========================================================
+    //                    CREATE NEW BOOKING
+    // =========================================================
 
     /**
-     * Creates a new booking with:
-     * <ul>
-     *   <li>validation</li>
-     *   <li>room availability check</li>
-     *   <li>deposit calculation (Req4)</li>
-     *   <li>payment status determination</li>
-     *   <li>BookingBuilder to construct the final Booking</li>
-     *   <li>CSV persistence</li>
-     * </ul>
-     *
-     * @throws Exception if validation fails
+     * Called from BookingFX → after payment modal passes card validation.
+     * We treat payment as APPROVED here and store the deposit.
      */
-    public Booking bookRoom(
-            String roomId,
-            String userId,
-            LocalDateTime startTime,
-            LocalDateTime endTime,
-            String purpose,
-            String userType
-    ) throws Exception {
+    public Booking bookRoom(String roomId,
+                            String userId,
+                            LocalDateTime start,
+                            LocalDateTime end,
+                            String purpose,
+                            String userType) throws Exception {
 
-        // 1. Validation
-        validateBookingParameters(roomId, startTime, endTime, purpose);
-
-        // 2. Check availability
-        if (!isRoomAvailable(roomId, startTime, endTime)) {
-            throw new Exception("Room not available for the selected time slot.");
+        if (roomId == null || userId == null) {
+            throw new IllegalArgumentException("roomId and userId are required.");
         }
 
-        // 3. Duration restrictions
-        long minutes = java.time.Duration.between(startTime, endTime).toMinutes();
-        long hours   = (long) Math.ceil(minutes / 60.0);
-        if (minutes < 15) throw new Exception("Minimum booking is 30 minutes.");
-        if (hours > 4)    throw new Exception("Max booking duration is 4 hours.");
-
-        // 4. Business hours rule
-        // 4. Business hours rule (UPDATED)
-// Allowed start: 7:00 AM → 9:45 PM
-// Allowed end:   up to 10:00 PM (hard cutoff)
-// Minimum duration: 15 minutes (already enforced elsewhere)
-
-        LocalTime earliestStart = LocalTime.of(7, 0);    // 7:00 AM
-        LocalTime latestStart   = LocalTime.of(21, 45);  // 9:45 PM (last valid start)
-        LocalTime latestEnd     = LocalTime.of(22, 0);   // 10:00 PM max
-
-        LocalTime s = startTime.toLocalTime();
-        LocalTime e = endTime.toLocalTime();
-
-// Start must be within 7:00 AM → 9:45 PM
-        if (s.isBefore(earliestStart) || s.isAfter(latestStart)) {
-            throw new Exception("Bookings must start between 7:00 AM and 9:45 PM.");
+        Room room = roomRepo.getById(roomId);
+        if (room == null) {
+            throw new Exception("Selected room does not exist.");
         }
 
-// End must be on same day
-        if (!startTime.toLocalDate().equals(endTime.toLocalDate())) {
-            throw new Exception("Bookings must start and end on the same day.");
+        if (start == null || end == null || !end.isAfter(start)) {
+            throw new Exception("Invalid start/end time.");
         }
 
-// End cannot exceed 10:00 PM
-        if (e.isAfter(latestEnd)) {
-            throw new Exception("Bookings must end no later than 10:00 PM.");
+        // Final conflict check in case something changed after search
+        if (!isRoomFree(roomId, start, end)) {
+            throw new Exception("Room is no longer available for that time.");
         }
 
+        long minutes = Duration.between(start, end).toMinutes();
+        long hours = minutes / 60;
+        if (minutes % 60 != 0) hours++;
+        if (hours <= 0) hours = 1;
 
-        // 5. Deposit = 1 hour rate (Req4)
-        double depositAmount = paymentService.calculateDeposit(userType);
+        double deposit = getDepositForUserTypeAndDuration(userType, hours);
 
-        PaymentService.PaymentStatus paymentStatus =
-                paymentService.processDeposit(userType, depositAmount, userId);
+        String bookingId = generateBookingId();
 
-        String initialStatus = paymentStatus == PaymentService.PaymentStatus.APPROVED
-                ? "CONFIRMED"
-                : "PENDING_PAYMENT";
-
-        // 6. Construct booking using Builder Pattern
-        String bookingId = "B" + System.currentTimeMillis();
-
-        Booking newBooking = new BookingBuilder()
+        Booking booking = new BookingBuilder()
                 .setBookingId(bookingId)
                 .setRoomId(roomId)
                 .setUserId(userId)
-                .setStartTime(startTime)
-                .setEndTime(endTime)
+                .setStartTime(start)
+                .setEndTime(end)
                 .setPurpose(purpose)
-                .setStatus(initialStatus)
-                .setPaymentStatus(paymentStatus.name())
-                .setDepositAmount(depositAmount)
+                .setStatus("CONFIRMED")
+                .setPaymentStatus("APPROVED")   // card passed in PaymentModal
+                .setDepositAmount(deposit)
                 .build();
 
-        bookings.add(newBooking);
-        saveBookings();
-
-        // LOG: booking created
-        logAction("BOOKING CREATED - id=" + bookingId
-                + ", user=" + userId
-                + ", room=" + roomId
-                + ", start=" + startTime
-                + ", end=" + endTime
-                + ", userType=" + userType
-                + ", deposit=" + String.format("%.2f", depositAmount)
-                + ", paymentStatus=" + paymentStatus.name()
-                + ", status=" + initialStatus);
-
-        return newBooking;
+        // Use internal add + save, compatible with BookingRepository
+        addBookingInternal(booking);
+        return booking;
     }
 
-    // ============================================================
-    //                   EDIT BOOKING (REQ 8)
-    // ============================================================
+    private String generateBookingId() {
+        return "B" + System.currentTimeMillis();
+    }
 
-    /**
-     * Allows a user to modify an existing booking BEFORE it starts.
-     * Room, date, time, and purpose can be updated.
-     *
-     * @return updated Booking object
-     * @throws Exception if any validation fails
-     */
-    public Booking editBooking(
-            String bookingId,
-            String userId,
-            String newRoomId,
-            LocalDateTime newStart,
-            LocalDateTime newEnd,
-            String newPurpose
-    ) throws Exception {
+    // =========================================================
+    //               USER BOOKINGS (MY BOOKINGS TAB)
+    // =========================================================
 
-        Booking booking = findBookingById(bookingId);
-        if (booking == null) throw new Exception("Booking not found.");
+    /** All bookings belonging to a particular user. */
+    public List<Booking> getAllUserBookings(String userId) {
+        List<Booking> result = new ArrayList<>();
+        if (userId == null) return result;
 
-        if (!booking.getUserId().equals(userId)) {
+        for (Booking b : bookingRepo.getAllBookings()) {
+            if (userId.equalsIgnoreCase(b.getUserId())) {
+                result.add(b);
+            }
+        }
+        return result;
+    }
+
+    // =========================================================
+    //               CANCEL / EDIT EXISTING BOOKINGS
+    // =========================================================
+
+    public boolean cancelBooking(String bookingId, String userEmail) throws Exception {
+        Booking booking = getBookingById(bookingId);
+        if (booking == null) {
+            throw new Exception("Booking not found.");
+        }
+
+        if (userEmail != null && !userEmail.equalsIgnoreCase(booking.getUserId())) {
+            throw new Exception("You can cancel only your own bookings.");
+        }
+
+        if ("CANCELLED".equals(booking.getStatus())) {
+            return false; // already cancelled
+        }
+
+        booking.setStatus("CANCELLED");
+        // simple rule: treat as refunded on cancel
+        booking.setPaymentStatus("REFUNDED");
+
+        saveBookings();
+        return true;
+    }
+
+    public void editBooking(String bookingId,
+                            String userEmail,
+                            String newRoomId,
+                            LocalDateTime newStart,
+                            LocalDateTime newEnd,
+                            String newPurpose) throws Exception {
+
+        Booking booking = getBookingById(bookingId);
+        if (booking == null) {
+            throw new Exception("Booking not found.");
+        }
+
+        if (userEmail != null && !userEmail.equalsIgnoreCase(booking.getUserId())) {
             throw new Exception("You can edit only your own bookings.");
         }
 
-        if (!LocalDateTime.now().isBefore(booking.getStartTime())) {
-            throw new Exception("Cannot edit a booking that has already started.");
+        if (!"CONFIRMED".equals(booking.getStatus())
+                && !"PENDING_PAYMENT".equals(booking.getStatus())) {
+            throw new Exception("Only upcoming bookings can be edited.");
         }
 
-        validateBookingParameters(newRoomId, newStart, newEnd, newPurpose);
-
-        if (!isRoomAvailable(newRoomId, newStart, newEnd, bookingId)) {
-            throw new Exception("Room unavailable for the updated time.");
+        Room newRoom = roomRepo.getById(newRoomId);
+        if (newRoom == null) {
+            throw new Exception("Selected room does not exist.");
         }
 
-        // Update (deposit stays same as Req4)
+        if (newStart == null || newEnd == null || !newEnd.isAfter(newStart)) {
+            throw new Exception("Invalid start/end time.");
+        }
+
+        // Check conflicts in the new room, but ignore this same booking
+        List<Booking> forRoom = bookingRepo.getBookingsForRoom(newRoomId);
+        for (Booking other : forRoom) {
+            if (other.getBookingId().equals(bookingId)) continue;
+
+            String status = other.getStatus();
+            if ("CANCELLED".equals(status) || "NO_SHOW".equals(status)) continue;
+
+            boolean overlap =
+                    !other.getEndTime().isBefore(newStart) &&
+                            !other.getStartTime().isAfter(newEnd);
+
+            if (overlap) {
+                throw new Exception("Room is not available for the new time.");
+            }
+        }
+
         booking.setRoomId(newRoomId);
         booking.setStartTime(newStart);
         booking.setEndTime(newEnd);
         booking.setPurpose(newPurpose);
 
         saveBookings();
-
-        // LOG: booking edited
-        logAction("BOOKING UPDATED - id=" + bookingId
-                + ", user=" + userId
-                + ", room=" + newRoomId
-                + ", start=" + newStart
-                + ", end=" + newEnd
-                + ", purpose=\"" + newPurpose + "\"");
-
-        return booking;
     }
 
-    // ============================================================
-    //                     CANCEL BOOKING
-    // ============================================================
+    // =========================================================
+    //          METHODS USED BY SCENARIO 3 (SENSORS)
+    // =========================================================
+
+    /** Simple lookup by ID – used all over Scenario 3. */
+    public Booking getBookingById(String id) {
+        if (id == null) return null;
+        // BookingRepository currently exposes findById()
+        return bookingRepo.findById(id);
+    }
 
     /**
-     * Cancels a booking if done at least 2 hours before start.
-     * Refund is issued automatically if payment was approved.
-     *
-     * @return true on success
+     * When user successfully checks in (via sensor or Check-In button),
+     * we treat the deposit as applied and mark the booking IN_USE.
      */
-    public boolean cancelBooking(String bookingId, String userId) throws Exception {
-        Booking booking = findBookingById(bookingId);
-        if (booking == null) throw new Exception("Booking not found.");
+    public void applyDepositToFinalCost(String bookingId) {
+        Booking b = getBookingById(bookingId);
+        if (b == null) return;
 
-        if (!booking.getUserId().equals(userId)) {
-            throw new Exception("You can cancel only your own bookings.");
-        }
-
-        if (LocalDateTime.now().plusHours(2).isAfter(booking.getStartTime())) {
-            throw new Exception("Cannot cancel within 2 hours of start time.");
-        }
-
-        boolean refundIssued = false;
-        if ("APPROVED".equals(booking.getPaymentStatus())) {
-            // refund simulated
-            refundIssued = true;
-        }
-
-        booking.setStatus("CANCELLED");
+        b.setStatus("IN_USE");
         saveBookings();
-
-        // LOG: booking cancelled
-        logAction("BOOKING CANCELLED - id=" + bookingId
-                + ", user=" + userId
-                + ", room=" + booking.getRoomId()
-                + ", start=" + booking.getStartTime()
-                + ", refundIssued=" + refundIssued
-                + ", deposit=" + String.format("%.2f", booking.getDepositAmount()));
-
-        return true;
-    }
-
-    // ============================================================
-    //                    USER'S BOOKINGS
-    // ============================================================
-
-    /**
-     * Returns all active bookings (CONFIRMED or PENDING_PAYMENT)
-     * for the given user.
-     */
-    public List<Booking> getUserBookings(String userId) {
-        List<Booking> list = new ArrayList<>();
-        for (Booking b : bookings) {
-            if (b.getUserId().equals(userId) &&
-                    (b.getStatus().equals("CONFIRMED") ||
-                            b.getStatus().equals("PENDING_PAYMENT") ||
-                            b.getStatus().equals("ACTIVE"))) {
-                list.add(b);
-            }
-        }
-        list.sort(Comparator.comparing(Booking::getStartTime));
-        return list;
     }
 
     /**
-     * Returns ALL bookings for a user (including past, cancelled, no-show, finished).
+     * When the no-show timer fires, we mark booking as NO_SHOW and
+     * forfeit the deposit.
      */
-    public List<Booking> getAllUserBookings(String userId) {
-        List<Booking> list = new ArrayList<>();
-        for (Booking b : bookings) {
-            if (b.getUserId().equals(userId)) {
-                list.add(b);
-            }
-        }
-        list.sort(Comparator.comparing(Booking::getStartTime).reversed());
-        return list;
-    }
-
-    // ============================================================
-    //                  SEARCH / AVAILABILITY
-    // ============================================================
-
-    /**
-     * Full room search with support for:
-     * <ul>
-     *   <li>capacity filter</li>
-     *   <li>building filter</li>
-     *   <li>equipment filter</li>
-     *   <li>time availability</li>
-     * </ul>
-     */
-    public List<Room> getAvailableRooms(
-            LocalDateTime start,
-            LocalDateTime end,
-            int capacity,
-            String building,
-            String equipment
-    ) {
-        List<Room> available = new ArrayList<>();
-
-        for (Room r : rooms) {
-
-            boolean matchCapacity =
-                    r.getCapacity() >= capacity;
-
-            boolean matchBuilding =
-                    building == null || building.isEmpty() ||
-                            r.getBuilding().equalsIgnoreCase(building);
-
-            boolean matchEquipment =
-                    equipment == null || equipment.isEmpty() ||
-                            r.getAmenities().toLowerCase().contains(equipment.toLowerCase());
-
-            boolean matchAvailability =
-                    isRoomAvailable(r.getRoomId(), start, end);
-
-            if (matchCapacity && matchBuilding && matchEquipment && matchAvailability) {
-                available.add(r);
-            }
-        }
-        return available;
-    }
-
-    // ============================================================
-    //                INTERNAL VALIDATION UTILS
-    // ============================================================
-
-    /** Validates room ID, time range, and purpose. */
-    private void validateBookingParameters(
-            String roomId,
-            LocalDateTime start,
-            LocalDateTime end,
-            String purpose
-    ) throws Exception {
-
-        if (roomId == null || roomId.isBlank())
-            throw new Exception("Room ID is required.");
-
-        if (start == null || end == null)
-            throw new Exception("Start and end times are required.");
-
-        if (start.isBefore(LocalDateTime.now()))
-            throw new Exception("Cannot book in the past.");
-
-        if (!end.isAfter(start))
-            throw new Exception("End time must be after start time.");
-
-        if (purpose == null || purpose.isBlank())
-            throw new Exception("Purpose is required.");
-
-        if (findRoomById(roomId) == null)
-            throw new Exception("Room not found.");
-    }
-
-    /** Availability check for new bookings. */
-    private boolean isRoomAvailable(
-            String roomId, LocalDateTime start, LocalDateTime end
-    ) {
-        return isRoomAvailable(roomId, start, end, null);
-    }
-
-
-    /** Availability check that excludes a booking ID (used for editing). */
-    private boolean isRoomAvailable(
-            String roomId, LocalDateTime start, LocalDateTime end, String excludeBookingId
-    ) {
-        Room room = findRoomById(roomId);
-
-        if (room == null) return false;
-
-        // 🔥 Block if room is disabled or under maintenance
-        String status = room.getStatus();
-        if ("DISABLED".equals(status) || "MAINTENANCE".equals(status)) {
-            return false;
-        }
-
-        for (Booking b : bookings) {
-            if (!b.getRoomId().equals(roomId)) continue;
-
-            if (excludeBookingId != null &&
-                    excludeBookingId.equals(b.getBookingId())) {
-                continue;
-            }
-
-            // 🔥 These statuses must block room availability
-            boolean blocks =
-                    b.getStatus().equals("CONFIRMED") ||
-                            b.getStatus().equals("PENDING_PAYMENT") ||
-                            b.getStatus().equals("IN_USE") ||
-                            b.getStatus().equals("ACTIVE");
-
-            if (!blocks) continue;
-
-            boolean overlap =
-                    start.isBefore(b.getEndTime()) &&
-                            end.isAfter(b.getStartTime());
-
-            if (overlap) return false;
-        }
-
-        return true;
-    }
-
-
-    // ============================================================
-    //                        FINDERS
-    // ============================================================
-
-    private Booking findBookingById(String id) {
-        for (Booking b : bookings) {
-            if (b.getBookingId().equals(id)) return b;
-        }
-        return null;
-    }
-
-    private Room findRoomById(String id) {
-        for (Room r : rooms) {
-            if (r.getRoomId().equals(id)) return r;
-        }
-        return null;
-    }
-
-    // ============================================================
-    //                    CSV PERSISTENCE WRAPPERS
-    // ============================================================
-
-    private void saveBookings() {
-        try {
-            CSVHelper.saveBookings(BOOKING_CSV, bookings);
-        } catch (Exception e) {
-            System.err.println("[ERROR] Failed to save bookings: " + e.getMessage());
-        }
-    }
-
-    private void saveRooms() {
-        try {
-            CSVHelper.saveRooms(ROOM_CSV, rooms);
-        } catch (Exception e) {
-            System.err.println("[ERROR] Failed to save rooms: " + e.getMessage());
-        }
-    }
-
-    // ============================================================
-    //                     PUBLIC LIST ACCESSORS
-    // ============================================================
-
-    /** Returns all rooms in the system. */
-    public List<Room> getAllRooms() {
-        return new ArrayList<>(rooms);
-    }
-
-    /** Returns one room by its ID. */
-    public Room getRoomById(String id) {
-        return findRoomById(id);
-    }
-
-    /** Returns all buildings (for filter UI). */
-    public List<String> getAvailableBuildings() {
-        Set<String> set = new HashSet<>();
-        for (Room r : rooms) set.add(r.getBuilding());
-        return new ArrayList<>(set);
-    }
-
-    /** Returns all equipment types (for filter UI). */
-    public List<String> getAvailableEquipment() {
-        Set<String> set = new HashSet<>();
-        for (Room r : rooms) {
-            for (String a : r.getAmenities().split(",")) {
-                set.add(a.trim());
-            }
-        }
-        return new ArrayList<>(set);
-    }
-
-    // ======================================================
-    // Scenario 3 — Deposit Adjustments (No-show / Check-in)
-    // ======================================================
-
-    // Called when a booking becomes NO_SHOW
-    public synchronized void markDepositForfeited(String bookingId) {
-        Booking b = findBookingById(bookingId);
+    public void markDepositForfeited(String bookingId) {
+        Booking b = getBookingById(bookingId);
         if (b == null) return;
 
         b.setStatus("NO_SHOW");
         b.setPaymentStatus("FORFEITED");
         saveBookings();
-
-        // LOG: no-show / deposit forfeited
-        logAction("NO_SHOW - bookingId=" + bookingId
-                + ", user=" + b.getUserId()
-                + ", room=" + b.getRoomId()
-                + ", depositForfeited=" + String.format("%.2f", b.getDepositAmount()));
     }
 
-    // Called when the user checks in on time
-    public synchronized void applyDepositToFinalCost(String bookingId) {
-        Booking b = findBookingById(bookingId);
-        if (b == null) return;
-
-        // Change from ACTIVE → IN_USE to match Scenario 3 terminology
-        b.setStatus("IN_USE");
-        b.setPaymentStatus("APPROVED");
-
-        saveBookings();
-
-        // LOG: check-in / in-use
-        logAction("CHECK_IN - bookingId=" + bookingId
-                + ", user=" + b.getUserId()
-                + ", room=" + b.getRoomId()
-                + ", depositApplied=" + String.format("%.2f", b.getDepositAmount()));
-    }
-
-    public Booking getBookingById(String id) {
-        for (Booking b : bookings) {
-            if (b.getBookingId().equals(id)) return b;
-        }
-        return null;
-    }
-
+    /**
+     * Used by RoomStatusManager + RoomOccupancyPopup to figure out
+     * whether there is an active booking for a room at a given time.
+     */
     public Booking getActiveBookingForRoom(String roomId, LocalDateTime now) {
-        for (Booking b : bookings) {
-            if (b.getRoomId().equals(roomId)) {
-                if (!now.isBefore(b.getStartTime()) && !now.isAfter(b.getEndTime())) {
-                    return b;
-                }
-            }
+        if (roomId == null || now == null) return null;
+
+        List<Booking> forRoom = bookingRepo.getBookingsForRoom(roomId);
+        for (Booking b : forRoom) {
+
+            String status = b.getStatus();
+            if ("CANCELLED".equals(status) || "NO_SHOW".equals(status)) continue;
+
+            boolean inWindow =
+                    !now.isBefore(b.getStartTime()) && !now.isAfter(b.getEndTime());
+
+            if (inWindow) return b;
         }
         return null;
     }
-
 }
