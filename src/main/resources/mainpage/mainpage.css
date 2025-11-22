@@ -64,7 +64,7 @@
 
 .sidebar-footer .footer-text {
     -fx-font-size: 11px;
-    -fx-text-fill: rgba(255,255,255,0.75);   /* WHITE text */
+    -fx-text-fill: rgba(255,255,255,0.92);   /* WHITE text */
 }
 
 
@@ -249,11 +249,11 @@
 }
 .footer-text {
     -fx-font-size: 11px;
-    -fx-text-fill: #6b7280;
+    -fx-text-fill: #4b5563;
 }
 .footer-links {
     -fx-font-size: 11px;
-    -fx-text-fill: #AD001D;
+    -fx-text-fill: #BA0C2F;
     -fx-font-weight: 600;
 }
 
@@ -419,12 +419,12 @@
 }
 
 .footer-text {
-    -fx-text-fill: rgba(255,255,255,0.8);
+   -fx-text-fill: #BA0C2F;
     -fx-font-size: 10px;
 }
 
 .footer-disclaimer {
-    -fx-text-fill: rgba(255,255,255,0.6);
+    -fx-text-fill: #6b7280;
 }
 
 /* =============== HERO =============== */

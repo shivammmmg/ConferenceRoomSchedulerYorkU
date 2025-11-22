@@ -79,8 +79,6 @@
                        styleClass="footer-text"/>
                 <Label text="© 2025 — For educational use only."
                        styleClass="footer-text"/>
-                <Label text="Not an official York University system."
-                       styleClass="footer-text footer-disclaimer"/>
             </VBox>
 
         </VBox>
@@ -489,8 +487,8 @@
                       styleClass="footer">
                     <Label text="YorkU Conference Room Scheduler"
                            styleClass="footer-text"/>
-                    <Label text="© 2025 — For educational use only. This is not an official York University system."
-                           styleClass="footer-text"/>
+
+
                     <Label text="Help Desk  •  Terms &amp; Conditions  •  Privacy Policy"
                            styleClass="footer-links"/>
                 </VBox>
