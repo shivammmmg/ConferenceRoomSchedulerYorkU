@@ -529,19 +529,21 @@ public class BookingFX extends Application {
         endLbl.setStyle(labelStyle);
         ComboBox<String> endBox = new ComboBox<>();
 
-        // Start time: 7am to 9:45pm
+        // Start time: 7am to 10pm (last start at 22:00)
         for (int hour = 7; hour <= 22; hour++) {
-            for (int min = 0; min < 60; min += 15) {
+            for (int min = 0; min < 60; min += 30) {
                 startBox.getItems().add(String.format("%02d:%02d", hour, min));
             }
         }
 
-// End time: 7:15am to 10pm
+        // End time: 7:00am to 10:00pm (no 22:30)
         for (int hour = 7; hour <= 22; hour++) {
-            for (int min = 0; min < 60; min += 15) {
+            for (int min = 0; min < 60; min += 30) {
+                if (hour == 22 && min > 0) continue;
                 endBox.getItems().add(String.format("%02d:%02d", hour, min));
             }
         }
+
 
         applyModernFieldStyle(startBox);
         applyModernFieldStyle(endBox);
@@ -1177,7 +1179,7 @@ public class BookingFX extends Application {
         startTimeLbl.setStyle(labelStyle);
         ComboBox<String> startTimeBox = new ComboBox<>();
         for (int hour = 7; hour <= 21; hour++) {
-            for (int min = 0; min < 60; min += 15) {
+            for (int min = 0; min < 60; min += 30) {
                 startTimeBox.getItems().add(String.format("%02d:%02d", hour, min));
             }
         }
@@ -1188,7 +1190,7 @@ public class BookingFX extends Application {
         endTimeLbl.setStyle(labelStyle);
         ComboBox<String> endTimeBox = new ComboBox<>();
         for (int hour = 7; hour <= 22; hour++) {
-            for (int min = 0; min < 60; min += 15) {
+            for (int min = 0; min < 60; min += 30) {
 
                 // prevent anything after 22:00
                 if (hour == 22 && min > 0) continue;

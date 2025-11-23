@@ -54,7 +54,7 @@ public class RoomStatusManager implements Subject {
 
     private final RoomRepository roomRepo = RoomRepository.getInstance();
 
-    private final int NO_SHOW_MINUTES = 2; // For demo
+    private final int NO_SHOW_MINUTES = 30; // For demo = 2 minutes
 
     // ======================================================
     // Internal State
