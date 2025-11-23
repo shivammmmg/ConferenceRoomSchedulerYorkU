@@ -1448,19 +1448,24 @@ public class AdminFX extends Application {
         Button toggle = pillBtn("Enable / Disable", "#f59e0b");
         toggle.setOnAction(e -> {
             SystemUser u = table.getSelectionModel().getSelectedItem();
-            if (u == null) { alertWarning("Select a user."); return; }
+            if (u == null) {
+                alertWarning("Select a user.");
+                return;
+            }
 
+            // flip the active flag
             u.setActive(!u.isActive());
+
             try {
-                userManager.updateProfile(u, null, null);
+                userManager.saveAllUsers();   // <-- THIS FIXES THE BUG
+                alertSuccess("Updated admin status.");
             } catch (Exception ex) {
                 alertError("Failed to update admin: " + ex.getMessage());
             }
 
             table.refresh();
-
-            alertSuccess("Updated.");
         });
+
 
         HBox actions = new HBox(12, delete, toggle);
         actions.setAlignment(Pos.CENTER_RIGHT);

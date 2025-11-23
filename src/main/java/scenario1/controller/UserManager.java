@@ -501,4 +501,14 @@ public class UserManager {
         return " ".repeat(totalLength - len);
     }
 
+    public void saveAllUsers() {
+        try {
+            CSVHelper.saveUsers(CSV_PATH, users);
+        } catch (Exception e) {
+            System.out.println("[UserManager] Failed to save users.csv: " + e.getMessage());
+        }
+    }
+
+
+
 }
