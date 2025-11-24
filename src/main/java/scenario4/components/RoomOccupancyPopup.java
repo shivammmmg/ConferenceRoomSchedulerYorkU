@@ -21,6 +21,45 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * RoomOccupancyPopup – Scenario 4 (Admin Dashboard: Live Room Monitoring)
+ * ----------------------------------------------------------------------------
+ * <p>This component provides a real-time occupancy view for a selected room.
+ * It is used inside the Scenario 4 AdminFX dashboard to allow administrators
+ * to inspect:</p>
+ *
+ * <ul>
+ *     <li>All ongoing and upcoming bookings for the room</li>
+ *     <li>Live room status (AVAILABLE / IN_USE / NO_SHOW)</li>
+ *     <li>Automatic 30-second sensor updates</li>
+ *     <li>A running log of sensor events</li>
+ * </ul>
+ *
+ * <h2>Features</h2>
+ * <ul>
+ *     <li>Modal popup that inherits owner window (AdminFX)</li>
+ *     <li>Table of filtered bookings (only current + future)</li>
+ *     <li>A simulated sensor system that periodically updates status</li>
+ *     <li>Log history showing every sensor ping</li>
+ *     <li>Back button restores AdminFX fullscreen state</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li>Uses the Observer-driven RoomStatusManager to reflect real-time state</li>
+ *     <li>Acts as a visual subscriber to Scenario 3 sensor logic</li>
+ *     <li>Demonstrates cross-scenario integration (Scenario 3 → Scenario 4)</li>
+ * </ul>
+ *
+ * <h2>Notes</h2>
+ * <ul>
+ *     <li>This popup does not modify any booking or room data.</li>
+ *     <li>Sensor values are simulated every 30 seconds for demonstration.</li>
+ *     <li>Used exclusively in the Admin dashboard (Scenario 4).</li>
+ * </ul>
+ */
+
+
 public class RoomOccupancyPopup {
 
     private static Timeline sensorTimeline;
@@ -122,9 +161,17 @@ public class RoomOccupancyPopup {
         ListView<String> logView = new ListView<>();
         logView.setPrefHeight(180);
 
-        // ======================================================
-        // START SENSOR SIMULATION
-        // ======================================================
+        /**
+         * Starts a recurring 30-second timeline that simulates automated
+         * occupancy sensor pings for the given room.
+         *
+         * <p>Each cycle triggers a sensor event, updates the RoomStatusManager,
+         * and appends a descriptive log entry to the ListView.</p>
+         *
+         * @param roomId  the room being monitored
+         * @param logView the UI list where sensor logs appear
+         */
+
         startSensorSimulation(roomId, logView);
 
         popup.setOnCloseRequest(e -> {
@@ -159,6 +206,23 @@ public class RoomOccupancyPopup {
         sensorTimeline.setCycleCount(Timeline.INDEFINITE);
         sensorTimeline.play();
     }
+
+    /**
+     * Performs a single sensor tick:
+     *
+     * <ul>
+     *     <li>Checks for an active booking at the current time</li>
+     *     <li>Updates room occupancy according to booking + check-in status</li>
+     *     <li>Requests RoomStatusManager to refresh room state</li>
+     *     <li>Appends a timestamped sensor log entry</li>
+     * </ul>
+     *
+     * <p>This is invoked every 30 seconds by the Timeline started in
+     * {@link #startSensorSimulation(String, ListView)}.</p>
+     *
+     * @param roomId  the room being updated
+     * @param logView the ListView containing sensor history
+     */
 
     private static void appendSensorTick(String roomId, ListView<String> logView) {
 

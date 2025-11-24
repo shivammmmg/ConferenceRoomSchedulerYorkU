@@ -17,6 +17,35 @@ import shared.util.GlobalNavigationHelper;
 
 import java.util.Objects;
 
+/**
+ * Controller for the Main Landing Page of the Conference Room Scheduler.
+ *
+ * <p>This screen is part of the entry workflow shown before Scenario 1 (Registration
+ * & Login). It displays room preview cards, live room availability, and acts as the
+ * gateway to the Login page.</p>
+ *
+ * <h2>Relevant Scenarios</h2>
+ * • Scenario 1 – Registration & Account Management
+ * • Scenario 4 – Admin & Room Management (room status / capacity pulled from CSV)
+ *
+ * <h2>Key Responsibilities</h2>
+ * <ul>
+ *   <li>Loads York University branding and background elements.</li>
+ *   <li>Smooth scroll + fade-in animation for a polished UI experience.</li>
+ *   <li>Loads room capacities from rooms.csv via {@link RoomRepository} (Singleton).</li>
+ *   <li>Auto-refreshes room availability every 30 seconds.</li>
+ *   <li>Routes user to Login page when "Get Started" is clicked.</li>
+ * </ul>
+ *
+ * <h2>Design Patterns Used</h2>
+ * <ul>
+ *   <li><b>Singleton</b>: RoomRepository is used to fetch live room data.</li>
+ *   <li><b>Facade</b>: GlobalNavigationHelper abstracts navigation logic.</li>
+ * </ul>
+ *
+ * @author Your Name
+ */
+
 public class MainPageController {
 
     @FXML private ScrollPane mainScroll;
@@ -32,6 +61,26 @@ public class MainPageController {
     @FXML private Label cap302;
 
     private Timeline liveStatusUpdater;
+
+
+    /**
+     * Initializes the main landing page.
+     *
+     * <p>Runs immediately after the FXML loads. Handles UI setup,
+     * animations, room capacity loading, and starting the live room
+     * status refresh scheduler.</p>
+     *
+     * <h2>Related Scenario</h2>
+     * Scenario 1 — Entry point before Login.
+     */
+
+
+    /**
+     * Loads the York University logo displayed at the top-left corner.
+     *
+     * <p>Reads the logo image from the resources folder and displays it
+     * inside an ImageView component.</p>
+     */
 
     @FXML
     public void initialize() {
@@ -51,7 +100,14 @@ public class MainPageController {
         ));
     }
 
-    /* Smooth Scroll Animation */
+    /**
+     * Smoothly scrolls the main page to a particular vertical position.
+     *
+     * @param target the destination scroll value (0.0 to 1.0)
+     *
+     * <p>Used for animated transitions between sections of the main page.</p>
+     */
+
     public void smoothScrollTo(double target) {
         if (mainScroll == null) return;
 
@@ -63,7 +119,14 @@ public class MainPageController {
         timeline.play();
     }
 
-    /* Fade In */
+    /**
+     * Applies a fade-in animation to the given UI node.
+     *
+     * @param node the UI component to fade in
+     *
+     * <p>Creates a polished visual transition when the page loads.</p>
+     */
+
     private void fadeIn(Node node) {
         node.setOpacity(0);
 
@@ -72,13 +135,26 @@ public class MainPageController {
         ft.play();
     }
 
+    /**
+     * Handles the “Get Started” button.
+     *
+     * <p>Initializes the UserManager singleton and navigates the user
+     * to the Login screen (Scenario 1).</p>
+     */
+
     @FXML
     private void onGetStarted() {
         scenario1.controller.UserManager.getInstance();
         GlobalNavigationHelper.navigateTo("/scenario1/fxml/login.fxml");
     }
 
-    /* Load room capacities from rooms.csv */
+    /**
+     * Loads room capacities from the rooms.csv file.
+     *
+     * <p>Uses RoomRepository (Singleton) to fetch data for preview rooms
+     * displayed on the main landing page.</p>
+     */
+
     private void loadCapacityFromCSV() {
         Room r202 = RoomRepository.getInstance().getById("R202");
         Room r301 = RoomRepository.getInstance().getById("R301");
@@ -89,7 +165,13 @@ public class MainPageController {
         if (r302 != null) cap302.setText("Capacity: " + r302.getCapacity());
     }
 
-    /* Auto-refresh every 30 seconds */
+    /**
+     * Starts a timeline that refreshes room availability every 30 seconds.
+     *
+     * <p>This simulates real-time dashboard behavior by continuously
+     * reading room status from the CSV repository.</p>
+     */
+
     private void startLiveRoomStatusUpdater() {
         liveStatusUpdater = new Timeline(
                 new KeyFrame(Duration.ZERO, e -> refreshRoomStatusCards()),
@@ -100,12 +182,27 @@ public class MainPageController {
         liveStatusUpdater.play();
     }
 
-    /* Reads status from rooms.csv */
+    /**
+     * Updates the preview cards for all featured rooms.
+     *
+     * <p>Reads the status from rooms.csv and updates the UI labels.</p>
+     */
+
     private void refreshRoomStatusCards() {
         updateRoomCard(status202, "R202");
         updateRoomCard(status301, "R301");
         updateRoomCard(status302, "R302");
     }
+
+    /**
+     * Updates the room status label for a specific room.
+     *
+     * @param label  the UI label to update
+     * @param roomId the ID of the room (e.g., "R202")
+     *
+     * <p>Applies the correct status text and CSS class based on the room’s state:
+     * AVAILABLE, DISABLED, or MAINTENANCE.</p>
+     */
 
     private void updateRoomCard(Label label, String roomId) {
 

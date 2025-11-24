@@ -27,6 +27,36 @@ import shared.util.CSVHelper;
 import scenario4.components.RoomDetailsPopup;
 import scenario4.components.RoomOccupancyPopup;
 
+/**
+ * AdminFX – Scenario 4 (Admin Panel Application Entry Point)
+ * ------------------------------------------------------------------------
+ * <p>This class serves as the main application launcher for the Scenario 4
+ * “Admin Panel” of the YorkU Conference Room Scheduler system. It initializes
+ * the JavaFX runtime and loads the initial admin dashboard UI.</p>
+ *
+ * <h2>Responsibilities</h2>
+ * <ul>
+ *     <li>Bootstraps the JavaFX application for administrative workflows</li>
+ *     <li>Sets up the primary Stage with the initial admin dashboard scene</li>
+ *     <li>Registers global navigation support via {@link MainNavigator}</li>
+ *     <li>Ensures the admin UI is separated from other scenario entry points</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li>Acts as a standalone launcher for the admin module</li>
+ *     <li>Segregates Scenario 4 UI initialization from Scenarios 1–3</li>
+ * </ul>
+ *
+ * <h2>Usage Notes</h2>
+ * <ul>
+ *     <li>Should be used when launching the admin panel only</li>
+ *     <li>Does not handle business logic or persistence — those reside in
+ *         corresponding controllers and repositories</li>
+ * </ul>
+ */
+
+
 public class AdminFX extends Application {
 
     // ============================================================
@@ -80,6 +110,15 @@ public class AdminFX extends Application {
     // ============================================================
     //  START — BUILD ROOT STRUCTURE
     // ============================================================
+
+    /**
+     * JavaFX Application entry point for the admin panel.
+     * <p>This method sets up the primary Stage, loads the initial FXML scene
+     * (admin dashboard), and then shows the window.</p>
+     *
+     * @param stage the primary Stage provided by JavaFX
+     * @throws Exception if the FXML resource cannot be loaded or initialized
+     */
 
     @Override
     public void start(Stage stage) {

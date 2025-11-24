@@ -17,6 +17,35 @@ import scenario4.components.RoomDetailsPopup;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * ManageRoomsController – Scenario 4 (Administration & System Management)
+ * ---------------------------------------------------------------------------
+ * <p>Controller for the “Manage Rooms” page. Provides full administrative
+ * control over room lifecycle actions, including:</p>
+ *
+ * <ul>
+ *     <li>Viewing all rooms in the system</li>
+ *     <li>Enabling, disabling, and marking rooms as under maintenance</li>
+ *     <li>Editing room details (capacity, location)</li>
+ *     <li>Viewing detailed room information in a popup</li>
+ * </ul>
+ *
+ * <h2>Integration Points</h2>
+ * <ul>
+ *     <li>Loads and persists room data using {@link RoomRepository}</li>
+ *     <li>Uses JavaFX TableView for all room information</li>
+ *     <li>Uses reusable UI components like {@link RoomDetailsPopup}</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li>MVC Controller (Scenario 4 top-level UI)</li>
+ *     <li>Repository Pattern for room persistence (rooms.csv)</li>
+ *     <li>Modular popups for consistent admin UI experience</li>
+ * </ul>
+ */
+
+
 public class ManageRoomsController {
 
     @FXML
@@ -27,6 +56,12 @@ public class ManageRoomsController {
 
     private final RoomRepository repo = RoomRepository.getInstance();
 
+    /**
+     * Called automatically when the FXML view loads.
+     * Initializes the table structure, loads all room data,
+     * and adds the admin action buttons (Enable / Disable / Maintenance / Update / Details).
+     */
+
     @FXML
     public void initialize() {
         setupTable();
@@ -34,9 +69,23 @@ public class ManageRoomsController {
         addActionButtons();
     }
 
-    // -------------------------------------------------------------
-    // SETUP TABLE
-    // -------------------------------------------------------------
+    /**
+     * Builds the column structure for the rooms TableView.
+     * Columns displayed:
+     * <ul>
+     *     <li>Room ID</li>
+     *     <li>Name</li>
+     *     <li>Capacity</li>
+     *     <li>Location</li>
+     *     <li>Amenities</li>
+     *     <li>Building</li>
+     *     <li>Status</li>
+     * </ul>
+     *
+     * Uses {@link PropertyValueFactory} to bind JavaFX table columns to
+     * Room model properties.
+     */
+
     private void setupTable() {
 
         TableColumn<Room, String> idCol = new TableColumn<>("Room ID");
@@ -66,9 +115,19 @@ public class ManageRoomsController {
         );
     }
 
-    // -------------------------------------------------------------
-    // LOAD ROOMS FROM CSV INTO REPOSITORY + TABLE
-    // -------------------------------------------------------------
+    /**
+     * Loads all rooms from rooms.csv using {@link shared.util.CSVHelper}.
+     * <p>Steps:</p>
+     * <ol>
+     *     <li>Reads the CSV file</li>
+     *     <li>Clears the in-memory RoomRepository map</li>
+     *     <li>Populates the repository</li>
+     *     <li>Displays rooms in the TableView</li>
+     * </ol>
+     *
+     * Shows a warning popup if loading fails.
+     */
+
     private void loadRooms() {
         try {
             var loaded = shared.util.CSVHelper.loadRooms("data/rooms.csv");
@@ -86,9 +145,19 @@ public class ManageRoomsController {
         }
     }
 
-    // -------------------------------------------------------------
-    // ACTION BUTTON ROW
-    // -------------------------------------------------------------
+    /**
+     * Creates and styles the action buttons for admin actions:
+     * <ul>
+     *     <li>Enable Room</li>
+     *     <li>Disable Room</li>
+     *     <li>Maintenance Mode</li>
+     *     <li>View Room Details</li>
+     *     <li>Update Room</li>
+     * </ul>
+     *
+     * Adds the button row beneath the table.
+     */
+
     private void addActionButtons() {
 
         // Remove any OLD button rows (but keep the table and search etc.)
@@ -116,9 +185,11 @@ public class ManageRoomsController {
         tableContainer.getChildren().add(buttonRow);
     }
 
-    // -------------------------------------------------------------
-    // VIEW DETAILS POPUP
-    // -------------------------------------------------------------
+    /**
+     * Opens a read-only popup showing full room details using
+     * {@link RoomDetailsPopup}. Requires a row to be selected.
+     */
+
     private void onViewDetails() {
         Room selected = roomsTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -128,9 +199,18 @@ public class ManageRoomsController {
         RoomDetailsPopup.show(selected);
     }
 
-    // -------------------------------------------------------------
-    // ENABLE / DISABLE / MAINTENANCE
-    // -------------------------------------------------------------
+    /**
+     * Updates the selected room's operational state.
+     * <p>After status update:</p>
+     * <ul>
+     *     <li>Persists the change to rooms.csv</li>
+     *     <li>Refreshes the TableView</li>
+     *     <li>Prints an audit log entry to the console</li>
+     * </ul>
+     *
+     * Shows a warning if no room is selected.
+     */
+
     private void enableRoom() {
         Room selected = roomsTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -212,9 +292,22 @@ public class ManageRoomsController {
 
     }
 
-    // -------------------------------------------------------------
-    // UPDATE ROOM POPUP
-    // -------------------------------------------------------------
+    /**
+     * Opens a modal popup allowing the admin to edit the selected room’s
+     * capacity and location.
+     *
+     * <p>Process:</p>
+     * <ol>
+     *     <li>Validate that a room is selected</li>
+     *     <li>Display editable fields</li>
+     *     <li>Persist new values to {@link RoomRepository}</li>
+     *     <li>Refresh the TableView</li>
+     *     <li>Print an audit log entry for the update</li>
+     * </ol>
+     *
+     * Uses an undecorated JavaFX modal window for a clean admin look.
+     */
+
     private void openUpdateRoomPopup() {
 
         Room selected = roomsTable.getSelectionModel().getSelectedItem();
@@ -281,9 +374,12 @@ public class ManageRoomsController {
         stage.show();
     }
 
-    // -------------------------------------------------------------
-    // WARNING POPUP
-    // -------------------------------------------------------------
+    /**
+     * Displays a simple warning dialog with the provided message.
+     *
+     * @param msg text to display in the alert dialog
+     */
+
     private void showWarning(String msg) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setHeaderText(null);

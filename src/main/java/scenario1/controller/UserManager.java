@@ -28,9 +28,16 @@ public class UserManager {
 
     private static UserManager instance;
 
-    // ============================================================
-    // Resolve correct project directory for CSV
-    // ============================================================
+    /**
+     * Resolves the correct project root directory for accessing CSV files.
+     *
+     * <p>This method handles both development (IDE) and production (packaged JAR)
+     * paths. If the application is running from the compiled /target/classes
+     * directory, it automatically resolves the real project root.</p>
+     *
+     * @return the absolute filesystem path of the project root directory
+     */
+
     private String getProjectRootPath() {
         String base = System.getProperty("user.dir");
 
@@ -47,7 +54,13 @@ public class UserManager {
     private ArrayList<User> users = new ArrayList<>();
 
 
-    // PRIVATE constructor
+    /**
+     * Private constructor for the Singleton pattern.
+     *
+     * <p>Loads all users from CSV into memory and ensures that a default
+     * Chief Event Coordinator account always exists (required for Scenario 4).</p>
+     */
+
     private UserManager() {
         try {
             users = CSVHelper.loadUsers(CSV_PATH);
@@ -58,15 +71,27 @@ public class UserManager {
     }
 
 
-    // Singleton accessor
+    /**
+     * Returns the Singleton instance of UserManager.
+     *
+     * @return the global UserManager instance
+     *
+     * <p>Ensures consistent user data across Scenarios 1 and 4.</p>
+     */
+
     public static synchronized UserManager getInstance() {
         if (instance == null) instance = new UserManager();
         return instance;
     }
 
-    // ============================================================================
-    // Ensure 1 Chief Event Coordinator Exists
-    // ============================================================================
+    /**
+     * Ensures that exactly one Chief Event Coordinator account exists.
+     *
+     * <p>If missing, it automatically creates the account and saves it to CSV.
+     * This satisfies Scenario 4 requirements by guaranteeing an admin-of-admins
+     * who manages all other administrators.</p>
+     */
+
     private void ensureDefaultChiefAccount() {
 
         boolean hasChief = users.stream().anyMatch(u ->
@@ -97,25 +122,76 @@ public class UserManager {
     // ============================================================================
     // Validation Helpers
     // ============================================================================
+
+    /**
+     * Validates email using a general-purpose regex format check.
+     *
+     * @param email the email to validate
+     * @return true if the email matches the expected pattern
+     */
+
     private boolean isValidEmail(String email) {
         return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     }
+
+    /**
+     * Determines whether a password meets strength requirements.
+     *
+     * <p>Password must contain:</p>
+     * <ul>
+     *     <li>Uppercase letter</li>
+     *     <li>Lowercase letter</li>
+     *     <li>Digit</li>
+     *     <li>Symbol</li>
+     *     <li>Length ≥ 8</li>
+     * </ul>
+     *
+     * @param pass password to test
+     * @return true if strong, false otherwise
+     */
 
     private boolean isStrongPassword(String pass) {
         return pass.matches("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,}$");
     }
 
+    /**
+     * Checks if an email is already in use by any registered user.
+     *
+     * @param email email to search for
+     * @return true if the email already exists
+     */
+
     private boolean emailExists(String email) {
         return users.stream().anyMatch(u -> u.getEmail().equalsIgnoreCase(email));
     }
+
+    /**
+     * Public wrapper for email existence check.
+     *
+     * @param email the email to test
+     * @return true if registered, false otherwise
+     */
 
     public boolean checkIfEmailRegistered(String email) {
         return emailExists(email);
     }
 
+    /**
+     * Returns an in-memory list of all users loaded from user.csv.
+     *
+     * @return list of all User objects
+     */
+
     public ArrayList<User> getAllUsers() {
         return users;
     }
+
+    /**
+     * Searches for a user by email.
+     *
+     * @param email the email to match
+     * @return the User if found, otherwise null
+     */
 
     public User findByEmail(String email) {
         if (email == null) return null;
@@ -127,9 +203,21 @@ public class UserManager {
     }
 
 
-    // ============================================================================
-    // Scenario 4: Admin Account Management
-    // ============================================================================
+    /**
+     * Creates a new Administrator account (Scenario 4).
+     *
+     * <h2>Validation Rules</h2>
+     * <ul>
+     *     <li>Email must be valid and unused</li>
+     *     <li>Password must meet strength requirements</li>
+     * </ul>
+     *
+     * @param email new admin email
+     * @param password new admin password
+     * @return the created SystemUser (Admin)
+     * @throws Exception if validation fails
+     */
+
     public SystemUser createAdminAccount(String email, String password) throws Exception {
 
         if (!isValidEmail(email))
@@ -157,6 +245,11 @@ public class UserManager {
         return (SystemUser) newAdmin;
     }
 
+    /**
+     * Returns all Administrator accounts in the system.
+     *
+     * @return list of SystemUser objects with type ADMIN
+     */
 
     public ArrayList<SystemUser> getAdminAccounts() {
         ArrayList<SystemUser> list = new ArrayList<>();
@@ -170,6 +263,12 @@ public class UserManager {
         return list;
     }
 
+    /**
+     * Deletes an Administrator by email (Scenario 4).
+     *
+     * @param email the admin email to remove
+     * @return true if deletion was successful
+     */
 
     public boolean deleteAdminByEmail(String email) {
 
@@ -190,9 +289,21 @@ public class UserManager {
     }
 
 
-    // ============================================================================
-    // Registration (Scenario 1 + all Version 1 rules)
-    // ============================================================================
+    /**
+     * Registers a new user (Scenario 1).
+     *
+     * <h2>Validation Enforced</h2>
+     * <ul>
+     *     <li>Email format and uniqueness</li>
+     *     <li>Password strength</li>
+     *     <li>Student domain + Student ID rules</li>
+     *     <li>Faculty/Staff domain rules</li>
+     * </ul>
+     *
+     * @return true if user was successfully created
+     * @throws Exception if any validation rule fails
+     */
+
     public boolean register(
             String name,
             String email,
@@ -287,9 +398,16 @@ public class UserManager {
     }
 
 
-    // ============================================================================
-    // LOGIN — FULL Version 1 Logging
-    // ============================================================================
+    /**
+     * Authenticates a user by email and password.
+     *
+     * <p>Logs all login attempts in Version-1 formatted console boxes.</p>
+     *
+     * @param email provided email
+     * @param password provided password
+     * @return matching User, or null on failure
+     */
+
     public User login(String email, String password) {
 
         Optional<User> match = users.stream()
@@ -368,9 +486,18 @@ public class UserManager {
 
 
 
-    // ============================================================================
-    // Profile Update (Version 1)
-    // ============================================================================
+    /**
+     * Updates a user's profile information (name & password).
+     *
+     * <p>Validates password strength and writes updates to CSV.</p>
+     *
+     * @param user target user
+     * @param newName updated name or null
+     * @param newPassword updated password or null
+     * @return true on success
+     * @throws Exception if validation fails
+     */
+
     public boolean updateProfile(User user, String newName, String newPassword) throws Exception {
 
         LocalDateTime now = LocalDateTime.now();
@@ -431,9 +558,22 @@ public class UserManager {
 
 
 
-    // ============================================================================
-    // Email Update — Version 1 Fully Restored
-    // ============================================================================
+    /**
+     * Updates a user’s email address with full domain/role validation.
+     *
+     * <h2>Domain Rules</h2>
+     * <ul>
+     *     <li>Students → must use @my.yorku.ca</li>
+     *     <li>Faculty/Staff → must use @yorku.ca or @my.yorku.ca</li>
+     *     <li>Partners/Admin/Chief → any valid domain</li>
+     * </ul>
+     *
+     * @param user the user whose email is being changed
+     * @param newEmail the email to update to
+     * @return true on success
+     * @throws Exception if invalid or duplicate email
+     */
+
     public boolean updateEmail(User user, String newEmail) throws Exception {
 
         if (newEmail.equalsIgnoreCase(user.getEmail()))
@@ -492,7 +632,14 @@ public class UserManager {
     }
 
 
-    // Utility method to pad text for box formatting
+    /**
+     * Utility method to generate spacing for formatted console output.
+     *
+     * @param text the text to pad
+     * @param totalLength desired total length
+     * @return spacing string or empty if text is too long
+     */
+
     private String pad(String text, int totalLength) {
         if (text == null) text = "";
         int len = text.length();
@@ -500,6 +647,12 @@ public class UserManager {
 
         return " ".repeat(totalLength - len);
     }
+
+    /**
+     * Saves all users to user.csv.
+     *
+     * <p>Used after bulk operations or admin modifications.</p>
+     */
 
     public void saveAllUsers() {
         try {

@@ -50,16 +50,83 @@ import javafx.animation.Animation;
 import javafx.scene.layout.Region;
 
 /**
- * BookingFX (Scenario 2 GUI)
- * ---------------------------------------------------------------
- * This JavaFX screen handles:
- *   • room search
- *   • booking flow
- *   • payment modal
- *   • editing bookings
- *   • cancellation modal
- * Uses BookingManager (Singleton) + Rooms/Bookings CSV data.
+ * BookingFX – Scenario 2 (Room Booking & Payment)
+ * ============================================================================
+ * <p>This class implements the complete JavaFX user interface for
+ * <b>Scenario 2: Room Booking & Payment</b> in the YorkU Conference Room
+ * Scheduler. It serves as the main UI layer that allows students, faculty,
+ * staff, and partners to search rooms, calculate pricing, book rooms,
+ * manage “My Bookings”, and interact with real-time updates from
+ * Scenario 3 sensors.</p>
+ *
+ * <h2>Primary Responsibilities</h2>
+ * <ul>
+ *     <li>Load and render the full Scenario 2 dashboard</li>
+ *     <li>Display available rooms, filters, amenities, calendars, and booking controls</li>
+ *     <li>Integrate with <b>BookingManager</b> (business logic) for:
+ *         <ul>
+ *             <li>Room search & availability checking</li>
+ *             <li>Booking creation and validation</li>
+ *             <li>Pricing, deposit rules, and rate calculations</li>
+ *             <li>Booking editing and cancellation</li>
+ *         </ul>
+ *     </li>
+ *     <li>Handle secure booking workflows through:
+ *         <ul>
+ *             <li>Payment modal (Strategy Pattern)</li>
+ *             <li>Deposit estimation (hourly rate rules)</li>
+ *         </ul>
+ *     </li>
+ *     <li>Render and maintain the <b>My Bookings</b> table</li>
+ *     <li>React to real-time updates (Observer Pattern, Scenario 3)</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li><b>Strategy Pattern</b> – Used for payment handling through
+ *         {@code PaymentStrategy} implementations (CreditCard, PartnerBilling).</li>
+ *     <li><b>Observer Pattern</b> – Subscribes to RoomStatusManager for:
+ *         <ul>
+ *             <li>Check-ins</li>
+ *             <li>No-shows</li>
+ *             <li>Live occupancy changes</li>
+ *         </ul>
+ *     </li>
+ *     <li><b>Facade</b> – BookingManager acts as the core
+ *         business-logic façade for all booking operations.</li>
+ *     <li><b>Builder Pattern</b> – BookingBuilder constructs Booking objects safely.</li>
+ * </ul>
+ *
+ * <h2>Scenario Linkage</h2>
+ * <ul>
+ *     <li><b>Scenario 1</b>: Receives authenticated users from LoginController.</li>
+ *     <li><b>Scenario 2</b>: Primary UI for searching, booking, editing,
+ *         and cancelling rooms.</li>
+ *     <li><b>Scenario 3</b>: Updates My Bookings via sensors, observers, and timers.</li>
+ * </ul>
+ *
+ * <h2>Key Features Implemented</h2>
+ * <ul>
+ *     <li>Room search with building, capacity, and equipment filters</li>
+ *     <li>Hourly rate calculation (Req3 pricing)</li>
+ *     <li>Deposit calculation</li>
+ *     <li>15-minute time-slot scheduling logic</li>
+ *     <li>Edit booking + cancel booking flows</li>
+ *     <li>Live status updates: IN_USE, NO_SHOW, AVAILABLE</li>
+ *     <li>Calendar controls & time pickers</li>
+ *     <li>Payment modal with credit/partner strategies</li>
+ *     <li>Automatic UI refresh via BookingStatusObserver</li>
+ * </ul>
+ *
+ * <h2>Notes</h2>
+ * <ul>
+ *     <li>This is one of the largest classes in the project and represents
+ *         the entire Scenario 2 UI layer.</li>
+ *     <li>All business logic is delegated to BookingManager, RoomRepository,
+ *         and BookingRepository to keep the UI clean.</li>
+ * </ul>
  */
+
 public class BookingFX extends Application {
 
     // Core system singletons + user session state
@@ -1868,7 +1935,7 @@ public class BookingFX extends Application {
         // ======================= Scenario 3: Check-In Button =======================
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime earliestCheckIn = booking.getStartTime().minusMinutes(10);
-        LocalDateTime latestCheckIn   = booking.getStartTime().plusMinutes(2); // demo window
+        LocalDateTime latestCheckIn   = booking.getStartTime().plusMinutes(30); // For demo change to 2
 
         boolean allowCheckIn =
                 booking.getStatus().equals("CONFIRMED") &&

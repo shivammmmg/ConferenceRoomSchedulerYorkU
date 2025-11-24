@@ -4,6 +4,52 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * AdminRepository – Scenario 4 (Admin & System Management)
+ * ============================================================================
+ * <p>A lightweight repository responsible for storing and managing Admin
+ * accounts separately from the main {@code UserManager}. This class was kept
+ * for backward compatibility with earlier versions of Scenario 4 Deliverable
+ * code where Admins were handled in a dedicated CSV file.</p>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li><b>Singleton</b> – Only one repository instance exists.</li>
+ *     <li><b>Repository Pattern</b> – Encapsulates CSV persistence and
+ *         lookup logic for Admin accounts.</li>
+ *     <li>Backward-compatible loader supports both legacy (2-column) and
+ *         extended (4-column) admin CSV formats.</li>
+ * </ul>
+ *
+ * <h2>Responsibilities</h2>
+ * <ul>
+ *     <li>Maintain a lookup map of all Admin accounts (username → Admin).</li>
+ *     <li>Provide methods to add, retrieve, delete, and list all admins.</li>
+ *     <li>Persist admin data to CSV automatically after each change.</li>
+ *     <li>Load Admins from CSV using old or new format:
+ *         <ul>
+ *             <li><b>Legacy:</b> username,password</li>
+ *             <li><b>Extended:</b> username,password,status,role</li>
+ *         </ul>
+ *     </li>
+ * </ul>
+ *
+ * <h2>Where It's Used</h2>
+ * <ul>
+ *     <li><b>Scenario 4</b> – Admin Management Panel (Create, Delete, Disable)</li>
+ *     <li>Early project versions where Admins were not part of UserManager</li>
+ * </ul>
+ *
+ * <h2>Notes</h2>
+ * <ul>
+ *     <li>Modern implementation stores Admin users inside UserManager instead.</li>
+ *     <li>This repository remains for compatibility with older CSV structures
+ *         and specific Scenario 4 UI components.</li>
+ * </ul>
+ * ============================================================================
+ */
+
+
 public class AdminRepository {
 
     private static AdminRepository instance;

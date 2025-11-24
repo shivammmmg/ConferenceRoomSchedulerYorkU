@@ -4,27 +4,56 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
+ * User – Abstract Base Class (All Scenarios)
  * =============================================================================
- * ABSTRACT CLASS: User
- * =============================================================================
+ * <p>This abstract class defines the <b>core identity + authentication fields</b>
+ * common to every user in the Conference Room Scheduler system.</p>
  *
- * Base class for all system users.
+ * <h2>Purpose</h2>
+ * <ul>
+ *     <li>Provides a unified foundation for all account types.</li>
+ *     <li>Encapsulates fields that ALL users share (name, email, password).</li>
+ *     <li>Supports lifecycle management (activation/deactivation).</li>
+ *     <li>Ensures consistent storage structure for CSV persistence.</li>
+ * </ul>
  *
- * This class only stores what's common for ALL users:
- *   ✔ name
- *   ✔ email
- *   ✔ passwordHash
- *   ✔ userId (UUID)
- *   ✔ createdAt timestamp
- *   ✔ isActive status
+ * <h2>Used In</h2>
+ * <ul>
+ *     <li><b>Scenario 1</b> – Registration, Login, Profile Management</li>
+ *     <li><b>Scenario 2</b> – Booking attribution (booking stored with userId)</li>
+ *     <li><b>Scenario 3</b> – Check-in logic (validate booking → user)</li>
+ *     <li><b>Scenario 4</b> – Admin: create/delete accounts, deactivate users</li>
+ * </ul>
  *
- * SystemUser extends this class and adds:
- *   ✔ UserType type
- *   ✔ orgId
- *   ✔ studentId
+ * <h2>Extended By</h2>
+ * <ul>
+ *     <li>{@link SystemUser} – Adds role-specific fields:
+ *         <ul>
+ *             <li>UserType type</li>
+ *             <li>orgId</li>
+ *             <li>studentId</li>
+ *         </ul>
+ *     </li>
+ * </ul>
+ *
+ * <h2>Design Notes</h2>
+ * <ul>
+ *     <li>The class is intentionally abstract — instances are always concrete
+ *         {@code SystemUser} objects.</li>
+ *     <li>UUID-based userId ensures uniqueness across CSV loads.</li>
+ *     <li>createdAt and isActive support audit/logging and admin control.</li>
+ *     <li>validate() provides a lightweight pre-persistence integrity check.</li>
+ * </ul>
+ *
+ * <h2>Persistence Mapping (CSV)</h2>
+ * <p>This class corresponds to the following columns in users.csv:</p>
+ * <pre>
+ * userId, name, email, passwordHash, isActive, createdAt
+ * </pre>
  *
  * =============================================================================
  */
+
 public abstract class User {
 
     protected UUID userId;

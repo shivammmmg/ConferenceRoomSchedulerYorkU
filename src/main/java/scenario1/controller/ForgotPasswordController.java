@@ -26,17 +26,42 @@ import java.util.ResourceBundle;
 
 
 /**
- * Controller for the "Forgot Password" page.
+ * ForgotPasswordController – Scenario 1 (Registration & Account Management)
  *
- * Handles:
- *  - Reset instructions validation (email exists or not)
- *  - Auto-complete suggestions for email input
- *  - Logo animation + background blur
- *  - Full-screen–safe popup behavior
- *  - Navigation back to Login page
+ * <p>This controller manages the "Forgot Password" workflow in Scenario 1.
+ * It handles UI effects, email validation, autocomplete suggestions, and
+ * navigation back to the Login page.</p>
  *
- * Scenario 1 – Registration & Account Management
+ * <h2>Responsibilities</h2>
+ * <ul>
+ *     <li>Validates whether a given email exists in the system (Req1).</li>
+ *     <li>Provides email domain auto-complete suggestions.</li>
+ *     <li>Handles password-reset request feedback (success/failure).</li>
+ *     <li>Supports modern UI animations (logo drop, fade-in, blur effects).</li>
+ *     <li>Shows fullscreen-safe popups for alerts and errors.</li>
+ *     <li>Navigates back to Login.fxml via NavigationHelper.</li>
+ * </ul>
+ *
+ * <h2>Related Requirements</h2>
+ * <ul>
+ *     <li><b>Req 1</b> – Account Creation & Verification: Includes email validation and login recovery.</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li>Uses UserManager (Singleton) to check email existence.</li>
+ *     <li>Uses NavigationHelper (Facade-style utility) for screen transitions.</li>
+ * </ul>
+ *
+ * <h2>UI/UX Features</h2>
+ * <ul>
+ *     <li>Blurred background overlay</li>
+ *     <li>Drop-bounce logo animation</li>
+ *     <li>Smooth fade-in transitions</li>
+ *     <li>Auto-complete domain suggestions</li>
+ * </ul>
  */
+
 public class ForgotPasswordController implements Initializable {
 
     // ------------------------------
@@ -54,9 +79,21 @@ public class ForgotPasswordController implements Initializable {
     private final ContextMenu emailSuggestions = new ContextMenu();
 
 
-    // ----------------------------------------------------------
-    // INITIALIZATION
-    // ----------------------------------------------------------
+    /**
+     * Initializes the Forgot Password page.
+     *
+     * <p>Loads all UI components, animations, autocomplete behavior,
+     * validation logic, and applies a smooth fade-in transition.</p>
+     *
+     * <h2>Scenario Mapping</h2>
+     * <ul>
+     *     <li>Scenario 1 — Registration & Account Management</li>
+     * </ul>
+     *
+     * @param url   unused resource locator
+     * @param resourceBundle unused resources bundle
+     */
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
@@ -82,10 +119,18 @@ public class ForgotPasswordController implements Initializable {
     // ----------------------------------------------------------
 
     /**
-     * Shows an alert popup that works even while the stage is in fullscreen mode.
-     * JavaFX cannot show modal dialogs over fullscreen windows unless fullscreen
-     * is temporarily disabled.
+     * Displays a fullscreen-safe popup alert.
+     *
+     * <p>Since JavaFX modal dialogs cannot appear above a fullscreen
+     * window, this method temporarily disables fullscreen, shows the
+     * alert, and restores fullscreen afterward.</p>
+     *
+     * @param type   the type of alert (ERROR, INFORMATION, etc.)
+     * @param title  title of the dialog
+     * @param header header text
+     * @param content detailed message content
      */
+
     private void showPopup(Alert.AlertType type, String title, String header, String content) {
 
         Alert alert = new Alert(type);
@@ -104,11 +149,14 @@ public class ForgotPasswordController implements Initializable {
     }
 
 
-    // ----------------------------------------------------------
-    // NAVIGATION HANDLER
-    // ----------------------------------------------------------
-
-    /** Navigates to another FXML screen using the shared NavigationHelper. */
+    /**
+     * Navigates to another FXML file using NavigationHelper.
+     *
+     * <p>Keeps the Forgot Password controller free of navigation logic
+     * while maintaining consistent fullscreen behavior.</p>
+     *
+     * @param fxml name of the FXML file (e.g., "login.fxml")
+     */
     private void navigate(String fxml) {
         NavigationHelper.navigate((Stage) root.getScene().getWindow(), fxml);
     }
@@ -119,8 +167,12 @@ public class ForgotPasswordController implements Initializable {
     // ----------------------------------------------------------
 
     /**
-     * Adds blur to the background and ensures the dark overlay always fills the screen.
+     * Applies blur to the background and binds the overlay dimensions.
+     *
+     * <p>This creates a dimmed background aesthetic and ensures the
+     * overlay always matches the window size, even when resized.</p>
      */
+
     private void setupBackgroundEffects() {
         backgroundImage.setEffect(new GaussianBlur(10));
 
@@ -135,9 +187,12 @@ public class ForgotPasswordController implements Initializable {
     // ----------------------------------------------------------
 
     /**
-     * Logo smoothly drops from above with a bounce effect.
-     * Creates a polished modern login/forgot-password experience.
+     * Applies drop-down + bounce animation to the YorkU logo.
+     *
+     * <p>Creates a polished visual entry animation for the Forgot
+     * Password screen.</p>
      */
+
     private void setupLogoAnimation() {
 
         logoImage.setTranslateY(-500);
@@ -172,9 +227,12 @@ public class ForgotPasswordController implements Initializable {
     // ----------------------------------------------------------
 
     /**
-     * Adds automatic domain suggestions as the user types their email.
-     * Works similarly to Gmail's intelligent email completion.
+     * Configures intelligent email auto-complete suggestions.
+     *
+     * <p>As the user types before the '@', domain suggestions such as
+     * @my.yorku.ca, @yorku.ca, and @gmail.com appear automatically.</p>
      */
+
     private void setupEmailSuggestions() {
 
         List<String> domains = Arrays.asList("@my.yorku.ca", "@yorku.ca", "@gmail.com");
@@ -212,12 +270,20 @@ public class ForgotPasswordController implements Initializable {
     // ----------------------------------------------------------
 
     /**
-     * Handles the "Reset Password" button click.
-     * Checks:
-     * 1. Email field not empty
-     * 2. Email is registered
-     * Then simulates sending reset instructions.
+     * Handles the logic for the "Reset Password" button.
+     *
+     * <p>Validates input, checks if the email is registered, prints
+     * formatted logs to the console for debugging, and shows
+     * fullscreen-safe success/error alerts.</p>
+     *
+     * <h2>Validation Steps</h2>
+     * <ol>
+     *     <li>Email must not be empty</li>
+     *     <li>Email must exist in UserManager</li>
+     *     <li>Simulates sending reset instructions</li>
+     * </ol>
      */
+
     private void setupResetButton() {
         resetBtn.setOnAction(e -> {
 
@@ -292,7 +358,13 @@ public class ForgotPasswordController implements Initializable {
     // BACK BUTTON (RETURN TO LOGIN)
     // ----------------------------------------------------------
 
-    /** Navigates user back to login page. */
+    /**
+     * Configures the Back button to return the user to Login.fxml.
+     *
+     * <p>This uses the shared NavigationHelper to maintain consistent
+     * UI transitions across Scenario 1 pages.</p>
+     */
+
     private void setupBackButton() {
         backBtn.setOnAction(e -> navigate("login.fxml"));
     }

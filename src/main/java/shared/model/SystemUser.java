@@ -4,25 +4,60 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
+ * SystemUser – Concrete User Model (All Scenarios)
  * =============================================================================
- * CLASS: SystemUser
- * BASE CLASS: User (abstract)
- * =============================================================================
+ * <p>This class represents the <b>concrete</b> user object stored, loaded,
+ * and manipulated throughout the entire Conference Room Scheduler system.</p>
  *
- * Represents a concrete user object stored in the system.
- * This replaces all old subclasses:
- *   - StudentUser
- *   - FacultyUser
- *   - StaffUser
- *   - PartnerUser
+ * <h2>Purpose</h2>
+ * <ul>
+ *     <li>Implements the full user profile used during runtime.</li>
+ *     <li>Extends {@link User} by adding role-specific attributes.</li>
+ *     <li>Acts as the universal user type for ALL scenarios.</li>
+ * </ul>
  *
- * Now everything is handled through:
- *   - UserType enum
- *   - Optional studentId
- *   - Optional orgId (for future scenarios)
+ * <h2>Used In</h2>
+ * <ul>
+ *     <li><b>Scenario 1:</b> Registration, Login, Profile Editing</li>
+ *     <li><b>Scenario 2:</b> Booking creation (stores userId)</li>
+ *     <li><b>Scenario 3:</b> Check-in verification / sensor events</li>
+ *     <li><b>Scenario 4:</b> Admin account creation & management</li>
+ * </ul>
+ *
+ * <h2>Replaces Old Design</h2>
+ * <p>This class unifies all previously separate user subclasses:</p>
+ * <ul>
+ *     <li>StudentUser</li>
+ *     <li>FacultyUser</li>
+ *     <li>StaffUser</li>
+ *     <li>PartnerUser</li>
+ * </ul>
+ * <p>→ All user roles are now handled via {@link UserType} + optional fields.</p>
+ *
+ * <h2>Fields Added Beyond User</h2>
+ * <ul>
+ *     <li><b>UserType type</b> – role (Student, Admin, Staff, etc.)</li>
+ *     <li><b>orgId</b> – optional organization identifier</li>
+ *     <li><b>studentId</b> – required only for STUDENT accounts</li>
+ * </ul>
+ *
+ * <h2>Persistence Notes</h2>
+ * <ul>
+ *     <li>Mapped directly to users.csv via {@link shared.util.CSVHelper}.</li>
+ *     <li>Setters like setUserId() and setCreatedAt() are required when
+ *         reloading saved data from CSV.</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li><b>Builder Pattern</b> – {@code UserBuilder} constructs SystemUser safely.</li>
+ *     <li><b>Singleton Pattern</b> – UserManager stores all SystemUser instances.</li>
+ *     <li><b>Observer (Scenario 3)</b> – User identity used to validate check-ins.</li>
+ * </ul>
  *
  * =============================================================================
  */
+
 public class SystemUser extends User {
 
     private UserType type;

@@ -10,39 +10,64 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * FINAL MERGED CSVHelper
- * ----------------------
- * USERS CSV FORMAT (Sharwin's correct version):
- * 0: userId
- * 1: name
- * 2: email
- * 3: passwordHash
- * 4: userType
- * 5: orgId
- * 6: studentId
- * 7: isActive
- * 8: createdAt
+ * CSVHelper – Unified CSV Persistence Engine (All Scenarios)
+ * ------------------------------------------------------------------------
+ * <p>This utility class provides <b>centralized CSV loading and saving</b> for
+ * every data model in the Conference Room Scheduler system:</p>
  *
- * BOOKINGS CSV FORMAT (matches Booking.toString()):
- * 0: bookingId
- * 1: roomId
- * 2: userId
- * 3: startTime
- * 4: endTime
- * 5: purpose
- * 6: status
- * 7: paymentStatus
- * 8: depositAmount
+ * <ul>
+ *     <li><b>Users</b> – Scenario 1 (Registration & Account Management)</li>
+ *     <li><b>Bookings</b> – Scenario 2 (Room Booking & Payment)</li>
+ *     <li><b>Rooms</b> – Scenario 3 & 4 (Live Status, Admin Management)</li>
+ * </ul>
  *
- * ROOMS CSV FORMAT (your extended version with status):
- * 0: roomId
- * 1: roomName
- * 2: capacity
- * 3: location
- * 4: amenities
- * 5: building
- * 6: status
+ * <h2>Purpose</h2>
+ * <ul>
+ *     <li>Ensures consistent CSV formats across the entire project.</li>
+ *     <li>Prevents file corruption by enforcing strict parsing rules.</li>
+ *     <li>Handles all read/write operations for User, Booking, and Room models.</li>
+ *     <li>Provides safe escaping mechanisms (e.g., purpose field in bookings).</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li><b>Utility / Facade-Style Class</b>: Central access point for persistence.</li>
+ *     <li>Used by Singleton managers (UserManager, BookingManager, RoomRepository).</li>
+ *     <li>Supports Builder pattern via {@link scenario1.builder.UserBuilder}.</li>
+ * </ul>
+ *
+ * <h2>CSV Schemas Supported</h2>
+ * <p><b>Users CSV</b> — extended format used in Scenario 1 & 4:</p>
+ * <pre>
+ * userId,name,email,passwordHash,userType,orgId,studentId,isActive,createdAt
+ * </pre>
+ *
+ * <p><b>Bookings CSV</b> — safe format with purpose escaping:</p>
+ * <pre>
+ * bookingId,roomId,userId,startTime,endTime,purpose,status,paymentStatus,depositAmount
+ * </pre>
+ *
+ * <p><b>Rooms CSV</b> — enriched to include room status (Scenario 3 integration):</p>
+ * <pre>
+ * roomId,roomName,capacity,location,amenities,building,status
+ * </pre>
+ *
+ * <h2>Scenarios Supported</h2>
+ * <ul>
+ *     <li><b>Scenario 1</b> – User creation, login, profile updates</li>
+ *     <li><b>Scenario 2</b> – Booking creation, payment calculations</li>
+ *     <li><b>Scenario 3</b> – No-show detection, live room monitoring</li>
+ *     <li><b>Scenario 4</b> – Admin dashboard room/user management</li>
+ * </ul>
+ *
+ * <h2>Notes</h2>
+ * <ul>
+ *     <li>All file paths are computed externally by managers using this helper.</li>
+ *     <li>Handles missing files gracefully by auto-creating them.</li>
+ *     <li>Ensures backward compatibility with earlier CSV versions.</li>
+ * </ul>
  */
+
 public class CSVHelper {
 
     // ============================================================

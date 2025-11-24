@@ -30,9 +30,30 @@ import javafx.scene.input.KeyCombination;
 public class RegisterApp extends Application {
 
     /**
-     * Called automatically when JavaFX starts.
-     * Loads register.fxml and applies fullscreen settings.
+     * Initializes and displays the Registration screen in standalone mode.
+     *
+     * <p>This method is executed automatically by the JavaFX runtime after
+     * {@link Application#launch(String...)} is invoked. It loads the
+     * <b>register.fxml</b> layout, creates the Scene, and configures fullscreen
+     * behavior to match the UI standards used throughout Scenario 1.</p>
+     *
+     * <h2>Responsibilities</h2>
+     * <ul>
+     *     <li>Load and display the registration UI.</li>
+     *     <li>Apply fullscreen mode and remove ESC fullscreen-exit hint.</li>
+     *     <li>Allow developers to test register.fxml independently.</li>
+     * </ul>
+     *
+     * <h2>Scenario Context</h2>
+     * <p>This launcher corresponds to <b>Scenario 1 – Registration &
+     * Account Management</b>. In the full system workflow, the user normally
+     * navigates here through Login → Register. This class is used only for
+     * direct testing.</p>
+     *
+     * @param primaryStage the main application window provided by JavaFX
+     * @throws Exception if register.fxml fails to load
      */
+
     @Override
     public void start(Stage primaryStage) throws Exception {
 
@@ -63,8 +84,14 @@ public class RegisterApp extends Application {
     }
 
     /**
-     * Launches JavaFX runtime and then calls start().
+     * Standard Java entry point that starts the JavaFX runtime.
+     *
+     * <p>Once launched, control is handed over to JavaFX, which then calls
+     * {@link #start(Stage)} to load the Registration UI.</p>
+     *
+     * @param args optional command-line arguments
      */
+
     public static void main(String[] args) {
         launch(args);
     }

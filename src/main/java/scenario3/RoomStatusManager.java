@@ -12,6 +12,68 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/**
+ * RoomStatusManager – Scenario 3 (Check-In & Usage Monitoring)
+ * ------------------------------------------------------------------
+ * <p>This class serves as the <b>central engine</b> for all real-time
+ * room/booking status logic in Scenario 3. It combines:</p>
+ *
+ * <ul>
+ *     <li><b>Singleton Pattern</b> – one global manager for all active room states</li>
+ *     <li><b>Observer Pattern</b> – notifies UI components (BookingFX) of changes</li>
+ *     <li><b>No-Show Automation</b> – timers that auto-mark bookings as NO_SHOW</li>
+ *     <li><b>Sensor Integration</b> – handles simulated sensor check-in/vacancy events</li>
+ * </ul>
+ *
+ * <h2>System Responsibilities</h2>
+ * <ul>
+ *     <li>Tracks the live status of each room:
+ *         <ul>
+ *             <li>AVAILABLE</li>
+ *             <li>IN_USE</li>
+ *             <li>NO_SHOW</li>
+ *         </ul>
+ *     </li>
+ *     <li>Starts/stops NO-SHOW countdown timers for each booking</li>
+ *     <li>Handles real user check-in logic (Scenario 2 → Scenario 3 interaction)</li>
+ *     <li>Triggers UI refreshes through Observer notifications</li>
+ *     <li>Integrates with sensors for automated occupancy updates</li>
+ * </ul>
+ *
+ * <h2>Why This Class Exists (D3 Justification)</h2>
+ * <p>Scenario 3 requires “real-time” updates to booking state. Rather than having
+ * BookingFX poll constantly, this manager <b>pushes</b> updates using Observers, so:</p>
+ * <ul>
+ *     <li>My Bookings auto-refresh when a check-in/no-show occurs</li>
+ *     <li>Sensor events update UI instantly</li>
+ *     <li>No duplicated logic across controllers</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li><b>Singleton</b>: Only one global status engine exists.</li>
+ *     <li><b>Observer</b>: UI elements (BookingStatusObserver) attach to receive notifications.</li>
+ *     <li><b>Facade-Like Role</b>: Central access point for check-ins, timers, and occupancy updates.</li>
+ * </ul>
+ *
+ * <h2>Scenarios Supported</h2>
+ * <ul>
+ *     <li><b>Scenario 2</b> – Booking creation (this class checks booking state)</li>
+ *     <li><b>Scenario 3</b> – Check-in, No-Show, Usage Monitoring</li>
+ *     <li><b>Scenario 4</b> – Admin dashboards rely on accurate live room status</li>
+ * </ul>
+ *
+ * <h2>Key Features</h2>
+ * <ul>
+ *     <li>10-minute early check-in window</li>
+ *     <li>NO_SHOW automation after configurable delay</li>
+ *     <li>Real-time UI updates</li>
+ *     <li>Sensor-triggered room state transitions</li>
+ *     <li>Booking-aware occupancy logic (supports multiple overlapping edge cases)</li>
+ * </ul>
+ */
+
+
 public class RoomStatusManager implements Subject {
 
     // ======================================================

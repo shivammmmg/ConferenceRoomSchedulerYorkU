@@ -9,6 +9,46 @@ import java.time.format.DateTimeFormatter;
 import shared.model.Room;
 import shared.model.RoomRepository;
 
+/**
+ * AddRoomController – Scenario 4 (Admin: Room Management)
+ * ----------------------------------------------------------------------------
+ * <p>This controller handles the “Add New Room” form within the AdminFX
+ * dashboard. It allows administrators to manually create new rooms by entering
+ * full room details such as:</p>
+ *
+ * <ul>
+ *     <li>Room ID</li>
+ *     <li>Name</li>
+ *     <li>Capacity</li>
+ *     <li>Location</li>
+ *     <li>Amenities</li>
+ *     <li>Building</li>
+ * </ul>
+ *
+ * <h2>Responsibilities</h2>
+ * <ul>
+ *     <li>Validate all user inputs</li>
+ *     <li>Prevent duplicate Room IDs</li>
+ *     <li>Create a new {@link Room} object</li>
+ *     <li>Persist changes through {@link RoomRepository}</li>
+ *     <li>Display feedback using JavaFX alerts</li>
+ *     <li>Print a detailed creation log for D3 demonstration</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li>Uses Singleton {@link RoomRepository} as the system-wide source of truth</li>
+ *     <li>This controller is part of Scenario 4's MVC structure (FXML + Controller)</li>
+ * </ul>
+ *
+ * <h2>Notes</h2>
+ * <ul>
+ *     <li>All fields are mandatory to ensure clean CSV entries.</li>
+ *     <li>Repository auto-saves, but controller explicitly calls saveToCSV() to guarantee persistence.</li>
+ * </ul>
+ */
+
+
 public class AddRoomController {
 
     @FXML private TextField roomIdField;
@@ -19,6 +59,22 @@ public class AddRoomController {
     @FXML private TextField buildingField;
 
     private RoomRepository repo = RoomRepository.getInstance();
+
+    /**
+     * Handles the "Create Room" button action.
+     *
+     * <p>This method performs:</p>
+     * <ul>
+     *     <li>Input validation (empty fields, numeric capacity)</li>
+     *     <li>Duplicate Room ID checking</li>
+     *     <li>Room object creation with all metadata</li>
+     *     <li>Saving to {@link RoomRepository} and rooms.csv</li>
+     *     <li>Console logging for auditing (used in Deliverable D3)</li>
+     *     <li>Resetting all input fields after success</li>
+     * </ul>
+     *
+     * <p>If validation fails, an alert is shown and the operation is aborted.</p>
+     */
 
     @FXML
     public void createRoom() {
@@ -90,6 +146,12 @@ public class AddRoomController {
         amenitiesField.clear();
         buildingField.clear();
     }
+
+    /**
+     * Utility helper for displaying a simple information alert.
+     *
+     * @param msg message to display to the administrator
+     */
 
     private void showAlert(String msg) {
         Alert a = new Alert(Alert.AlertType.INFORMATION);

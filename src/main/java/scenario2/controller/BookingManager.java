@@ -10,12 +10,60 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * Central business logic for Scenario 2 (Room Booking & Payment).
+ * BookingManager – Scenario 2 (Room Booking & Payment)
+ * ============================================================================
+ * <p>The central business-logic engine for all booking-related operations in
+ * Scenario 2. This class is the single point of truth for:</p>
  *
- * - Talks to RoomRepository (rooms.csv)
- * - Talks to BookingRepository (bookings.csv)
- * - Provides methods used by BookingFX + Scenario 3 (sensor/observer code)
+ * <ul>
+ *     <li>Searching rooms with capacity, building, and equipment filters</li>
+ *     <li>Creating new bookings using {@link scenario2.builder.BookingBuilder}</li>
+ *     <li>Handling deposits, estimated totals, and role-based pricing</li>
+ *     <li>Editing, extending, and cancelling existing bookings</li>
+ *     <li>Coordinating with Scenario 3 (check-in, no-show, sensors)</li>
+ *     <li>Persisting all data through BookingRepository + CSVHelper</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li><b>Singleton</b>: Ensures one global booking engine used across
+ *         Scenario 2, Scenario 3 (SensorSystem / RoomStatusManager), and
+ *         BookingFX.</li>
+ *     <li><b>Builder Pattern</b>: Used for constructing Booking objects in
+ *         a readable, step-by-step manner.</li>
+ *     <li><b>Repository Pattern</b>: Interacts with {@link RoomRepository} and
+ *         {@link BookingRepository} for CSV-backed persistence.</li>
+ * </ul>
+ *
+ * <h2>Why This Class Exists (D3 Justification)</h2>
+ * <p>Scenario 2 requires a unified, reusable API to support:</p>
+ * <ul>
+ *     <li>Room search + availability checking</li>
+ *     <li>Deposit and payment preparation before UI modal</li>
+ *     <li>Accurate conflict detection for booking & extending</li>
+ *     <li>Real-time integration with Scenario 3 (no-show + check-in events)</li>
+ * </ul>
+ *
+ * <h2>Related Scenarios</h2>
+ * <ul>
+ *     <li><b>Scenario 1</b> – User accounts determine the pricing tier.</li>
+ *     <li><b>Scenario 2</b> – Room Booking & Payment (primary use).</li>
+ *     <li><b>Scenario 3</b> – Check-in, no-show, and live room monitoring.</li>
+ *     <li><b>Scenario 4</b> – Admin may rely on booking data for analytics.</li>
+ * </ul>
+ *
+ * <h2>Key Features</h2>
+ * <ul>
+ *     <li>15-minute time slot granularity</li>
+ *     <li>Role-based pricing: student/faculty/staff/partner</li>
+ *     <li>Automatic deposit rules</li>
+ *     <li>Extension validation with next-slot availability check</li>
+ *     <li>Robust conflict-checking logic for new & edited bookings</li>
+ *     <li>Integrated logging for D3 demonstration</li>
+ * </ul>
+ * ============================================================================
  */
+
 public class BookingManager {
 
     // =========================================================

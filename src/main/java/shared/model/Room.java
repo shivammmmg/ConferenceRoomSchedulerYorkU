@@ -3,8 +3,45 @@ package shared.model;
 import javafx.beans.property.*;
 
 /**
- * Unified Room class supporting ALL scenarios.
+ * Room – Unified Model for Scenarios 2, 3, and 4
+ * ============================================================================
+ * <p>This class represents a single conference room in the system and serves as
+ * the unified data model used by all scenarios:</p>
+ *
+ * <h2>Supported Scenarios</h2>
+ * <ul>
+ *     <li><b>Scenario 2</b> – Room listing, booking validation, amenities display</li>
+ *     <li><b>Scenario 3</b> – Live room state (AVAILABLE / IN_USE / NO_SHOW)</li>
+ *     <li><b>Scenario 4</b> – Admin editing, enabling/disabling, maintenance mode</li>
+ * </ul>
+ *
+ * <h2>Design Features</h2>
+ * <ul>
+ *     <li><b>Core Fields</b> (roomId, name, capacity, location, amenities, building)</li>
+ *     <li><b>Scenario 3 State</b> using {@link RoomStatus}
+ *         (AVAILABLE, IN_USE, MAINTENANCE, DISABLED, etc.)</li>
+ *     <li><b>JavaFX Properties</b> for Scenario 4 table bindings
+ *         (roomNameProperty, capacityProperty, statusProperty, etc.)</li>
+ *     <li><b>Multiple Constructors</b> used across scenarios for flexible room creation</li>
+ * </ul>
+ *
+ * <h2>Why This Class Was Unified</h2>
+ * <p>Earlier versions had mismatched constructors and inconsistent status loading.
+ * The current version:</p>
+ * <ul>
+ *     <li>Ensures all fields persist correctly to CSV</li>
+ *     <li>Supports JavaFX TableView binding seamlessly</li>
+ *     <li>Provides backward compatibility for Scenario 2 and Scenario 4 code</li>
+ *     <li>Correctly translates CSV text (e.g., “MAINT”, “DISABLED”) into RoomStatus enum</li>
+ * </ul>
+ *
+ * <h2>CSV Integration</h2>
+ * <p>The {@code toString()} format matches the rooms.csv schema used by
+ * {@link shared.util.CSVHelper}, ensuring consistent save/load behaviour.</p>
+ *
+ * ============================================================================
  */
+
 public class Room {
 
     // ============================================================

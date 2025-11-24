@@ -78,9 +78,19 @@ public class RegisterController implements Initializable {
 
 
     /**
-     * Called automatically when register.fxml loads.
-     * Initializes all UI behaviors and event listeners.
+     * Initializes the Registration screen.
+     *
+     * <p>Called automatically when register.fxml loads. This method prepares
+     * all UI behaviors including animations, email suggestions, password
+     * strength meter, user-type dependent logic, and button actions.</p>
+     *
+     * <h2>Scenario Mapping</h2>
+     * Scenario 1 — Registration & Account Management
+     *
+     * @param url unused
+     * @param resourceBundle unused
      */
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
@@ -94,9 +104,10 @@ public class RegisterController implements Initializable {
         setupBackButton();
     }
 
-    // ---------------------------------------------------------------------
-    // UI: Background Blur & Dark Overlay Sync (keeps overlay same size)
-    // ---------------------------------------------------------------------
+    /**
+     * Configures the blurred background and ensures the dark overlay always matches
+     * the screen size. Creates a modern dimmed UI theme for the registration form.
+     */
     private void setupBackgroundEffects() {
 
         // Apply blur to background for a premium UI feel
@@ -108,9 +119,12 @@ public class RegisterController implements Initializable {
         darkOverlay.heightProperty().bind(backgroundImage.fitHeightProperty());
     }
 
-    // ---------------------------------------------------------------------
-    // UI: Logo Slide Down + Bounce Animation (YorkU logo entrance)
-    // ---------------------------------------------------------------------
+    /**
+     * Animates the YorkU logo using a slide-down and bounce motion.
+     *
+     * <p>Provides a polished and engaging entry animation for the Registration UI.</p>
+     */
+
     private void setupLogoAnimation() {
 
         // Start above screen (hidden)
@@ -134,9 +148,13 @@ public class RegisterController implements Initializable {
         slide.play();
     }
 
-    // ---------------------------------------------------------------------
-    // Feature: Email domain auto-completion (suggestions)
-    // ---------------------------------------------------------------------
+    /**
+     * Adds Gmail-style auto-complete suggestions to the email field.
+     *
+     * <p>As soon as the user types before '@', a list of domain suggestions
+     * such as @my.yorku.ca, @yorku.ca, @gmail.com, etc., is shown.</p>
+     */
+
     private void setupEmailSuggestions() {
 
         // Suggested popular domains
@@ -175,9 +193,13 @@ public class RegisterController implements Initializable {
         });
     }
 
-    // ---------------------------------------------------------------------
-    // Feature: Show / Hide password (eye toggle button)
-    // ---------------------------------------------------------------------
+    /**
+     * Enables the password visibility toggle (eye button).
+     *
+     * <p>Switches between the hidden PasswordField and the visible TextField
+     * while keeping their values synchronized through bidirectional binding.</p>
+     */
+
     private void setupPasswordToggle() {
 
         // Both fields always share the same text
@@ -208,9 +230,13 @@ public class RegisterController implements Initializable {
         });
     }
 
-    // ---------------------------------------------------------------------
-    // Feature: Dynamic Student ID visibility based on User Type
-    // ---------------------------------------------------------------------
+    /**
+     * Configures dynamic UI behavior based on the selected user type.
+     *
+     * <p>Shows the Student ID field only for Students. Also adjusts email
+     * placeholder hints according to the selected user role.</p>
+     */
+
     private void setupUserTypeLogic() {
 
         typeBox.getItems().addAll("Student", "Faculty", "Staff", "Partner");
@@ -233,12 +259,31 @@ public class RegisterController implements Initializable {
         });
     }
 
-    // ---------------------------------------------------------------------
-    // Feature: Password Strength Meter (weak/fair/strong)
-    // ---------------------------------------------------------------------
+    /**
+     * Attaches a listener to update the password strength meter in real time.
+     *
+     * <p>Delegates to updatePasswordStrength(String) to compute score and update UI.</p>
+     */
+
     private void setupPasswordStrengthListener() {
         passwordField.textProperty().addListener((obs, old, val) -> updatePasswordStrength(val));
     }
+
+    /**
+     * Evaluates the strength of the provided password and updates the UI meter.
+     *
+     * <h2>Scoring Rules</h2>
+     * <ul>
+     *     <li>+25% if length ≥ 8</li>
+     *     <li>+25% if contains uppercase letters</li>
+     *     <li>+25% if contains digits</li>
+     *     <li>+25% if contains symbols</li>
+     * </ul>
+     *
+     * <p>Updates the progress bar and color-coded feedback label accordingly.</p>
+     *
+     * @param password the password text to evaluate
+     */
 
     private void updatePasswordStrength(String password) {
 
@@ -273,9 +318,26 @@ public class RegisterController implements Initializable {
         }
     }
 
-    // ---------------------------------------------------------------------
-    // REGISTER BUTTON → Validates & Creates User
-    // ---------------------------------------------------------------------
+    /**
+     * Registers a new user after performing full validation.
+     *
+     * <h2>Validation Logic</h2>
+     * <ul>
+     *     <li>Student → must have a 9-digit Student ID</li>
+     *     <li>Email, name, password validated via UserManager</li>
+     * </ul>
+     *
+     * <h2>Workflow</h2>
+     * <ol>
+     *     <li>Validate form</li>
+     *     <li>Call UserManager.register()</li>
+     *     <li>Show success/error dialog</li>
+     *     <li>Clear form on success</li>
+     * </ol>
+     *
+     * <p>Implements Requirement 1 (Account Creation & Verification).</p>
+     */
+
     private void setupRegisterButton() {
 
         registerBtn.setOnAction(e -> {
@@ -312,8 +374,12 @@ public class RegisterController implements Initializable {
     }
 
     /**
-     * Reset all fields back to default state after successful registration.
+     * Resets all input fields and UI components after successful registration.
+     *
+     * <p>Clears text inputs, resets password strength meter, and hides
+     * student-specific fields.</p>
      */
+
     private void clearFields() {
         nameField.clear();
         emailField.clear();
@@ -326,18 +392,24 @@ public class RegisterController implements Initializable {
         studentIdField.setVisible(false);
     }
 
-    // ---------------------------------------------------------------------
-    // BACK BUTTON → Navigate back to Login
-    // ---------------------------------------------------------------------
+    /**
+     * Navigates the user back to the Login screen.
+     *
+     * <p>Uses NavigationHelper to maintain consistent fullscreen transitions.</p>
+     */
+
     private void setupBackButton() {
         backBtn.setOnAction(e ->
                 NavigationHelper.navigate((Stage) backBtn.getScene().getWindow(), "login.fxml")
         );
     }
 
-    // ---------------------------------------------------------------------
-    // Generic Popup Methods (error / info)
-    // ---------------------------------------------------------------------
+    /**
+     * Displays an error dialog with the given message.
+     *
+     * @param message detailed error text to show to the user
+     */
+
     private void showErrorDialog(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Registration Failed");
@@ -346,6 +418,12 @@ public class RegisterController implements Initializable {
         alert.initOwner(root.getScene().getWindow());
         alert.showAndWait();
     }
+
+    /**
+     * Displays a success/information dialog.
+     *
+     * @param message message to show after successful registration
+     */
 
     private void showInfoDialog(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);

@@ -16,6 +16,45 @@ import shared.model.Room;
 
 import java.util.Random;
 
+/**
+ * RoomDetailsPopup – Scenario 4 (Admin Dashboard: Live Room View)
+ * ----------------------------------------------------------------------------
+ * <p>A lightweight, reusable JavaFX popup that displays detailed information
+ * for a selected room. This component is used in Scenario 4 (Admin/System
+ * Management) to help administrators quickly inspect room metadata,
+ * occupancy, and operational status.</p>
+ *
+ * <h2>Purpose</h2>
+ * <ul>
+ *     <li>Show room attributes in a clean, modal popup</li>
+ *     <li>Support Scenario 4 “click to inspect room” functionality</li>
+ *     <li>Simulate current occupancy (placeholder until real sensor link)</li>
+ * </ul>
+ *
+ * <h2>Displayed Information</h2>
+ * <ul>
+ *     <li>Room ID</li>
+ *     <li>Name & Location</li>
+ *     <li>Capacity</li>
+ *     <li>Status (AVAILABLE, DISABLED, MAINTENANCE, etc.)</li>
+ *     <li>Simulated current occupancy (random value)</li>
+ * </ul>
+ *
+ * <h2>UI Characteristics</h2>
+ * <ul>
+ *     <li>Modal window (blocks background UI until closed)</li>
+ *     <li>Soft-shadow rounded card layout</li>
+ *     <li>Consistent Scenario 4 typography and color palette</li>
+ * </ul>
+ *
+ * <h2>Notes</h2>
+ * <ul>
+ *     <li>The occupancy value is currently simulated and not tied to real sensors.</li>
+ *     <li>Used primarily inside the AdminFX dashboard when clicking on a room card.</li>
+ * </ul>
+ */
+
+
 public class RoomDetailsPopup {
 
     public static void show(Room room) {
@@ -69,6 +108,15 @@ public class RoomDetailsPopup {
         popup.setScene(scene);
         popup.showAndWait();
     }
+
+    /**
+     * Utility method for generating a styled label row inside the popup.
+     * Each row combines a bold prefix (e.g., "Room ID:") with the provided value.
+     *
+     * @param label the human-readable field name
+     * @param value the field value to display
+     * @return a JavaFX Label styled for Scenario 4 popups
+     */
 
     private static Label info(String label, String value) {
         Label l = new Label(label + value);

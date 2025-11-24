@@ -3,14 +3,38 @@ package scenario3;
 import shared.model.Booking;
 
 /**
- * SensorSystem (Singleton)
- * --------------------------------------------------------
- * Simulates:
- *   - badge scans / user check-in
- *   - occupancy sensors (room empty / in use)
- *   - starting no-show timers for new bookings
+ * SensorSystem – Scenario 3 (Check-In & Usage Monitoring)
+ * ------------------------------------------------------------------------
+ * This class simulates **real-world sensor activity** for Scenario 3.
  *
- * It delegates all state management to RoomStatusManager.
+ * <h2>Purpose</h2>
+ * <ul>
+ *     <li>Acts as the *hardware layer* of the system (badge scanners, PIR sensors).</li>
+ *     <li>Provides high-level sensor events to the business logic layer.</li>
+ *     <li>Delegates all booking/state updates to {@link RoomStatusManager}.</li>
+ * </ul>
+ *
+ * <h2>What It Simulates</h2>
+ * <ul>
+ *     <li><b>User check-in</b> (badge scan → “Check In” button)</li>
+ *     <li><b>Room occupancy sensors</b> (detect presence / vacancy)</li>
+ *     <li><b>No-show countdown start</b> for new bookings</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li><b>Singleton</b> – Only one sensor system exists for the whole application.</li>
+ *     <li>Works with Observer Pattern through RoomStatusManager (Subject → Observers).</li>
+ * </ul>
+ *
+ * <h2>Related Scenario</h2>
+ * <ul>
+ *     <li><b>Scenario 3</b> – Check-In, No-Show detection, and live room monitoring.</li>
+ * </ul>
+ *
+ * <h2>Note</h2>
+ * This class does **not** manage booking logic itself — it only triggers sensor-like
+ * events. All logic (IN_USE, NO_SHOW, AVAILABLE) is handled inside RoomStatusManager.
  */
 public class SensorSystem {
 

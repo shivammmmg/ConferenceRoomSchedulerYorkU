@@ -26,9 +26,29 @@ import javafx.scene.input.KeyCombination;
 public class LoginApp extends Application {
 
     /**
-     * Called automatically by JavaFX when the application starts.
-     * Loads the login screen and applies fullscreen settings.
+     * Initializes and displays the Login screen as the first UI window.
+     *
+     * <p>This method is invoked automatically by the JavaFX runtime after
+     * {@link Application#launch(String...)} is called. It loads the login.fxml
+     * layout, creates the main scene, and configures fullscreen mode for a
+     * clean and immersive UI experience suitable for Scenario 1.</p>
+     *
+     * <h2>Responsibilities</h2>
+     * <ul>
+     *     <li>Loads Login UI from /scenario1/fxml/login.fxml</li>
+     *     <li>Creates and attaches the main Scene</li>
+     *     <li>Enables fullscreen mode and disables ESC exit</li>
+     *     <li>Shows the primary stage</li>
+     * </ul>
+     *
+     * <h2>Scenario Mapping</h2>
+     * <p>This is the official launcher for <b>Scenario 1 — Registration & Login</b>.
+     * From here, navigation proceeds to Register or Forgot Password screens.</p>
+     *
+     * @param primaryStage the JavaFX application window provided by the runtime
+     * @throws Exception if login.fxml fails to load
      */
+
     @Override
     public void start(Stage primaryStage) throws Exception {
 
@@ -58,9 +78,14 @@ public class LoginApp extends Application {
     }
 
     /**
-     * Launcher entrypoint.
-     * Launches JavaFX, which then calls start().
+     * JVM entry point that launches the JavaFX application.
+     *
+     * <p>This delegates control to the JavaFX runtime, which then calls the
+     * {@link #start(Stage)} method to initialize the UI.</p>
+     *
+     * @param args optional command-line arguments
      */
+
     public static void main(String[] args) {
         launch(args);
     }

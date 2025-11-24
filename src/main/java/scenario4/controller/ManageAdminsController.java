@@ -17,6 +17,35 @@ import scenario1.controller.UserManager;
 
 import java.util.ArrayList;
 
+/**
+ * ManageAdminsController – Scenario 4 (Administration & System Management)
+ * ---------------------------------------------------------------------------
+ * <p>Controller for the “Manage Admins” page. Displays all admin accounts
+ * stored in the user.csv file (via {@link UserManager}). Administrators can:</p>
+ *
+ * <ul>
+ *     <li>View all system admin accounts</li>
+ *     <li>Delete an admin</li>
+ *     <li>Disable / Enable an admin</li>
+ *     <li>See formatted audit logs printed to the console</li>
+ * </ul>
+ *
+ * <h2>Key Integration Points</h2>
+ * <ul>
+ *     <li>Uses a JavaFX TableView to show admins</li>
+ *     <li>Communicates with {@link UserManager} for CRUD operations</li>
+ *     <li>Automatically updates user.csv after any change</li>
+ * </ul>
+ *
+ * <h2>Design Pattern Context</h2>
+ * <ul>
+ *     <li>Repository pattern (UserManager → user.csv)</li>
+ *     <li>MVC controller for Scenario 4</li>
+ *     <li>Encapsulates all admin-management business rules</li>
+ * </ul>
+ */
+
+
 public class ManageAdminsController {
 
     @FXML
@@ -27,6 +56,12 @@ public class ManageAdminsController {
 
     private final UserManager userManager = UserManager.getInstance();
 
+    /**
+     * Called automatically by JavaFX when the view loads.
+     * Initializes the admin table, loads all admin accounts,
+     * and adds action buttons below the table.
+     */
+
     @FXML
     public void initialize() {
         setupTable();
@@ -34,9 +69,16 @@ public class ManageAdminsController {
         addButtons();
     }
 
-    // -------------------------------------------------------------
-    // TABLE SETUP
-    // -------------------------------------------------------------
+    /**
+     * Configures all columns of the admin TableView:
+     * <ul>
+     *     <li>Username (email)</li>
+     *     <li>Status (derived from {@link SystemUser#isActive()})</li>
+     * </ul>
+     *
+     * Clears any previous column definitions and rebuilds the table structure.
+     */
+
     private void setupTable() {
 
         // Username column (email)
@@ -55,17 +97,21 @@ public class ManageAdminsController {
         adminTable.getColumns().addAll(nameCol, statusCol);
     }
 
-    // -------------------------------------------------------------
-    // LOAD ADMINS FROM user.csv
-    // -------------------------------------------------------------
+    /**
+     * Loads all admin accounts from {@link UserManager#getAdminAccounts()}
+     * and populates the TableView.
+     */
+
     private void loadAdmins() {
         ArrayList<SystemUser> admins = userManager.getAdminAccounts();
         adminTable.getItems().setAll(admins);
     }
 
-    // -------------------------------------------------------------
-    // BUTTON ROW
-    // -------------------------------------------------------------
+    /**
+     * Creates and styles the “Delete” and “Disable / Enable” buttons,
+     * then adds them as a control row beneath the admin table.
+     */
+
     private void addButtons() {
 
         Button deleteBtn = new Button("Delete");
@@ -83,9 +129,19 @@ public class ManageAdminsController {
         container.getChildren().add(row);
     }
 
-    // -------------------------------------------------------------
-    // DELETE ADMIN (updates user.csv)
-    // -------------------------------------------------------------
+    /**
+     * Deletes the admin selected in the TableView.
+     *
+     * <p>Process:</p>
+     * <ol>
+     *     <li>Ensures an admin is selected</li>
+     *     <li>Removes them through {@link UserManager#deleteAdminByEmail(String)}</li>
+     *     <li>Updates user.csv</li>
+     *     <li>Removes them from the table UI</li>
+     *     <li>Prints a formatted deletion audit log</li>
+     * </ol>
+     */
+
     private void deleteAdmin() {
 
         SystemUser selected = adminTable.getSelectionModel().getSelectedItem();
@@ -121,9 +177,18 @@ public class ManageAdminsController {
     }
 
 
-    // -------------------------------------------------------------
-    // ENABLE/DISABLE ADMIN (updates user.csv)
-    // -------------------------------------------------------------
+    /**
+     * Enables or disables the selected admin account.
+     *
+     * <p>Steps:</p>
+     * <ol>
+     *     <li>Validates a table selection</li>
+     *     <li>Toggles the {@code isActive} flag</li>
+     *     <li>Saves updated status via {@link UserManager#updateProfile}</li>
+     *     <li>Refreshes the table display</li>
+     *     <li>Prints a status-change audit log</li>
+     * </ol>
+     */
     private void toggleDisable() {
 
         SystemUser selected = adminTable.getSelectionModel().getSelectedItem();
@@ -166,9 +231,12 @@ public class ManageAdminsController {
     }
 
 
-    // -------------------------------------------------------------
-    // UTIL
-    // -------------------------------------------------------------
+    /**
+     * Displays a simple warning alert with the given message.
+     *
+     * @param msg message to show in the alert dialog
+     */
+
     private void showWarning(String msg) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setHeaderText(null);

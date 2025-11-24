@@ -5,6 +5,41 @@ import shared.util.CSVHelper;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * RoomRepository – Shared Room Storage (All Scenarios)
+ * ============================================================================
+ * <p>This class acts as the <b>central room database</b> for the entire system.
+ * It provides a Singleton-based in-memory repository backed by rooms.csv.</p>
+ *
+ * <h2>Purpose</h2>
+ * <ul>
+ *     <li>Loads all rooms from CSV on startup.</li>
+ *     <li>Provides CRUD operations for room management.</li>
+ *     <li>Keeps Scenario 2, Scenario 3, and Scenario 4 fully synchronized.</li>
+ *     <li>Automatically persists all changes to rooms.csv.</li>
+ * </ul>
+ *
+ * <h2>Design Patterns</h2>
+ * <ul>
+ *     <li><b>Singleton</b> – Only one global repository instance exists.</li>
+ *     <li><b>Repository Pattern</b> – Abstracts room storage from business logic.</li>
+ *     <li><b>Auto-Persistence</b> – Every add/update/delete writes to CSV.</li>
+ * </ul>
+ *
+ * <h2>Used By</h2>
+ * <ul>
+ *     <li><b>Scenario 2</b> – Room listing, booking validation.</li>
+ *     <li><b>Scenario 3</b> – RoomStatusManager (occupancy + no-show logic).</li>
+ *     <li><b>Scenario 4</b> – Admin room enable/disable & maintenance operations.</li>
+ * </ul>
+ *
+ * <h2>CSV Details</h2>
+ * <p>Data format is defined inside {@link shared.util.CSVHelper} (rooms.csv).</p>
+ *
+ * ============================================================================
+ */
+
+
 public class RoomRepository {
 
     private static RoomRepository instance;
