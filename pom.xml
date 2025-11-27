@@ -11,13 +11,15 @@
     <properties>
         <maven.compiler.source>23</maven.compiler.source>
         <maven.compiler.target>23</maven.compiler.target>
-
-        <!-- UPDATED JavaFX version -->
         <javafx.version>25</javafx.version>
     </properties>
 
+    <!-- ========================================================= -->
+    <!-- MERGED DEPENDENCY BLOCK (JavaFX + JUnit together) -->
+    <!-- ========================================================= -->
     <dependencies>
-        <!-- JavaFX modules (Maven-managed, version 25) -->
+
+        <!-- JavaFX BEGIN (unchanged) -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -35,21 +37,44 @@
             <artifactId>javafx-graphics</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+        <!-- JavaFX END -->
+
+        <!-- JUnit 5 (for tests) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
+    <!-- ========================================================= -->
+    <!-- MERGED BUILD BLOCK (JavaFX plugin + Surefire plugin) -->
+    <!-- ========================================================= -->
     <build>
         <plugins>
-            <!-- JavaFX Maven Plugin (correct configuration) -->
+
+            <!-- JavaFX Maven plugin (unchanged from your file) -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
-
                 <configuration>
-                    <!-- Update this later once integration is done -->
                     <mainClass>Launcher</mainClass>
                 </configuration>
             </plugin>
+
+            <!-- JUnit runner -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <useSystemClassLoader>false</useSystemClassLoader>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 
