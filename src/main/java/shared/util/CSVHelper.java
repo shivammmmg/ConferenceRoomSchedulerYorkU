@@ -1,7 +1,7 @@
 package shared.util;
 
-import shared.model.*;
 import scenario1.builder.UserBuilder;
+import shared.model.*;
 
 import java.io.*;
 import java.time.LocalDateTime;
@@ -33,7 +33,7 @@ import java.util.UUID;
  * <ul>
  *     <li><b>Utility / Facade-Style Class</b>: Central access point for persistence.</li>
  *     <li>Used by Singleton managers (UserManager, BookingManager, RoomRepository).</li>
- *     <li>Supports Builder pattern via {@link scenario1.builder.UserBuilder}.</li>
+ *     <li>Supports Builder pattern via {@link UserBuilder}.</li>
  * </ul>
  *
  * <h2>CSV Schemas Supported</h2>

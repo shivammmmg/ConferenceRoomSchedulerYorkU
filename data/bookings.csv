@@ -1,2 +1,2 @@
 bookingId,roomId,userId,startTime,endTime,purpose,status,paymentStatus,depositAmount
-B2,R1,U1,2025-11-27T13:21:23.609563,2025-11-27T13:51:23.610701,Test,IN_USE,PENDING,0.0
+C5,R1,U99,2025-11-27T13:38:06.825881,2025-11-27T14:08:06.825881,Study,IN_USE,PENDING,0.0

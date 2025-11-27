@@ -3,8 +3,8 @@ package shared.util;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.stage.Stage;
 import javafx.scene.input.KeyCombination;
+import javafx.stage.Stage;
 
 /**
  * GlobalNavigationHelper – Unified Navigation Utility (All Scenarios)
