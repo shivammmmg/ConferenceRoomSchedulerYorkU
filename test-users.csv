@@ -1,2 +1,0 @@
-userId,name,email,passwordHash,userType,orgId,studentId,isActive,createdAt
-1c668f13-c4c7-42d9-9923-c60eedd596df,John,j@my.yorku.ca,Password1!,STUDENT,,123456789,true,2025-11-26T23:36:55.904573
