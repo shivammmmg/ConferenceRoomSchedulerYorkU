@@ -63,16 +63,33 @@ import java.util.*;
  * </ul>
  * ============================================================================
  */
-
 public class BookingManager {
 
     // =========================================================
     //                    SINGLETON
     // =========================================================
     private static BookingManager instance;
-    private static final int EXTENSION_BUFFER_MINUTES = 10;  // must request ≥10 min before end
-    private static final int TIME_SLOT_MINUTES       = 15;  // your granularity
 
+    /** Buffer: user must request an extension at least this many minutes before end. */
+    private static final int EXTENSION_BUFFER_MINUTES = 10;
+
+    /** Time-slot granularity used for extensions (15, 30, 45, ...). */
+    private static final int TIME_SLOT_MINUTES = 15;
+
+    /**
+     * Resolve the CSV path used by the older extension methods that still
+     * call {@link CSVHelper} directly.
+     *
+     * Production:      data/bookings.csv
+     * Tests (JUnit):   whatever is set in BookingRepository.BOOKING_CSV_PROPERTY
+     *                  e.g., "TestData/bookings.csv"
+     */
+    private static String resolveBookingCsvPath() {
+        return System.getProperty(
+                BookingRepository.BOOKING_CSV_PROPERTY,
+                "data/bookings.csv"
+        );
+    }
 
     public static synchronized BookingManager getInstance() {
         if (instance == null) {
@@ -90,18 +107,14 @@ public class BookingManager {
     //                    PRICING LOGIC
     // =========================================================
 
-    // You can tweak these numbers freely – UI will just display them.
-    // Req3: Hourly rates (students 20, faculty 30, staff 40, partners 50)
-    // Req3: Hourly rates
-// Students: 20, Faculty: 30, Staff: 40, Partners: 50
+    // Students: 20, Faculty: 30, Staff: 40, Partners: 50
     private static final double STUDENT_RATE = 20.0;
     private static final double FACULTY_RATE = 30.0;
     private static final double STAFF_RATE   = 40.0;
     private static final double PARTNER_RATE = 50.0;
 
-    // Default: use student rate for any new/unknown type (Req1: flexibility to add types)
+    // Default: use student rate for any new/unknown type
     private static final double DEFAULT_RATE = STUDENT_RATE;
-
 
     /** Returns the hourly rate based on user type. */
     public double getHourlyRateForUserType(String userType) {
@@ -123,7 +136,6 @@ public class BookingManager {
                 return DEFAULT_RATE;
         }
     }
-
 
     /**
      * Deposit rule used in the UI:
@@ -268,18 +280,30 @@ public class BookingManager {
         bookingRepo.getAllBookings().add(booking);
         bookingRepo.saveAll();
     }
+
+    /** Saves current in-memory bookings list to CSV through the repository. */
+    private void saveBookings() {
+        bookingRepo.saveAll();
+    }
+
+    // =========================================================
+    //             EXTENSION / LOOKUP HELPERS (IN-MEMORY)
+    // =========================================================
+
     public double calculateExtensionDeposit(String userType, long extraMinutes) {
         long extraHours = (long) Math.ceil(extraMinutes / 60.0);
         return getDepositForUserTypeAndDuration(userType, extraHours);
     }
+
     public Booking findBookingById(String bookingId) {
-        for (Booking b : bookingRepo.getAllBookings()) {   // ✅ use the repo list
+        for (Booking b : bookingRepo.getAllBookings()) {
             if (b.getBookingId().equals(bookingId)) {
                 return b;
             }
         }
         return null;
     }
+
     public boolean canExtendBooking(Booking booking, long extraMinutes) {
         if (booking == null) return false;
 
@@ -322,6 +346,10 @@ public class BookingManager {
         return true;
     }
 
+    /**
+     * Booking extension API used by Scenario 2 UI (userEmail + minutes + userType).
+     * Works purely with the in-memory {@link BookingRepository}.
+     */
     public Booking extendBooking(String bookingId,
                                  String userEmail,
                                  long extraMinutes,
@@ -355,18 +383,24 @@ public class BookingManager {
                 booking.getDepositAmount() + additionalDeposit
         );
 
-        // If you store overall payment or history, update that here.
-        // TODO: persist to CSV/DB if that's what you normally do here.
+        // Persist current state (via repository)
+        saveBookings();
 
         return booking;
     }
+
+    // =========================================================
+    //  LEGACY EXTENSION METHODS (DIRECT CSV – NOW CONFIGURABLE)
+    // =========================================================
 
     public Booking extendBooking(String bookingId,
                                  LocalDateTime newEndTime,
                                  double extraAmount) throws Exception {
 
+        String csvPath = resolveBookingCsvPath();
+
         // 1) load all bookings
-        List<Booking> all = CSVHelper.loadBookings("data/bookings.csv");
+        List<Booking> all = CSVHelper.loadBookings(csvPath);
 
         // 2) find the one we are extending
         Booking target = null;
@@ -408,14 +442,6 @@ public class BookingManager {
         }
 
         // 4) PAYMENT STEP (hook up your Payment Service here)
-        // ---------------------------------------------------
-        // Example idea (pseudo-code, so you don't get compile errors):
-        //
-        // PaymentResult result = paymentService.chargeExtension(target, extraAmount);
-        // if (!result.isSuccessful()) {
-        //     throw new IllegalStateException("Payment failed: " + result.getMessage());
-        // }
-        //
         // For now we just assume payment succeeded:
         target.setDepositAmount(target.getDepositAmount() + extraAmount);
 
@@ -423,7 +449,7 @@ public class BookingManager {
         target.extendTo(newEndTime);
 
         // 6) save all bookings back
-        CSVHelper.saveBookings("data/bookings.csv", all);
+        CSVHelper.saveBookings(csvPath, all);
 
         return target;
     }
@@ -439,8 +465,10 @@ public class BookingManager {
                                         int slotMinutes,
                                         double pricePerSlot) throws Exception {
 
+        String csvPath = resolveBookingCsvPath();
+
         // load again just to compute new end time based on current state
-        List<Booking> all = CSVHelper.loadBookings("data/bookings.csv");
+        List<Booking> all = CSVHelper.loadBookings(csvPath);
 
         Booking target = null;
         for (Booking b : all) {
@@ -458,11 +486,6 @@ public class BookingManager {
 
         // Re-use core logic
         return extendBooking(bookingId, newEnd, pricePerSlot);
-    }
-
-    /** Saves current in-memory bookings list to CSV. */
-    private void saveBookings() {
-        bookingRepo.saveAll();
     }
 
     // =========================================================
@@ -545,7 +568,6 @@ public class BookingManager {
         System.out.println("");
         // =======================================================================
 
-
         return booking;
     }
 
@@ -593,6 +615,7 @@ public class BookingManager {
         booking.setPaymentStatus("REFUNDED");
 
         saveBookings();
+
         // ===================== BOOKING CANCELLED LOG ============================
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -611,7 +634,7 @@ public class BookingManager {
 
         System.out.println("└────────────────────────────────────────────────────────────────────────────────────────────────────┘");
         System.out.println();
-// =======================================================================
+        // =======================================================================
 
         return true;
     }
@@ -633,7 +656,6 @@ public class BookingManager {
         LocalDateTime oldStart = booking.getStartTime();
         LocalDateTime oldEnd   = booking.getEndTime();
         String oldPurpose      = booking.getPurpose();
-
 
         if (userEmail != null && !userEmail.equalsIgnoreCase(booking.getUserId())) {
             throw new Exception("You can edit only your own bookings.");
@@ -695,7 +717,7 @@ public class BookingManager {
 
         System.out.println("└──────────────────────────────────────────────────────────────────────────────────────────────────┘");
         System.out.println();
-// =======================================================================
+        // =======================================================================
 
     }
 
@@ -756,3 +778,4 @@ public class BookingManager {
         return null;
     }
 }
+
