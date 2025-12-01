@@ -1,0 +1,2 @@
+bookingId,roomId,userId,startTime,endTime,purpose,status,paymentStatus,depositAmount
+BFILE1,RFILE,user@yorku.ca,2025-12-01T21:26:07.991990,2025-12-01T23:26:07.991990,File-based,CONFIRMED,PENDING,15.0

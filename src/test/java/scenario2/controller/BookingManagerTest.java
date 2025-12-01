@@ -6,6 +6,8 @@ import org.junit.Test;
 import scenario2.builder.BookingBuilder;
 import shared.model.Booking;
 import shared.model.BookingRepository;
+import shared.model.Room;
+import shared.model.RoomRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,39 +18,34 @@ import static org.junit.Assert.*;
  * Unit tests for {@link BookingManager} in Scenario 2.
  *
  * <p>This test suite validates the application-level business logic implemented by
- * {@link BookingManager}, without touching CSV I/O. The tests exercise:</p>
- *
- * <ul>
- *   <li>Pricing and deposit rules for different user types.</li>
- *   <li>Repository-based lookup helpers (e.g., {@code findBookingById}).</li>
- *   <li>Status transitions such as cancel, check-in, and no-show handling.</li>
- *   <li>Extension logic (validation + deposit updates).</li>
- *   <li>Lookup of currently active bookings for a room (sensor use case).</li>
- * </ul>
- *
- * <p>Tests follow the Arrange–Act–Assert pattern and use an in-memory
- * {@link BookingRepository} that is cleared before each test to guarantee isolation.</p>
+ * {@link BookingManager}. Tests are written so that they only touch the
+ * TestData CSV files and never modify the production data under {@code data/}.</p>
  */
 public class BookingManagerTest {
 
     /** System under test. */
     private BookingManager manager;
 
-    /** Shared in-memory repository used by {@link BookingManager}. */
+    /** Shared repository used by {@link BookingManager}. */
     private BookingRepository repo;
 
+    // =====================================================================
+    // GLOBAL TEST SETUP
+    // =====================================================================
+
     /**
-     * Resets the singleton {@link BookingManager} and clears the shared
-     * {@link BookingRepository} so each test starts from a clean state.
+     * Configure the CSV path used by BookingRepository/BookingManager so that
+     * tests read/write from {@code TestData/bookings.csv}, not {@code data/bookings.csv}.
      */
-    // runs ONCE before any tests in this class
     @BeforeClass
     public static void configureCsvForTests() {
-        // tell the repo/manager to use TestData/bookings.csv
         System.setProperty(BookingRepository.BOOKING_CSV_PROPERTY, "TestData/bookings.csv");
-        // rebuild the singleton with this new path
         BookingRepository.resetForTests();
     }
+
+    /**
+     * Reset in-memory state before each test.
+     */
     @Before
     public void setUp() {
         manager = BookingManager.getInstance();
@@ -62,91 +59,112 @@ public class BookingManagerTest {
     // PRICING LOGIC
     // =====================================================================
 
-    /**
-     * Verifies that the hourly rate is correctly returned for all known user types.
-     */
+    /** Hourly rate for each known user type. */
     @Test
     public void getHourlyRateForUserType_returnsCorrectRateForKnownTypes() {
-        // Act + Assert
         assertEquals(20.0, manager.getHourlyRateForUserType("STUDENT"), 0.0001);
         assertEquals(30.0, manager.getHourlyRateForUserType("FACULTY"), 0.0001);
         assertEquals(40.0, manager.getHourlyRateForUserType("STAFF"), 0.0001);
         assertEquals(50.0, manager.getHourlyRateForUserType("PARTNER"), 0.0001);
     }
 
-    /**
-     * Verifies that the hourly-rate lookup:
-     * <ul>
-     *   <li>is case-insensitive, and</li>
-     *   <li>falls back to the student/default rate for null/empty/unknown types.</li>
-     * </ul>
-     */
+    /** Case-insensitivity + default rate path. */
     @Test
     public void getHourlyRateForUserType_isCaseInsensitiveAndHasDefault() {
-        // Act + Assert
         assertEquals(20.0, manager.getHourlyRateForUserType("student"), 0.0001);
         assertEquals(20.0, manager.getHourlyRateForUserType(null), 0.0001);
         assertEquals(20.0, manager.getHourlyRateForUserType(""), 0.0001);
         assertEquals(20.0, manager.getHourlyRateForUserType("UNKNOWN"), 0.0001);
     }
 
-    /**
-     * Verifies that the deposit is based on a single hour of usage, regardless
-     * of the requested duration in hours.
-     */
+    /** Deposit uses one hour of rate (ignores duration). */
     @Test
     public void getDepositForUserTypeAndDuration_usesSingleHourRate() {
-        // Act + Assert
         assertEquals(20.0, manager.getDepositForUserTypeAndDuration("STUDENT", 1), 0.0001);
         assertEquals(20.0, manager.getDepositForUserTypeAndDuration("STUDENT", 5), 0.0001);
         assertEquals(50.0, manager.getDepositForUserTypeAndDuration("PARTNER", 10), 0.0001);
     }
 
-    /**
-     * Verifies that the estimated total uses max(hours, 1) * hourly rate
-     * and handles zero/negative durations by charging at least one hour.
-     */
+    /** Estimated total is max(hours,1) * rate. */
     @Test
     public void getEstimatedTotalForUser_multipliesHoursByRateAndRoundsUp() {
-        // Act + Assert
         assertEquals(40.0, manager.getEstimatedTotalForUser("STUDENT", 2), 0.0001);
         assertEquals(20.0, manager.getEstimatedTotalForUser("STUDENT", 0), 0.0001);
         assertEquals(20.0, manager.getEstimatedTotalForUser("STUDENT", -3), 0.0001);
     }
 
-    /**
-     * Verifies that the extension deposit uses the single-hour rate
-     * independent of the exact minutes requested (as long as it is valid).
-     */
+    /** Extension deposit equals the single-hour deposit regardless of minutes. */
     @Test
     public void calculateExtensionDeposit_usesSingleHourRateRegardlessOfMinutes() {
-        // Arrange
         double oneHourDeposit = manager.getDepositForUserTypeAndDuration("STUDENT", 1);
 
-        // Act
         double thirtyMinDeposit = manager.calculateExtensionDeposit("STUDENT", 30);
         double sixtyOneMinDeposit = manager.calculateExtensionDeposit("STUDENT", 61);
 
-        // Assert
         assertEquals(oneHourDeposit, thirtyMinDeposit, 0.0001);
         assertEquals(oneHourDeposit, sixtyOneMinDeposit, 0.0001);
+    }
+
+    // =====================================================================
+    // ROOM HELPERS + SEARCH
+    // =====================================================================
+
+    /** getAllRooms should never return null. */
+    @Test
+    public void getAllRooms_returnsNonNullList() {
+        assertNotNull(manager.getAllRooms());
+    }
+
+    /** getAvailableBuildings should never return null. */
+    @Test
+    public void getAvailableBuildings_returnsNonNullList() {
+        assertNotNull(manager.getAvailableBuildings());
+    }
+
+    /** getAvailableEquipment should never return null. */
+    @Test
+    public void getAvailableEquipment_returnsNonNullList() {
+        assertNotNull(manager.getAvailableEquipment());
+    }
+
+    /** searchAvailableRooms happy path with loose filters. */
+    @Test
+    public void searchAvailableRooms_withLooseFilters_returnsList() {
+        LocalDateTime start = LocalDateTime.now().plusDays(1);
+        LocalDateTime end = start.plusHours(1);
+
+        assertNotNull(manager.searchAvailableRooms(start, end, 0, null, null));
+    }
+
+    /** searchAvailableRooms invalid time ordering throws exception. */
+    @Test(expected = IllegalArgumentException.class)
+    public void searchAvailableRooms_endBeforeStart_throwsException() {
+        LocalDateTime start = LocalDateTime.now().plusHours(2);
+        LocalDateTime end = start.minusHours(1);
+
+        manager.searchAvailableRooms(start, end, 0, null, null);
+    }
+
+    /** getRoomById delegates correctly to RoomRepository (if any rooms exist). */
+    @Test
+    public void getRoomById_returnsRoomFromRepositoryWhenPresent() {
+        List<Room> allRooms = RoomRepository.getInstance().getAllRoomsList();
+        if (allRooms.isEmpty()) {
+            // If there are no rooms in the CSV, just ensure it returns null for a bogus id.
+            assertNull(manager.getRoomById("NON_EXISTENT_ROOM"));
+        } else {
+            Room first = allRooms.get(0);
+            Room byId = manager.getRoomById(first.getRoomId());
+            assertNotNull(byId);
+            assertEquals(first.getRoomId(), byId.getRoomId());
+        }
     }
 
     // =====================================================================
     // HELPER TO BUILD BOOKINGS
     // =====================================================================
 
-    /**
-     * Helper factory method that builds a valid {@link Booking} with the most
-     * common test defaults.
-     *
-     * @param id      booking identifier.
-     * @param roomId  associated room identifier.
-     * @param userId  user e-mail identifier.
-     * @param start   start date-time.
-     * @param end     end date-time.
-     * @return a fully initialized {@link Booking} instance.
-     */
+    /** Helper factory for a common Booking. */
     private Booking newBooking(String id,
                                String roomId,
                                String userId,
@@ -166,42 +184,25 @@ public class BookingManagerTest {
     // LOOKUP HELPERS
     // =====================================================================
 
-    /**
-     * Verifies that {@link BookingManager#findBookingById(String)} returns
-     * the booking that exists in the repository.
-     */
     @Test
     public void findBookingById_returnsBookingFromRepository() {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().plusHours(1);
         LocalDateTime end = start.plusHours(1);
         repo.getAllBookings().add(newBooking("B100", "R101", "user@yorku.ca", start, end));
 
-        // Act
         Booking found = manager.findBookingById("B100");
 
-        // Assert
         assertNotNull(found);
         assertEquals("B100", found.getBookingId());
     }
 
-    /**
-     * Verifies that {@link BookingManager#findBookingById(String)} returns {@code null}
-     * when no booking exists for the given identifier.
-     */
     @Test
     public void findBookingById_unknownId_returnsNull() {
-        // Act + Assert
         assertNull(manager.findBookingById("NOPE"));
     }
 
-    /**
-     * Verifies that {@link BookingManager#getAllUserBookings(String)} filters bookings
-     * by user identifier in a case-insensitive manner.
-     */
     @Test
     public void getAllUserBookings_filtersByUserIdIgnoringCase() {
-        // Arrange
         LocalDateTime now = LocalDateTime.now();
 
         repo.getAllBookings().add(newBooking("B1", "R101", "user1@yorku.ca",
@@ -211,57 +212,69 @@ public class BookingManagerTest {
         repo.getAllBookings().add(newBooking("B3", "R303", "other@yorku.ca",
                 now.plusHours(1), now.plusHours(2)));
 
-        // Act
         List<Booking> userBookings = manager.getAllUserBookings("user1@yorku.ca");
 
-        // Assert
         assertEquals(2, userBookings.size());
+    }
+
+    @Test
+    public void getAllUserBookings_unknownUser_returnsEmptyList() {
+        assertTrue(manager.getAllUserBookings("nobody@yorku.ca").isEmpty());
     }
 
     // =====================================================================
     // canExtendBooking DIRECT TESTS
     // =====================================================================
 
-    /**
-     * {@code false} when the booking is {@code null}.
-     */
     @Test
     public void canExtendBooking_nullBooking_returnsFalse() {
-        // Act + Assert
         assertFalse(manager.canExtendBooking(null, 30));
     }
 
-    /**
-     * invalid extension durations (not multiple of 15, zero, or negative).
-     */
     @Test
     public void canExtendBooking_invalidExtraMinutes_returnsFalse() {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().plusHours(1);
         LocalDateTime end = start.plusHours(2);
         Booking booking = newBooking("BEXT", "R101", "user@yorku.ca", start, end);
 
-        // Act + Assert
         assertFalse(manager.canExtendBooking(booking, 10));   // not multiple of 15
         assertFalse(manager.canExtendBooking(booking, 0));    // zero
         assertFalse(manager.canExtendBooking(booking, -15));  // negative
+    }
+
+    /** Too close to end time (inside 10-min buffer) should be false. */
+    @Test
+    public void canExtendBooking_tooCloseToEndTime_returnsFalse() {
+        LocalDateTime endSoon = LocalDateTime.now().plusMinutes(5);
+        LocalDateTime start = endSoon.minusHours(1);
+        Booking booking = newBooking("BTIME", "R101", "user@yorku.ca", start, endSoon);
+
+        assertFalse(manager.canExtendBooking(booking, 15));
+    }
+
+    /** Conflict with another booking in same room should be false. */
+    @Test
+    public void canExtendBooking_conflictWithOtherBooking_returnsFalse() {
+        LocalDateTime start = LocalDateTime.now().plusHours(2);
+        LocalDateTime end = start.plusHours(1);
+        Booking booking = newBooking("BMAIN", "R-CONFLICT", "user@yorku.ca", start, end);
+
+        LocalDateTime otherStart = end; // immediate next slot
+        LocalDateTime otherEnd = otherStart.plusMinutes(30);
+        Booking other = newBooking("BOTHER", "R-CONFLICT", "other@yorku.ca", otherStart, otherEnd);
+
+        repo.getAllBookings().add(booking);
+        repo.getAllBookings().add(other);
+
+        assertFalse(manager.canExtendBooking(booking, 30));
     }
 
     // =====================================================================
     // CANCEL / STATUS TRANSITIONS
     // =====================================================================
 
-    /**
-     * Verifies that a valid cancellation:
-     * <ul>
-     *   <li>changes the status to {@code CANCELLED},</li>
-     *   <li>marks the payment status as {@code REFUNDED}, and</li>
-     *   <li>returns {@code true}.</li>
-     * </ul>
-     */
     @Test
     public void cancelBooking_setsStatusCancelledAndRefunds() throws Exception {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().plusHours(1);
         LocalDateTime end = start.plusHours(1);
 
@@ -278,22 +291,15 @@ public class BookingManagerTest {
 
         repo.getAllBookings().add(b);
 
-        // Act
         boolean result = manager.cancelBooking("B1", "user@yorku.ca");
 
-        // Assert
         assertTrue(result);
         assertEquals("CANCELLED", b.getStatus());
         assertEquals("REFUNDED", b.getPaymentStatus());
     }
 
-    /**
-     * Verifies that cancelling an already cancelled booking returns {@code false}
-     * and does not change the state.
-     */
     @Test
     public void cancelBooking_whenAlreadyCancelled_returnsFalse() throws Exception {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().plusHours(1);
         LocalDateTime end = start.plusHours(1);
 
@@ -309,20 +315,13 @@ public class BookingManagerTest {
 
         repo.getAllBookings().add(b);
 
-        // Act
         boolean result = manager.cancelBooking("B2", "user@yorku.ca");
 
-        // Assert
         assertFalse(result);
     }
 
-    /**
-     * Verifies that attempting to cancel a booking as a different user
-     * results in an exception (authorization check).
-     */
     @Test(expected = Exception.class)
     public void cancelBooking_withDifferentUser_throwsException() throws Exception {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().plusHours(1);
         LocalDateTime end = start.plusHours(1);
 
@@ -337,45 +336,35 @@ public class BookingManagerTest {
 
         repo.getAllBookings().add(b);
 
-        // Act + Assert (exception expected)
         manager.cancelBooking("B3", "someoneelse@yorku.ca");
     }
 
-    /**
-     * Verifies that applying the deposit when the user checks in
-     * marks the booking as {@code IN_USE}.
-     */
+    @Test(expected = Exception.class)
+    public void cancelBooking_unknownId_throwsException() throws Exception {
+        manager.cancelBooking("NO_SUCH_BOOKING", "user@yorku.ca");
+    }
+
     @Test
     public void applyDepositToFinalCost_marksBookingInUse() {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().minusMinutes(30);
         LocalDateTime end = start.plusHours(1);
         Booking b = newBooking("B10", "R101", "user@yorku.ca", start, end);
         repo.getAllBookings().add(b);
 
-        // Act
         manager.applyDepositToFinalCost("B10");
 
-        // Assert
         assertEquals("IN_USE", b.getStatus());
     }
 
-    /**
-     * Verifies that marking a deposit as forfeited sets the booking status to
-     * {@code NO_SHOW} and the payment status to {@code FORFEITED}.
-     */
     @Test
     public void markDepositForfeited_marksNoShowAndForfeited() {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().minusHours(2);
         LocalDateTime end = start.plusHours(1);
         Booking b = newBooking("B11", "R101", "user@yorku.ca", start, end);
         repo.getAllBookings().add(b);
 
-        // Act
         manager.markDepositForfeited("B11");
 
-        // Assert
         assertEquals("NO_SHOW", b.getStatus());
         assertEquals("FORFEITED", b.getPaymentStatus());
     }
@@ -384,13 +373,8 @@ public class BookingManagerTest {
     // ACTIVE BOOKING LOOKUP
     // =====================================================================
 
-    /**
-     * Verifies that {@link BookingManager#getActiveBookingForRoom(String, LocalDateTime)}
-     * returns the non-cancelled booking that is active at the given time for the room.
-     */
     @Test
     public void getActiveBookingForRoom_returnsBookingInTimeWindow() {
-        // Arrange
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime start = now.minusMinutes(10);
         LocalDateTime end = now.plusMinutes(50);
@@ -410,24 +394,15 @@ public class BookingManagerTest {
         repo.getAllBookings().add(active);
         repo.getAllBookings().add(cancelled);
 
-        // Act
         Booking found = manager.getActiveBookingForRoom("R101", now);
 
-        // Assert
         assertNotNull(found);
         assertEquals("B20", found.getBookingId());
     }
 
-    /**
-     * Verifies that {@link BookingManager#getActiveBookingForRoom(String, LocalDateTime)}
-     * returns {@code null} when there is no active booking matching the room and time.
-     */
     @Test
     public void getActiveBookingForRoom_returnsNullIfNoMatching() {
-        // Act
         Booking found = manager.getActiveBookingForRoom("R999", LocalDateTime.now());
-
-        // Assert
         assertNull(found);
     }
 
@@ -435,16 +410,8 @@ public class BookingManagerTest {
     // EXTEND BOOKING (userEmail + minutes)
     // =====================================================================
 
-    /**
-     * Verifies that a valid booking extension:
-     * <ul>
-     *   <li>extends the end time by the requested minutes, and</li>
-     *   <li>adds the calculated extension deposit to the existing deposit.</li>
-     * </ul>
-     */
     @Test
     public void extendBooking_addsTimeAndDepositOnSuccess() throws Exception {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().plusHours(1);
         LocalDateTime end = start.plusHours(1);
 
@@ -461,21 +428,14 @@ public class BookingManagerTest {
 
         repo.getAllBookings().add(booking);
 
-        // Act
         Booking extended = manager.extendBooking("B30", "user@yorku.ca", 30, "STUDENT");
 
-        // Assert
         assertEquals(end.plusMinutes(30), extended.getEndTime());
         assertEquals(40.0, extended.getDepositAmount(), 0.0001);
     }
 
-    /**
-     * Verifies that trying to extend a booking as a different user
-     * fails with an exception (authorization check).
-     */
     @Test(expected = Exception.class)
     public void extendBooking_withDifferentUser_throwsException() throws Exception {
-        // Arrange
         LocalDateTime start = LocalDateTime.now().plusHours(1);
         LocalDateTime end = start.plusHours(1);
 
@@ -490,7 +450,216 @@ public class BookingManagerTest {
 
         repo.getAllBookings().add(booking);
 
-        // Act + Assert (exception expected)
         manager.extendBooking("B31", "notowner@yorku.ca", 30, "STUDENT");
+    }
+
+    @Test(expected = Exception.class)
+    public void extendBooking_withNonActiveStatus_throwsException() throws Exception {
+        LocalDateTime start = LocalDateTime.now().plusHours(1);
+        LocalDateTime end = start.plusHours(1);
+
+        Booking booking = new BookingBuilder()
+                .setBookingId("BSTAT")
+                .setRoomId("R101")
+                .setUserId("user@yorku.ca")
+                .setStartTime(start)
+                .setEndTime(end)
+                .setPurpose("Test")
+                .setStatus("CANCELLED")
+                .build();
+
+        repo.getAllBookings().add(booking);
+
+        manager.extendBooking("BSTAT", "user@yorku.ca", 30, "STUDENT");
+    }
+
+    // =====================================================================
+    // LEGACY FILE-BASED EXTENSION METHODS
+    // =====================================================================
+
+    @Test
+    public void extendBooking_fileBased_extendsAndAddsDeposit() throws Exception {
+        LocalDateTime start = LocalDateTime.now().plusDays(1);
+        LocalDateTime end = start.plusHours(1);
+
+        Booking booking = new BookingBuilder()
+                .setBookingId("BFILE1")
+                .setRoomId("RFILE")
+                .setUserId("user@yorku.ca")
+                .setStartTime(start)
+                .setEndTime(end)
+                .setPurpose("File-based")
+                .setStatus("CONFIRMED")
+                .setDepositAmount(10.0)
+                .build();
+
+        repo.getAllBookings().clear();
+        repo.getAllBookings().add(booking);
+        repo.saveAll(); // writes to TestData/bookings.csv
+
+        LocalDateTime newEnd = end.plusHours(1);
+
+        Booking updated = manager.extendBooking("BFILE1", newEnd, 5.0);
+
+        assertEquals(newEnd, updated.getEndTime());
+        assertEquals(15.0, updated.getDepositAmount(), 0.0001);
+    }
+
+    @Test
+    public void extendBookingOneSlot_fileBased_reusesCoreExtensionLogic() throws Exception {
+        LocalDateTime start = LocalDateTime.now().plusDays(2);
+        LocalDateTime end = start.plusHours(1);
+
+        Booking booking = new BookingBuilder()
+                .setBookingId("BFILE2")
+                .setRoomId("RFILE")
+                .setUserId("user@yorku.ca")
+                .setStartTime(start)
+                .setEndTime(end)
+                .setPurpose("File slot")
+                .setStatus("CONFIRMED")
+                .setDepositAmount(20.0)
+                .build();
+
+        repo.getAllBookings().clear();
+        repo.getAllBookings().add(booking);
+        repo.saveAll();
+
+        Booking updated = manager.extendBookingOneSlot("BFILE2", 60, 5.0);
+
+        assertEquals(end.plusMinutes(60), updated.getEndTime());
+        assertEquals(25.0, updated.getDepositAmount(), 0.0001);
+    }
+
+    // =====================================================================
+    // BOOKING CREATION + EDIT
+    // =====================================================================
+
+    @Test
+    public void bookRoom_createsConfirmedBookingAndPersists() throws Exception {
+        List<Room> rooms = RoomRepository.getInstance().getAllRoomsList();
+        if (rooms.isEmpty()) {
+            // If no rooms exist in data, we cannot meaningfully test booking creation.
+            return;
+        }
+
+        Room room = rooms.get(0);
+        LocalDateTime start = LocalDateTime.now().plusDays(1);
+        LocalDateTime end = start.plusHours(2);
+
+        int beforeSize = repo.getAllBookings().size();
+
+        Booking booking = manager.bookRoom(
+                room.getRoomId(),
+                "student@yorku.ca",
+                start,
+                end,
+                "Test meeting",
+                "STUDENT"
+        );
+
+        assertNotNull(booking);
+        assertEquals("CONFIRMED", booking.getStatus());
+        assertEquals("APPROVED", booking.getPaymentStatus());
+        assertEquals(20.0, booking.getDepositAmount(), 0.0001);
+        assertEquals(beforeSize + 1, repo.getAllBookings().size());
+    }
+
+    @Test(expected = Exception.class)
+    public void bookRoom_withNonExistingRoom_throwsException() throws Exception {
+        LocalDateTime start = LocalDateTime.now().plusDays(1);
+        LocalDateTime end = start.plusHours(1);
+
+        manager.bookRoom("NON_EXISTENT_ROOM",
+                "student@yorku.ca",
+                start,
+                end,
+                "Test",
+                "STUDENT");
+    }
+
+    @Test
+    public void editBooking_updatesFieldsAndSaves() throws Exception {
+        List<Room> rooms = RoomRepository.getInstance().getAllRoomsList();
+        if (rooms.isEmpty()) {
+            return;
+        }
+        String roomId = rooms.get(0).getRoomId();
+
+        LocalDateTime start = LocalDateTime.now().plusDays(1);
+        LocalDateTime end = start.plusHours(1);
+
+        Booking booking = new BookingBuilder()
+                .setBookingId("BEDIT")
+                .setRoomId(roomId)
+                .setUserId("user@yorku.ca")
+                .setStartTime(start)
+                .setEndTime(end)
+                .setPurpose("Old purpose")
+                .setStatus("CONFIRMED")
+                .build();
+
+        repo.getAllBookings().add(booking);
+
+        LocalDateTime newStart = start.plusHours(1);
+        LocalDateTime newEnd = newStart.plusHours(1);
+        String newPurpose = "Updated";
+
+        manager.editBooking("BEDIT",
+                "user@yorku.ca",
+                roomId,
+                newStart,
+                newEnd,
+                newPurpose);
+
+        assertEquals(roomId, booking.getRoomId());
+        assertEquals(newStart, booking.getStartTime());
+        assertEquals(newEnd, booking.getEndTime());
+        assertEquals(newPurpose, booking.getPurpose());
+    }
+
+    @Test(expected = Exception.class)
+    public void editBooking_conflictingBooking_throwsException() throws Exception {
+        List<Room> rooms = RoomRepository.getInstance().getAllRoomsList();
+        if (rooms.isEmpty()) {
+            throw new Exception("No rooms available for conflict test");
+        }
+        String roomId = rooms.get(0).getRoomId();
+
+        LocalDateTime start = LocalDateTime.now().plusDays(1);
+        LocalDateTime end = start.plusHours(1);
+
+        Booking original = new BookingBuilder()
+                .setBookingId("BEDIT2")
+                .setRoomId(roomId)
+                .setUserId("user@yorku.ca")
+                .setStartTime(start)
+                .setEndTime(end)
+                .setPurpose("Original")
+                .setStatus("CONFIRMED")
+                .build();
+
+        Booking other = new BookingBuilder()
+                .setBookingId("BCLASH")
+                .setRoomId(roomId)
+                .setUserId("other@yorku.ca")
+                .setStartTime(start.plusMinutes(30))
+                .setEndTime(end.plusHours(1))
+                .setPurpose("Other")
+                .setStatus("CONFIRMED")
+                .build();
+
+        repo.getAllBookings().add(original);
+        repo.getAllBookings().add(other);
+
+        LocalDateTime newStart = start.plusMinutes(45);
+        LocalDateTime newEnd = newStart.plusHours(1);
+
+        manager.editBooking("BEDIT2",
+                "user@yorku.ca",
+                roomId,
+                newStart,
+                newEnd,
+                "Updated");
     }
 }
