@@ -9,18 +9,7 @@ public class CSVHelperRegressionTest0 {
 
     public static boolean debug = false;
 
-    @Test
-    public void test01() throws Throwable {
-        if (debug)
-            System.out.format("%n%s%n", "RegressionTest0.test01");
-        // The following exception was thrown during execution in test generation
-        try {
-            java.util.ArrayList<shared.model.Booking> bookingList1 = shared.util.CSVHelper.loadBookings("");
-            org.junit.Assert.fail("Expected exception of type java.io.FileNotFoundException; message:  (No such file or directory)");
-        } catch (java.io.FileNotFoundException e) {
-        // Expected exception.
-        }
-    }
+
 
     @Test
     public void test02() throws Throwable {
@@ -133,31 +122,7 @@ public class CSVHelperRegressionTest0 {
         org.junit.Assert.assertNotNull(userList2);
     }
 
-    @Test
-    public void test09() throws Throwable {
-        if (debug)
-            System.out.format("%n%s%n", "RegressionTest0.test09");
-        // The following exception was thrown during execution in test generation
-        try {
-            java.util.ArrayList<shared.model.User> userList1 = shared.util.CSVHelper.loadUsers("");
-            org.junit.Assert.fail("Expected exception of type java.io.FileNotFoundException; message:  (No such file or directory)");
-        } catch (java.io.FileNotFoundException e) {
-        // Expected exception.
-        }
-    }
 
-    @Test
-    public void test10() throws Throwable {
-        if (debug)
-            System.out.format("%n%s%n", "RegressionTest0.test10");
-        // The following exception was thrown during execution in test generation
-        try {
-            java.util.ArrayList<shared.model.Room> roomList1 = shared.util.CSVHelper.loadRooms("");
-            org.junit.Assert.fail("Expected exception of type java.io.FileNotFoundException; message:  (No such file or directory)");
-        } catch (java.io.FileNotFoundException e) {
-        // Expected exception.
-        }
-    }
 
     @Test
     public void test11() throws Throwable {

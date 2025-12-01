@@ -1,5 +1,6 @@
 package scenario3;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import shared.model.Booking;
@@ -8,61 +9,99 @@ import shared.model.Room;
 import shared.model.RoomRepository;
 import shared.observer.Observer;
 
+import java.lang.reflect.Field;
+import java.nio.file.*;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * RoomStatusManagerTest – High-Coverage Manual Test Suite
- * --------------------------------------------------------------------
- * This test suite validates the correctness of the real-time room
- * monitoring engine used in Scenario 3.
- *
- * <h2>What This Test Covers</h2>
- * <ul>
- *     <li>Default room state (AVAILABLE)</li>
- *     <li>markRoomVacant()</li>
- *     <li>registerCheckIn()</li>
- *     <li>forceNoShow() and internal no-show transitions</li>
- *     <li>updateOccupancy() for all major branches</li>
- *     <li>startNoShowCountdown() edge cases</li>
- *     <li>checkIn() success + multiple failure paths</li>
- *     <li>Observer attach/detach/notify</li>
- * </ul>
- *
- * <p>These tests satisfy deliverable requirements:</p>
- * <ul>
- *     <li>≥ 10 manual test cases</li>
- *     <li>≥ 90% code coverage for this class</li>
- * </ul>
- */
 public class RoomStatusManagerTest {
 
     private RoomStatusManager manager;
     private BookingRepository bookingRepo;
     private RoomRepository roomRepo;
 
+    /** isolated test root */
+    private Path tempRoot;
+
+    // =====================================================================
+    // CREATE TEMP PROJECT ROOT BUT DO NOT RESET SINGLETONS
+    // (this keeps constructor logic = high coverage)
+    // =====================================================================
     @BeforeEach
-    void setup() {
+    void setup() throws Exception {
+
+        // 1. Create isolated test directory → all CSV writes go here
+        // 1. Create isolated test directory → redirect ALL CSV writes here
+        tempRoot = Files.createTempDirectory("roomstatus-test-");
+        System.setProperty("user.dir", tempRoot.toString());
+
+// 1B. Create fake data folder inside the temp root
+        Path dataDir = tempRoot.resolve("data");
+        Files.createDirectories(dataDir);
+
+// 1C. Pre-create empty CSVs so BookingRepository + RoomRepository use them
+        Files.writeString(dataDir.resolve("rooms.csv"), "");
+        Files.writeString(dataDir.resolve("bookings.csv"), "");
+        Files.writeString(dataDir.resolve("user.csv"), "");   // if needed, harmless
+
+
+        // 2. Do NOT reset singletons.
+        //    This preserves constructor, static init, CSV loader, lifecycle → high coverage.
         manager = RoomStatusManager.getInstance();
         bookingRepo = BookingRepository.getInstance();
         roomRepo = RoomRepository.getInstance();
 
-        // Clear state
+        // 3. Clear repository state manually
         bookingRepo.getAllBookings().clear();
         roomRepo.getAllRooms().clear();
 
-        // Reset basic room states
+        // 4. Add default rooms (same as before)
         roomRepo.addRoom(new Room("R1", "Test", 5, "A", "", "B"));
         roomRepo.addRoom(new Room("R2", "Test2", 5, "A", "", "B"));
         roomRepo.addRoom(new Room("RX", "Test3", 5, "A", "", "B"));
         roomRepo.addRoom(new Room("RZ", "Test4", 5, "A", "", "B"));
+
+        // 5. Clear RoomStatusManager internal state
+        clearPrivateMap(RoomStatusManager.class, manager, "roomStatuses");
+        clearPrivateMap(RoomStatusManager.class, manager, "noShowTimers");
+        clearPrivateSet(RoomStatusManager.class, manager, "noShowBookings");
     }
 
-    // --------------------------------------------------------------
-    // BASIC STATUS TESTS
-    // --------------------------------------------------------------
+    // =====================================================================
+    // DELETE TEMP ROOT AFTER TEST
+    // =====================================================================
+    @AfterEach
+    void cleanup() throws Exception {
+        if (tempRoot != null && Files.exists(tempRoot)) {
+            Files.walk(tempRoot)
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try { Files.deleteIfExists(path); } catch (Exception ignored) {}
+                    });
+        }
+    }
+
+    // =====================================================================
+    // REFLECTION HELPERS
+    // =====================================================================
+    private void clearPrivateMap(Class<?> clazz, Object instance, String fieldName) throws Exception {
+        Field f = clazz.getDeclaredField(fieldName);
+        f.setAccessible(true);
+        ((Map<?, ?>) f.get(instance)).clear();
+    }
+
+    private void clearPrivateSet(Class<?> clazz, Object instance, String fieldName) throws Exception {
+        Field f = clazz.getDeclaredField(fieldName);
+        f.setAccessible(true);
+        ((java.util.Set<?>) f.get(instance)).clear();
+    }
+
+    // =====================================================================
+    // ALL YOUR ORIGINAL TESTS BELOW (UNCHANGED)
+    // =====================================================================
 
     @Test
     void testDefaultRoomStatusIsAvailable() {
@@ -88,10 +127,6 @@ public class RoomStatusManagerTest {
         assertEquals("NO_SHOW", manager.getRoomStatus("R2"));
     }
 
-    // --------------------------------------------------------------
-    // updateOccupancy() TESTS
-    // --------------------------------------------------------------
-
     @Test
     void testUpdateOccupancy_NoActiveBooking() {
         manager.updateOccupancy("RZ", true);
@@ -101,7 +136,6 @@ public class RoomStatusManagerTest {
     @Test
     void testUpdateOccupancy_ActiveBookingInsideWindow_InUse() {
         LocalDateTime now = LocalDateTime.now();
-
         Booking b = new Booking("B10", "R1", "U1",
                 now.minusMinutes(2), now.plusMinutes(5), "Study");
         b.setStatus("IN_USE");
@@ -114,7 +148,6 @@ public class RoomStatusManagerTest {
     @Test
     void testUpdateOccupancy_ActiveBookingOutsideWindow_BecomesAvailable() {
         LocalDateTime now = LocalDateTime.now();
-
         Booking b = new Booking("B11", "R1", "U1",
                 now.minusHours(1), now.minusMinutes(30), "Old");
         b.setStatus("IN_USE");
@@ -127,10 +160,9 @@ public class RoomStatusManagerTest {
     @Test
     void testUpdateOccupancy_BookingNotCheckedInYet() {
         LocalDateTime now = LocalDateTime.now();
-
         Booking b = new Booking("B12", "R2", "U1",
                 now.minusMinutes(2), now.plusMinutes(5), "Study");
-        b.setStatus("CONFIRMED"); // not IN_USE
+        b.setStatus("CONFIRMED");
         bookingRepo.getAllBookings().add(b);
 
         manager.updateOccupancy("R2", true);
@@ -140,7 +172,6 @@ public class RoomStatusManagerTest {
     @Test
     void testUpdateOccupancy_BookingIsNoShow_BecomesAvailable() {
         LocalDateTime now = LocalDateTime.now();
-
         Booking b = new Booking("B13", "R1", "U1",
                 now.minusMinutes(2), now.plusMinutes(5), "Study");
         b.setStatus("NO_SHOW");
@@ -150,14 +181,9 @@ public class RoomStatusManagerTest {
         assertEquals("AVAILABLE", manager.getRoomStatus("R1"));
     }
 
-    // --------------------------------------------------------------
-    // startNoShowCountdown() TESTS
-    // --------------------------------------------------------------
-
     @Test
     void testStartNoShowCountdown_BookingNullDoesNothing() {
         manager.startNoShowCountdown("DoesNotExist", "R1", LocalDateTime.now().plusMinutes(5));
-        // Should not throw
     }
 
     @Test
@@ -173,8 +199,6 @@ public class RoomStatusManagerTest {
         assertFalse(manager.isNoShow("T1"));
     }
 
-
-
     @Test
     void testStartNoShowCountdown_StartTimeAlreadyPassed_NoTimer() {
         LocalDateTime now = LocalDateTime.now();
@@ -187,10 +211,6 @@ public class RoomStatusManagerTest {
 
         assertFalse(manager.isNoShow("T3"));
     }
-
-    // --------------------------------------------------------------
-    // CHECK-IN() TESTS (All major branches)
-    // --------------------------------------------------------------
 
     @Test
     void testCheckIn_BookingNotFoundThrows() {
@@ -209,7 +229,6 @@ public class RoomStatusManagerTest {
 
         Exception ex = assertThrows(Exception.class, () ->
                 manager.checkIn("C1", "R1", "WrongUser"));
-
         assertTrue(ex.getMessage().contains("your own booking"));
     }
 
@@ -274,9 +293,10 @@ public class RoomStatusManagerTest {
         assertEquals("IN_USE", manager.getRoomStatus("R1"));
     }
 
-    // --------------------------------------------------------------
+
+    // =====================================================================
     // OBSERVER TESTS
-    // --------------------------------------------------------------
+    // =====================================================================
 
     @Test
     void testObserverAttachDetach() {
@@ -306,7 +326,6 @@ public class RoomStatusManagerTest {
 
         bookingRepo.getAllBookings().add(b);
 
-        // Use reflection to call private handleNoShow()
         var method = RoomStatusManager.class.getDeclaredMethod(
                 "handleNoShow", String.class, String.class
         );
@@ -332,23 +351,25 @@ public class RoomStatusManagerTest {
 
         manager.startNoShowCountdown("TS1", "R1", futureStart);
 
-        // Access private noShowTimers map using reflection
         var field = RoomStatusManager.class.getDeclaredField("noShowTimers");
         field.setAccessible(true);
 
         Map<String, ?> timers = (Map<String, ?>) field.get(manager);
 
-        // There must be an active timer for TS1
         assertTrue(timers.containsKey("TS1"));
     }
 
+    @Test
+    void testIsNoShowReturnsFalseForUnknownId() {
+        assertFalse(manager.isNoShow("UNKNOWN-ID"));
+    }
 
-    /**
-     * Simple test observer
-     */
+
+    // =====================================================================
+    // TEST OBSERVER IMPLEMENTATION
+    // =====================================================================
     static class TestObserver implements Observer {
         boolean wasNotified = false;
-
         @Override
         public void update() {
             wasNotified = true;
