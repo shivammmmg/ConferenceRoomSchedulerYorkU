@@ -1,6 +1,7 @@
 package scenario2.controller;
 
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import scenario2.builder.BookingBuilder;
 import shared.model.Booking;
@@ -40,6 +41,14 @@ public class BookingManagerTest {
      * Resets the singleton {@link BookingManager} and clears the shared
      * {@link BookingRepository} so each test starts from a clean state.
      */
+    // runs ONCE before any tests in this class
+    @BeforeClass
+    public static void configureCsvForTests() {
+        // tell the repo/manager to use TestData/bookings.csv
+        System.setProperty(BookingRepository.BOOKING_CSV_PROPERTY, "TestData/bookings.csv");
+        // rebuild the singleton with this new path
+        BookingRepository.resetForTests();
+    }
     @Before
     public void setUp() {
         manager = BookingManager.getInstance();
