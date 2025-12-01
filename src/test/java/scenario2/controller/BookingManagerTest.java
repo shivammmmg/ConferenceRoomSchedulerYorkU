@@ -39,7 +39,7 @@ public class BookingManagerTest {
      */
     @BeforeClass
     public static void configureCsvForTests() {
-        System.setProperty(BookingRepository.BOOKING_CSV_PROPERTY, "TestData/bookings.csv");
+        System.setProperty(BookingRepository.BOOKING_CSV_PROPERTY, "TestData/data/bookings.csv");
         BookingRepository.resetForTests();
     }
 
