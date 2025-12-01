@@ -1,8 +1,8 @@
 package shared.model;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
+import java.nio.file.*;
 import java.util.List;
 import java.util.Map;
 
@@ -22,13 +22,29 @@ import static org.junit.jupiter.api.Assertions.*;
  *     <li>Ensure rooms can be added, retrieved, updated, and deleted</li>
  *     <li>Validate list and map accessors</li>
  *     <li>Confirm fail-safe behavior for missing rooms and invalid operations</li>
- *     <li>Ensure CSV save operation does not throw exceptions</li>
  *     <li>Achieve near or full 100% coverage of RoomRepository methods</li>
  * </ul>
  */
 class RoomRepositoryTest {
 
     private RoomRepository repo;
+
+    // 🔒 Backup paths for rooms CSV
+    private static Path roomsCsvPath;
+    private static Path roomsCsvBackup;
+
+    // ------------------------------------------------------------
+    // BEFORE ALL TESTS → backup data/rooms.csv (if it exists)
+    // ------------------------------------------------------------
+    @BeforeAll
+    static void backupRoomsCsv() throws Exception {
+        roomsCsvPath = Paths.get("data", "rooms.csv");
+
+        if (Files.exists(roomsCsvPath)) {
+            roomsCsvBackup = Files.createTempFile("rooms-backup", ".csv");
+            Files.copy(roomsCsvPath, roomsCsvBackup, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
 
     /**
      * Initializes the repository before each test.
@@ -39,6 +55,26 @@ class RoomRepositoryTest {
     void setUp() {
         repo = RoomRepository.getInstance();
         repo.getAllRooms().clear();
+    }
+
+    // ------------------------------------------------------------
+    // AFTER EACH TEST → restore original rooms.csv content
+    // ------------------------------------------------------------
+    @AfterEach
+    void restoreRoomsCsv() throws Exception {
+        if (roomsCsvBackup != null && Files.exists(roomsCsvBackup)) {
+            Files.copy(roomsCsvBackup, roomsCsvPath, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    // ------------------------------------------------------------
+    // AFTER ALL TESTS → delete temp backup
+    // ------------------------------------------------------------
+    @AfterAll
+    static void cleanupBackup() throws Exception {
+        if (roomsCsvBackup != null) {
+            Files.deleteIfExists(roomsCsvBackup);
+        }
     }
 
     /**
