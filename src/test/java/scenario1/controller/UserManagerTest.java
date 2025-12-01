@@ -47,10 +47,21 @@ public class UserManagerTest {
      */
     @BeforeEach
     void setUp() throws Exception {
-        tempProjectRoot = Files.createTempDirectory("user-manager-test-");
-        System.setProperty("user.dir", tempProjectRoot.toString());
+        // Point UserManager to the TestData folder
+        Path testDataRoot = Paths.get("TestData");
+        System.setProperty("user.dir", testDataRoot.toAbsolutePath().toString());
+
+        // Reset Singleton
         resetSingleton();
+
+        // OPTIONAL: clear the test files before each test
+        Files.write(testDataRoot.resolve("data/user.csv"), new byte[0]);
+        Files.write(testDataRoot.resolve("data/rooms.csv"), new byte[0]);
+        Files.write(testDataRoot.resolve("data/bookings.csv"), new byte[0]);
     }
+
+
+
 
     /**
      * After each test, delete the temporary directory tree.
