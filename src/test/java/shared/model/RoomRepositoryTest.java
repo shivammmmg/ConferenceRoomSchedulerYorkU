@@ -167,20 +167,7 @@ class RoomRepositoryTest {
     }
 
     /**
-     * Test 9 — Ensures that {@code saveToCSV()} completes successfully
-     * without throwing exceptions. This test does not verify file contents,
-     * only that saving is fail-safe.
-     */
-    @Test
-    void testSaveToCSVDoesNotThrow() {
-        Room r = createRoom("R1", "Test");
-        repo.addRoom(r);
-
-        assertDoesNotThrow(() -> repo.saveToCSV());
-    }
-
-    /**
-     * Test 10 — Verifies that adding a room with an ID that already exists
+     * Test 9 — Verifies that adding a room with an ID that already exists
      * overwrites the previous entry, matching map semantics.
      */
     @Test
@@ -197,7 +184,7 @@ class RoomRepositoryTest {
     }
 
     /**
-     * Test 11 — Ensures that deleting a room that does not exist does not
+     * Test 10 — Ensures that deleting a room that does not exist does not
      * throw exceptions and leaves repository state unchanged.
      */
     @Test

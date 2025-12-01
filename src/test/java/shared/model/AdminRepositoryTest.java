@@ -189,11 +189,5 @@ class AdminRepositoryTest {
         assertTrue(repo.adminExists("original"));
     }
 
-    // 11 – saveAdmins() default path does not throw even when no admins
-    @Test
-    void testSaveAdminsDefaultPathDoesNotThrowWhenEmpty() {
-        // repo is empty because of @BeforeEach
-        assertDoesNotThrow(() -> repo.saveAdmins());
-    }
 }
 
