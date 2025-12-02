@@ -3,6 +3,7 @@ package scenario3;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import scenario2.controller.BookingManager;
 import shared.model.Booking;
 import shared.model.BookingRepository;
 import shared.model.Room;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 import java.nio.file.*;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -39,12 +41,13 @@ public class SensorSystemTest {
         System.setProperty("user.dir", tempProjectRoot.toString());
 
         // ======================
-        // 2. First reset
+        // 2. Reset all singletons
         // ======================
         resetSingleton(RoomStatusManager.class, "instance");
         resetSingleton(SensorSystem.class, "instance");
         resetSingleton(RoomRepository.class, "instance");
         resetSingleton(BookingRepository.class, "instance");
+        resetSingleton(BookingManager.class, "instance");
 
         // ======================
         // 3. Build repos
@@ -60,27 +63,15 @@ public class SensorSystemTest {
         roomRepo.addRoom(new Room("R2", "Room 2", 4, "A", "", "B"));
 
         // ======================
-        // 4. Second reset AFTER rooms exist
+        // 4. Recreate manager + sensor and ensure clean internal state
         // ======================
-        resetSingleton(RoomStatusManager.class, "instance");
-
-        // Re-obtain singletons
         manager = RoomStatusManager.getInstance();
         sensor = SensorSystem.getInstance();
 
-        // Must re-add rooms again because of the second reset
-        roomRepo = RoomRepository.getInstance();
-        roomRepo.addRoom(new Room("R1", "Room 1", 4, "A", "", "B"));
-        roomRepo.addRoom(new Room("R2", "Room 2", 4, "A", "", "B"));
-
-        // ======================
-        // 5. Clear internal state
-        // ======================
         clearPrivateMap(RoomStatusManager.class, manager, "roomStatuses");
         clearPrivateMap(RoomStatusManager.class, manager, "noShowTimers");
         clearPrivateSet(RoomStatusManager.class, manager, "noShowBookings");
     }
-
 
     /** After each test: delete the temporary directory. */
     @AfterEach
@@ -107,17 +98,23 @@ public class SensorSystemTest {
     private void clearPrivateMap(Class<?> clazz, Object instance, String fieldName) throws Exception {
         Field f = clazz.getDeclaredField(fieldName);
         f.setAccessible(true);
-        ((Map<?, ?>) f.get(instance)).clear();
+        Object val = f.get(instance);
+        if (val instanceof Map<?, ?> map) {
+            map.clear();
+        }
     }
 
     private void clearPrivateSet(Class<?> clazz, Object instance, String fieldName) throws Exception {
         Field f = clazz.getDeclaredField(fieldName);
         f.setAccessible(true);
-        ((java.util.Set<?>) f.get(instance)).clear();
+        Object val = f.get(instance);
+        if (val instanceof Set<?> set) {
+            set.clear();
+        }
     }
 
     // =============================================================
-    // TESTS (unchanged from your logic)
+    // TESTS
     // =============================================================
 
     @Test
@@ -132,24 +129,22 @@ public class SensorSystemTest {
 
         Booking b = new Booking("B1", "R1", "U1",
                 future, future.plusMinutes(10), "Study");
-
-        b.setStatus("CONFIRMED"); // required
+        b.setStatus("CONFIRMED");
 
         bookingRepo.getAllBookings().add(b);
 
         sensor.registerNewBooking(b);
 
-        Thread.sleep(100); // scheduler needs a moment
+        // let the timer scheduling run
+        Thread.sleep(100);
 
         Field timersField = RoomStatusManager.class.getDeclaredField("noShowTimers");
         timersField.setAccessible(true);
         Map<String, ?> timers = (Map<String, ?>) timersField.get(manager);
 
-
-
-        assertFalse(timers.containsKey("B1"));
+        // ✅ A timer SHOULD be registered for B1
+        assertTrue(timers.containsKey("B1"));
     }
-
 
     @Test
     void testRegisterNewBooking_NullDoesNothing() throws Exception {
@@ -177,6 +172,7 @@ public class SensorSystemTest {
     @Test
     void testSimulateUserCheckIn_NullDoesNothing() {
         sensor.simulateUserCheckIn(null);
+        // Just ensure no exceptions
     }
 
     @Test

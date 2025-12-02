@@ -2,14 +2,17 @@ package scenario3;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import scenario2.controller.BookingManager;
 import shared.model.Booking;
 import shared.model.BookingRepository;
 import shared.model.Room;
 import shared.model.RoomRepository;
 import shared.observer.Observer;
 
+import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,35 +33,69 @@ import static org.junit.jupiter.api.Assertions.*;
  *     <li>checkIn() success + multiple failure paths</li>
  *     <li>Observer attach/detach/notify</li>
  * </ul>
- *
- * <p>These tests satisfy deliverable requirements:</p>
- * <ul>
- *     <li>≥ 10 manual test cases</li>
- *     <li>≥ 90% code coverage for this class</li>
- * </ul>
  */
 public class RoomStatusManagerTest {
-
 
     private RoomStatusManager manager;
     private BookingRepository bookingRepo;
     private RoomRepository roomRepo;
 
+    // =====================================================================
+    // RESET SINGLETONS + INTERNAL STATE BEFORE EACH TEST
+    // =====================================================================
     @BeforeEach
-    void setup() {
-        manager = RoomStatusManager.getInstance();
+    void setup() throws Exception {
+        // Reset all singletons that hold state
+        resetSingleton(RoomStatusManager.class, "instance");
+        resetSingleton(SensorSystem.class, "instance");
+        resetSingleton(RoomRepository.class, "instance");
+        resetSingleton(BookingRepository.class, "instance");
+        resetSingleton(BookingManager.class, "instance");
+
+        // Recreate repositories & manager
         bookingRepo = BookingRepository.getInstance();
         roomRepo = RoomRepository.getInstance();
+        manager = RoomStatusManager.getInstance();
 
-        // Clear state
+        // Clear repo state
         bookingRepo.getAllBookings().clear();
         roomRepo.getAllRooms().clear();
 
-        // Reset basic room states
+        // Base rooms for tests
         roomRepo.addRoom(new Room("R1", "Test", 5, "A", "", "B"));
         roomRepo.addRoom(new Room("R2", "Test2", 5, "A", "", "B"));
         roomRepo.addRoom(new Room("RX", "Test3", 5, "A", "", "B"));
         roomRepo.addRoom(new Room("RZ", "Test4", 5, "A", "", "B"));
+
+        // Clear RoomStatusManager internal maps/sets (belt + suspenders)
+        clearPrivateMap(RoomStatusManager.class, manager, "roomStatuses");
+        clearPrivateMap(RoomStatusManager.class, manager, "noShowTimers");
+        clearPrivateSet(RoomStatusManager.class, manager, "noShowBookings");
+    }
+
+    // ---------- reflection helpers ----------
+    private void resetSingleton(Class<?> clazz, String fieldName) throws Exception {
+        Field f = clazz.getDeclaredField(fieldName);
+        f.setAccessible(true);
+        f.set(null, null);   // static field
+    }
+
+    private void clearPrivateMap(Class<?> clazz, Object instance, String fieldName) throws Exception {
+        Field f = clazz.getDeclaredField(fieldName);
+        f.setAccessible(true);
+        Object val = f.get(instance);
+        if (val instanceof Map<?, ?> map) {
+            map.clear();
+        }
+    }
+
+    private void clearPrivateSet(Class<?> clazz, Object instance, String fieldName) throws Exception {
+        Field f = clazz.getDeclaredField(fieldName);
+        f.setAccessible(true);
+        Object val = f.get(instance);
+        if (val instanceof Set<?> set) {
+            set.clear();
+        }
     }
 
     // --------------------------------------------------------------
@@ -173,8 +210,6 @@ public class RoomStatusManagerTest {
 
         assertFalse(manager.isNoShow("T1"));
     }
-
-
 
     @Test
     void testStartNoShowCountdown_StartTimeAlreadyPassed_NoTimer() {
@@ -342,7 +377,6 @@ public class RoomStatusManagerTest {
         // There must be an active timer for TS1
         assertTrue(timers.containsKey("TS1"));
     }
-
 
     /**
      * Simple test observer
