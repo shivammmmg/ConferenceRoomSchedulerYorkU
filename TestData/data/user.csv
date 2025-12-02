@@ -1,0 +1,3 @@
+userId,name,email,passwordHash,userType,orgId,studentId,isActive,createdAt
+bc1da0c9-f972-4b6f-82f6-ea4225e41397,Chief Event Coordinator,chief@yorku.ca,Chief123@,CHIEF_EVENT_COORDINATOR,,,true,2025-12-02T16:36:05.645851
+3f0a60ca-5858-4d45-948e-c8e3f66f9ae9,Prof,prof@yorku.ca,Strong1@,FACULTY,,,true,2025-12-02T16:36:05.645961
