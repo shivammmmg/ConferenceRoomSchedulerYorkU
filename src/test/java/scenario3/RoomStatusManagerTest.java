@@ -10,6 +10,7 @@ import shared.model.RoomRepository;
 import shared.observer.Observer;
 
 import java.lang.reflect.Field;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
@@ -45,39 +46,69 @@ public class RoomStatusManagerTest {
     // =====================================================================
     @BeforeEach
     void setup() throws Exception {
-        // Reset all singletons that hold state
+
+        // ==========================================================
+        // 1. Set test CSV paths BEFORE any repository is created
+        // ==========================================================
+
+        // RoomRepository uses user.dir
+        System.setProperty("user.dir",
+                Paths.get("TestData").toAbsolutePath().toString());
+
+        // BookingRepository uses its own property
+        System.setProperty("booking.csv.path",
+                Paths.get("TestData/data/bookings.csv").toString());
+
+        // ==========================================================
+        // 2. Reset SINGLETONS (so they read new paths)
+        // ==========================================================
         resetSingleton(RoomStatusManager.class, "instance");
         resetSingleton(SensorSystem.class, "instance");
         resetSingleton(RoomRepository.class, "instance");
-        resetSingleton(BookingRepository.class, "instance");
+        BookingRepository.resetForTests(); // <-- official reset method
         resetSingleton(BookingManager.class, "instance");
 
-        // Recreate repositories & manager
-        bookingRepo = BookingRepository.getInstance();
-        roomRepo = RoomRepository.getInstance();
-        manager = RoomStatusManager.getInstance();
+        // ==========================================================
+        // 3. Recreate repositories AFTER setting paths
+        // ==========================================================
+        bookingRepo = BookingRepository.getInstance(); // reads booking.csv.path
+        roomRepo = RoomRepository.getInstance();       // reads user.dir
 
-        // Clear repo state
+        // ==========================================================
+        // 4. Clean state
+        // ==========================================================
         bookingRepo.getAllBookings().clear();
         roomRepo.getAllRooms().clear();
 
-        // Base rooms for tests
+        // Base rooms
         roomRepo.addRoom(new Room("R1", "Test", 5, "A", "", "B"));
         roomRepo.addRoom(new Room("R2", "Test2", 5, "A", "", "B"));
         roomRepo.addRoom(new Room("RX", "Test3", 5, "A", "", "B"));
         roomRepo.addRoom(new Room("RZ", "Test4", 5, "A", "", "B"));
 
-        // Clear RoomStatusManager internal maps/sets (belt + suspenders)
+        // Create manager AFTER repos are ready
+        manager = RoomStatusManager.getInstance();
+
+        // Clear manager internal sets/maps
         clearPrivateMap(RoomStatusManager.class, manager, "roomStatuses");
         clearPrivateMap(RoomStatusManager.class, manager, "noShowTimers");
         clearPrivateSet(RoomStatusManager.class, manager, "noShowBookings");
     }
+
+
+
 
     // ---------- reflection helpers ----------
     private void resetSingleton(Class<?> clazz, String fieldName) throws Exception {
         Field f = clazz.getDeclaredField(fieldName);
         f.setAccessible(true);
         f.set(null, null);   // static field
+    }
+
+    private void overrideCsvPath(Class<?> clazz, Object instance, String fieldName, String newPath) throws Exception {
+        Field f = clazz.getDeclaredField(fieldName);
+        f.setAccessible(true);
+        f.set(instance, newPath);
     }
 
     private void clearPrivateMap(Class<?> clazz, Object instance, String fieldName) throws Exception {

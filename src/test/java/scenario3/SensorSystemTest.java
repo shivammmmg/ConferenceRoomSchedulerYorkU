@@ -38,7 +38,14 @@ public class SensorSystemTest {
         // 1. Create fresh root
         // ======================
         tempProjectRoot = Files.createTempDirectory("sensor-test-");
+
+        // 1A — RoomRepository reads from user.dir/data/rooms.csv
         System.setProperty("user.dir", tempProjectRoot.toString());
+
+        // 1B — BookingRepository reads from booking.csv.path
+        Files.createDirectories(tempProjectRoot.resolve("data")); // ensure /data exists
+        System.setProperty("booking.csv.path",
+                tempProjectRoot.resolve("data/bookings.csv").toString());
 
         // ======================
         // 2. Reset all singletons
@@ -46,24 +53,23 @@ public class SensorSystemTest {
         resetSingleton(RoomStatusManager.class, "instance");
         resetSingleton(SensorSystem.class, "instance");
         resetSingleton(RoomRepository.class, "instance");
-        resetSingleton(BookingRepository.class, "instance");
+        BookingRepository.resetForTests();   // <-- official reset
         resetSingleton(BookingManager.class, "instance");
 
         // ======================
         // 3. Build repos
         // ======================
-        roomRepo = RoomRepository.getInstance();
-        bookingRepo = BookingRepository.getInstance();
+        roomRepo = RoomRepository.getInstance();       // uses user.dir/data/rooms.csv
+        bookingRepo = BookingRepository.getInstance(); // uses booking.csv.path
 
         roomRepo.getAllRooms().clear();
         bookingRepo.getAllBookings().clear();
 
-        // Initially add rooms
         roomRepo.addRoom(new Room("R1", "Room 1", 4, "A", "", "B"));
         roomRepo.addRoom(new Room("R2", "Room 2", 4, "A", "", "B"));
 
         // ======================
-        // 4. Recreate manager + sensor and ensure clean internal state
+        // 4. Manager + Sensor
         // ======================
         manager = RoomStatusManager.getInstance();
         sensor = SensorSystem.getInstance();
@@ -72,6 +78,7 @@ public class SensorSystemTest {
         clearPrivateMap(RoomStatusManager.class, manager, "noShowTimers");
         clearPrivateSet(RoomStatusManager.class, manager, "noShowBookings");
     }
+
 
     /** After each test: delete the temporary directory. */
     @AfterEach
