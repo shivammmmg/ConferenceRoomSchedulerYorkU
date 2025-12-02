@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class RoomStatusManagerTest {
 
+
     private RoomStatusManager manager;
     private BookingRepository bookingRepo;
     private RoomRepository roomRepo;
