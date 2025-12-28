@@ -88,7 +88,7 @@ The goal of this project was to design and implement a **robust, extensible, and
 
 ## 🖥 User Interface
 
-### 🏠 Main Pafe
+### 🏠 Main Page
 ![Landing Page](images/ui/landing.png)
 
 ### 🔐 Login Screen
