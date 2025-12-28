@@ -1,10 +1,9 @@
 # 🏢 Conference Room Scheduler – York University
 
-A **JavaFX-based conference room scheduling system** designed for York University Event Services.  
-The application enables students, faculty, staff, and partners to **securely book rooms**, manage reservations, process payments, and track real-time room status using **sensor-powered check-ins**.
-
-> 🎓 **EECS 3311 – Software Design**  
-> Group Project | York University
+A **JavaFX-based conference room scheduling system** designed to simulate a real-world
+university room booking platform. The application enables students, faculty, staff,
+and partners to **securely book rooms**, manage reservations, process payments, and
+track real-time room status using **sensor-powered check-ins**.
 
 ---
 
@@ -89,13 +88,13 @@ The goal of this project was to design and implement a **robust, extensible, and
 
 ## 🖥 User Interface
 
-### 🏠 Landing & Availability Overview
+### 🏠 Main Pafe
 ![Landing Page](images/ui/landing.png)
 
-### 🔐 Authentication
+### 🔐 Login Screen
 ![Login Screen](images/ui/login.png)
 
-### 📅 Room Booking
+### 📅 User Dashboard & Booking
 ![Room Booking](images/ui/booking.png)
 
 ### 🛠 Admin Dashboard
