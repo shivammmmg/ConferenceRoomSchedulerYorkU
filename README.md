@@ -146,6 +146,24 @@ This design enforces **high cohesion**, **low coupling**, and strong separation 
 
 ---
 
+## 🧩 System Flow & Architecture Diagrams
+
+The Conference Room Scheduler was designed using a clear,
+layered architecture with well-defined responsibilities across
+components.
+
+The following diagrams are included in the repository to
+document system behavior and design decisions:
+
+- **Use Case Diagrams** — user and admin interactions
+- **Activity Diagrams** — booking, payment, and check-in flows
+- **Sequence Diagrams** — scenario-based system interactions
+- **Class Diagram** — object relationships and design patterns
+- **Component Diagram** — high-level system decomposition
+
+📁 All diagrams can be found in the `/Diagrams` directory.
+---
+
 ## 🏗 Design Patterns Used
 
 | Design Pattern | Purpose |
@@ -187,6 +205,24 @@ If running directly from IntelliJ:
     --module-path /path/to/javafx/lib
     --add-modules javafx.controls,javafx.fxml
 
+---
+
+## ⚠️ Error Handling & Edge Cases
+
+The system explicitly handles a wide range of edge cases to
+ensure correctness and robustness:
+
+- Duplicate email registrations are rejected
+- Weak passwords fail validation with clear feedback
+- Overlapping room bookings are prevented
+- No-show bookings automatically forfeit deposits
+- Room extensions are blocked if the next slot is occupied
+- Disabled or maintenance rooms cannot be booked
+- Late check-ins after the grace period are rejected
+- Invalid payment attempts do not confirm bookings
+
+These cases are enforced consistently across the UI
+and backend logic.
 ---
 
 ## 🧪 Testing & Quality Assurance
