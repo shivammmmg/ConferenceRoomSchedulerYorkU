@@ -1,3 +1,10 @@
+![Java](https://img.shields.io/badge/Java-23-blue)
+![JavaFX](https://img.shields.io/badge/JavaFX-GUI-green)
+![Maven](https://img.shields.io/badge/Maven-Build-red)
+![Testing](https://img.shields.io/badge/Testing-JUnit%20%7C%20Randoop-brightgreen)
+![Architecture](https://img.shields.io/badge/Architecture-Layered-informational)
+
+
 # 🏢 Conference Room Scheduler – York University
 
 A **JavaFX-based conference room scheduling system** designed to simulate a real-world
