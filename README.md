@@ -16,7 +16,7 @@ track real-time room status using **sensor-powered check-ins**.
 
 ## 🎥 UI Walkthrough
 
-![Conference Room Scheduler UI Walkthrough](images/ui/ui-walkthrough (1).gif)
+![Conference Room Scheduler UI Walkthrough](images/ui/ui-walkthrough.gif)
 
 *A short walkthrough showcasing the landing page, authentication flow, room booking interface, and administrative dashboard.*
 
