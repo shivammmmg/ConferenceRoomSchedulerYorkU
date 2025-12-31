@@ -270,18 +270,32 @@ https://www.youtube.com/watch?v=2ehBNyhx8fY
 
 ## 👥 Team & Contributions
 
-**Group 8 – EECS 3311**
-
-- **Shivam Gupta** *(Lead Project Manager & Primary Contributor)*  
+- **Shivam Gupta** *(Lead Developer & System Integration)*  
   - Core system integration  
   - User authentication & profile management  
   - Sensor simulation & room status logic  
-  - Documentation and design ownership  
+  - Check-in and no-show handling  
+  - Project documentation  
 
-- Kartik Sharma — Booking workflow & UI  
-- Sharwin Verma — Admin features & testing documentation  
-- Himanshi Verma — Architecture & diagrams  
-- Meem Morshed — Sensor testing & demo video  
+- **Kartik Sharma** *(Booking & Payments Developer)*  
+  - Room booking workflow  
+  - Payment interface  
+  - UI development and refinement  
+
+- **Sharwin Verma** *(Administration Features Developer)*  
+  - Administrative dashboard  
+  - Room management functionality  
+  - Admin workflow testing and documentation  
+
+- **Himanshi Verma** *(Design Diagrams & Testing Support)*   
+  - Component and class diagrams  
+  - Testing support for occupancy, maintenance, and admin features  
+
+- **Meem Morshed** *(Testing & Sensor Validation)*  
+  - Sensor and occupancy testing  
+  - Automated test generation (Randoop)  
+  - Project demonstration video  
+
 
 ---
 
